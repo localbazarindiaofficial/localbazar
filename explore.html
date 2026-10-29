@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore Places & Listings - LocalBazar</title>
+    <!-- SEO & OpenGraph Social Sharing Metadata -->
+    <meta name="description" content="Explore verified local shops, clinics, offices, and services in your city on LocalBazar. Real-time timings, photos, and ratings.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LocalBazar">
+    <meta property="og:title" content="Explore Local Places & Businesses - LocalBazar">
+    <meta property="og:description" content="Discover verified shops, clinics, and local services in your city on LocalBazar.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="explore.css">
+    <link rel="stylesheet" href="pwa.css?v=7">
+
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="manifest.json?v=7">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LocalBazar">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=7">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=7">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png?v=7">
+</head>
+<body class="explore-body">
+
+    <!-- Main Results Container -->
+    <main class="explore-main">
+        <div class="explore-container">
+
+            <!-- Clean Header Line -->
+            <div class="clean-results-top">
+                <div class="clean-results-left-wrap">
+                    <button type="button" class="explore-nav-back-btn" onclick="window.lbSmartBack('index.html')" title="Back to Home">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h1 class="clean-results-title" id="resultsMainTitle">Listings</h1>
+                </div>
+                <span class="clean-badge-count" id="resultsCountBadge">0 Places</span>
+            </div>
+
+            <!-- Dynamic Sponsored Ads Slot (Top / Above Feed) -->
+            <div class="explore-ads-slot" id="exploreAdsContainer" style="display:none;"></div>
+
+            <!-- Listings Grid Feed -->
+            <div class="listings-grid-feed" id="listingsGridFeed">
+                <!-- Injected via JavaScript -->
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Detail View Modal: Exact JustDial App Mobile Header Structure -->
+    <div class="listing-modal-backdrop" id="listingDetailModal">
+        <div class="listing-modal-card jd-style-modal-card">
+            <button type="button" class="btn-close-listing-modal" id="closeDetailModalBtn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="modal-body-scroll">
+                
+                <!-- Exact JustDial Top Row: Left Details + Right Square Photo with Counter -->
+                <div class="jd-app-header-top">
+                    <!-- Left Column: Title, Ratings, Badges, Location, Category -->
+                    <div class="jd-app-info-col">
+                        
+                        <!-- 1. Listing Name with Thumb / Store Icon -->
+                        <div class="jd-app-title-line">
+                            <span class="jd-app-thumb-icon"><i class="fa-solid fa-thumbs-up"></i></span>
+                            <h2 class="jd-app-title" id="modalPlaceName">Listing Title</h2>
+                        </div>
+
+                        <!-- 2. Dark Green Rating Badge + Ratings Count -->
+                        <div class="jd-app-rating-line">
+                            <div class="jd-app-score-pill" id="modalScoreBadge">
+                                <span id="modalAvgRating">4.5</span>
+                                <i class="fa-solid fa-star"></i>
+                            </div>
+                            <span class="jd-app-ratings-count" id="modalReviewsTotalText">11.2k ratings</span>
+                        </div>
+
+                        <!-- 3. City + Verified Badge Side-by-Side in 1 Clean Line -->
+                        <div class="jd-app-city-verified-row">
+                            <span class="jd-app-locality-name" id="modalLocality">City</span>
+                            <span class="badge-jd-verified"><i class="fa-solid fa-circle-check"></i> Verified</span>
+                        </div>
+
+                        <!-- 4. Category • Dynamic Live Open Status Line -->
+                        <div class="jd-app-meta-line">
+                            <strong class="jd-meta-cat" id="modalCategoryTag">Category</strong>
+                            <span class="jd-meta-dot">•</span>
+                            <span class="jd-live-status-span" id="modalLiveOpenText">Open Today</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Square Thumbnail Photo with Photo Counter Overlay -->
+                    <div class="jd-app-photo-square">
+                        <img id="modalCoverImg" src="" alt="Place Photo">
+                        <div class="jd-photo-counter-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                            <span id="modalPhotoCountNum">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Interactive JustDial App Icon Quick Action Buttons -->
+                <div class="jd-app-action-grid">
+                    <!-- 1. Call Now Button -->
+                    <a href="#" id="modalCallBtn" class="jd-app-btn-box">
+                        <div class="jd-app-icon-squircle bg-blue">
+                            <i class="fa-solid fa-phone"></i>
+                        </div>
+                        <span class="jd-app-btn-lbl">Call Now</span>
+                    </a>
+
+                    <!-- 2. WhatsApp Button -->
+                    <a href="#" id="modalWhatsappBtn" target="_blank" class="jd-app-btn-box">
+                        <div class="jd-app-icon-squircle bg-green">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <span class="jd-app-btn-lbl">WhatsApp</span>
+                    </a>
+
+                    <!-- 3. Direction Button -->
+                    <a href="#" id="modalMapBtn" target="_blank" class="jd-app-btn-box">
+                        <div class="jd-app-icon-squircle bg-white-border">
+                            <i class="fa-solid fa-location-arrow"></i>
+                        </div>
+                        <span class="jd-app-btn-lbl">Direction</span>
+                    </a>
+
+                    <!-- 4. Chat Button -->
+                    <button type="button" class="jd-app-btn-box" id="modalChatBtn">
+                        <div class="jd-app-icon-squircle bg-chat-blue">
+                            <i class="fa-solid fa-comments"></i>
+                        </div>
+                        <span class="jd-app-btn-lbl">Chat</span>
+                    </button>
+                </div>
+
+                <!-- Products & Services List -->
+                <div class="modal-section-card" id="modalProductsSection">
+                    <h4><i class="fa-solid fa-tags"></i> Products, Pricing & Services</h4>
+                    <div class="modal-products-list" id="modalProductsList"></div>
+                </div>
+
+                <!-- Timing & Schedule -->
+                <div class="modal-section-card">
+                    <h4><i class="fa-regular fa-clock"></i> Schedule & Operating Timings</h4>
+                    <div class="modal-schedule-grid">
+                        <div>
+                            <span class="sched-label">Working Hours</span>
+                            <strong id="modalTimingsText">09:00 AM - 08:30 PM</strong>
+                        </div>
+                        <div>
+                            <span class="sched-label">Open Days</span>
+                            <span id="modalOpenDaysPills" class="open-days-pill-wrap"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address & Description -->
+                <div class="modal-section-card">
+                    <h4><i class="fa-solid fa-circle-info"></i> About & Full Address</h4>
+                    <p id="modalDescText" style="margin-bottom:0.65rem; color:#475569; font-size:0.88rem; line-height:1.5;"></p>
+                    <div class="modal-full-address">
+                        <i class="fa-solid fa-building-circle-arrow-right"></i>
+                        <span id="modalFullAddressText"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Google Login Required Modal for Search -->
+    <div class="lb-auth-modal-overlay" id="searchAuthModalOverlay" style="display:none;" onclick="closeSearchAuthModal(event)">
+        <div class="lb-auth-modal-card" onclick="event.stopPropagation()">
+            <button type="button" class="lb-auth-modal-close" onclick="closeSearchAuthModal()" title="Close">&times;</button>
+            
+            <div class="lb-auth-modal-header">
+                <div class="lb-auth-brand-badge">
+                    <div class="lb-brand-icon-box"><i class="fa-solid fa-store"></i></div>
+                    <span class="lb-brand-title">Local<span>Bazar</span></span>
+                </div>
+                <div class="lb-auth-lock-shield">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+            </div>
+
+            <div class="lb-auth-modal-body">
+                <h3 class="lb-auth-modal-title">Sign in to Explore Local Places</h3>
+                <p class="lb-auth-modal-desc">
+                    To view verified businesses, contacts, and live deals for <strong id="modalTargetSearchLabel" class="target-search-chip">Local Stores</strong>, please continue with your Google account.
+                </p>
+
+                <div class="lb-auth-perks-list">
+                    <div class="perk-item"><i class="fa-solid fa-check"></i> <span>Direct phone & WhatsApp to verified shops</span></div>
+                    <div class="perk-item"><i class="fa-solid fa-check"></i> <span>View live catalog & in-store deals</span></div>
+                    <div class="perk-item"><i class="fa-solid fa-check"></i> <span>Save favorite places & write reviews</span></div>
+                </div>
+
+                <button type="button" class="btn-modal-google-login" id="btnModalGoogleLogin" onclick="handleModalGoogleSignIn()">
+                    <svg class="google-icon" width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                </button>
+            </div>
+
+            <div class="lb-auth-modal-footer">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Fast, verified and secure 1-click sign-in</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Cloud SDK & Central Config -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="explore.js"></script>
+    <script src="app-nav.js"></script>
+    <script src="pwa.js"></script>
+</body>
+</html>

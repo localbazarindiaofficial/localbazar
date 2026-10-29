@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listing Details - LocalBazar</title>
+    <!-- SEO & OpenGraph Social Sharing Metadata -->
+    <meta name="description" content="LocalBazar - Explore local businesses, shops, doctors, products and services with real-time timings, photos, and reviews.">
+    <meta property="og:type" content="business.business">
+    <meta property="og:site_name" content="LocalBazar">
+    <meta property="og:title" content="Listing Details - LocalBazar">
+    <meta property="og:description" content="Explore local businesses, clinics, shops and services on LocalBazar.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Listing Details - LocalBazar">
+    <meta name="twitter:description" content="Explore local businesses, clinics, shops and services on LocalBazar.">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="listing-detail.css">
+    <link rel="stylesheet" href="pwa.css?v=7">
+
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="manifest.json?v=7">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LocalBazar">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=7">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=7">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png?v=7">
+</head>
+<body class="detail-body">
+
+    <!-- Sticky App Top Bar with Professional Back Button -->
+    <header class="detail-top-nav">
+        <div class="nav-content">
+            <button type="button" class="btn-detail-back" id="btnListingDetailBack" onclick="window.lbSmartBack('index.html')" title="Back">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h2 class="top-nav-title" id="topNavPlaceName">Listing Details</h2>
+            <div style="width:36px; height:36px;"></div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="detail-main-layout">
+        <div class="detail-container">
+
+            <div class="detail-content-card">
+                
+                <!-- JustDial Top Row: Left Details + Right Square Photo with Counter -->
+                <div class="jd-app-header-top">
+                    <!-- Left Column: Title, Ratings, Badges, Location, Category -->
+                    <div class="jd-app-info-col">
+                        
+                        <!-- 1. Listing Name with Thumb / Store Icon & Gold Trust Badge -->
+                        <div class="jd-app-title-line">
+                            <span class="jd-app-thumb-icon"><i class="fa-solid fa-thumbs-up"></i></span>
+                            <h1 class="jd-app-title" id="detailPlaceName">Loading...</h1>
+                            <span class="badge-gold-trust" id="detailGoldTrustBadge" style="display:none;" title="LocalBazar Verified & Trusted Business">
+                                <i class="fa-solid fa-shield-halved"></i> Trust
+                            </span>
+                        </div>
+
+                        <!-- 2. Dark Green Rating Badge + Ratings Count -->
+                        <div class="jd-app-rating-line" onclick="switchListingView('reviews')" style="cursor:pointer;" title="Click to view customer ratings & reviews">
+                            <div class="jd-app-score-pill" id="detailScoreBadge">
+                                <span id="detailAvgRating">4.5</span>
+                                <i class="fa-solid fa-star"></i>
+                            </div>
+                            <span class="jd-app-ratings-count" id="detailReviewsTotalText">Ratings</span>
+                        </div>
+
+                        <!-- 3. City + Arrow Button Side-by-Side in 1 Clean Line -->
+                        <div class="jd-app-city-verified-row">
+                            <span class="jd-app-locality-name" id="detailCityTag">City</span>
+                            <button type="button" class="btn-open-address-sheet" id="btnTriggerAddressSheet" title="View Full Address & Details">
+                                <i class="fa-solid fa-chevron-down jd-address-arrow"></i>
+                            </button>
+                        </div>
+
+                        <!-- 4. Category • Dynamic Live Open Status Line with JustDial-Style Arrow Trigger -->
+                        <div class="jd-app-meta-line">
+                            <strong class="jd-meta-cat" id="detailCatPill">Category</strong>
+                            <span class="jd-meta-dot">•</span>
+                            <button type="button" class="btn-open-schedule-sheet" id="btnTriggerScheduleSheet" title="View Full Operating Schedule & Timings">
+                                <span class="jd-live-status-span" id="detailLiveOpenText">Open Today</span>
+                                <i class="fa-solid fa-chevron-down jd-schedule-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Square Thumbnail Photo with Photo Counter Overlay -->
+                    <div class="jd-app-photo-square" onclick="openStoreGalleryModal()" style="cursor:pointer;" title="Click to view all photos & gallery">
+                        <img id="detailHeroImg" src="" alt="Listing Photo">
+                        <div class="jd-photo-counter-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                            <span id="detailPhotoCountNum">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions & Search Row Container (Side-by-side on desktop, naturally stacked on mobile) -->
+                <div class="desktop-actions-search-row">
+                    <!-- 5 Interactive App Icon Quick Action Buttons (Call Now, WhatsApp, Direction, Chat, Share) -->
+                    <div class="jd-app-action-grid">
+                        <!-- 1. Call Now Button -->
+                        <a href="#" id="detailCallAction" class="jd-app-btn-box">
+                            <div class="jd-app-icon-squircle bg-blue">
+                                <i class="fa-solid fa-phone"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl">Call Now</span>
+                        </a>
+
+                        <!-- 2. WhatsApp Button -->
+                        <a href="#" id="detailWhatsappAction" target="_blank" class="jd-app-btn-box">
+                            <div class="jd-app-icon-squircle bg-green">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl">WhatsApp</span>
+                        </a>
+
+                        <!-- 3. Direction Button -->
+                        <a href="#" id="detailDirectionsAction" target="_blank" class="jd-app-btn-box">
+                            <div class="jd-app-icon-squircle bg-white-border">
+                                <i class="fa-solid fa-location-arrow"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl">Direction</span>
+                        </a>
+
+                        <!-- 4. Chat Button -->
+                        <button type="button" class="jd-app-btn-box" id="btnOpenChatModal">
+                            <div class="jd-app-icon-squircle bg-chat-blue">
+                                <i class="fa-solid fa-comments"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl">Chat</span>
+                        </button>
+
+                        <!-- 5. Share Button -->
+                        <button type="button" class="jd-app-btn-box" id="btnShareListing">
+                            <div class="jd-app-icon-squircle bg-share-purple">
+                                <i class="fa-solid fa-share-nodes"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl">Share</span>
+                        </button>
+
+                        <!-- 6. Bookmark / Save Button -->
+                        <button type="button" class="jd-app-btn-box" id="btnBookmarkListing" title="Save to favorite places">
+                            <div class="jd-app-icon-squircle bg-bookmark-gold" id="bookmarkIconBox">
+                                <i class="fa-regular fa-bookmark" id="bookmarkIcon"></i>
+                            </div>
+                            <span class="jd-app-btn-lbl" id="bookmarkBtnLabel">Save</span>
+                        </button>
+                    </div>
+
+                    <!-- ================= FLIPKART/AMAZON STYLE COMMERCE SECTION ================= -->
+                    <!-- 1. Modern Compact Pill Search Bar (Clean & Elevated) -->
+                    <div class="store-search-bar-wrap" id="storeSearchBarWrap">
+                        <div class="store-search-pill">
+                            <i class="fa-solid fa-magnifying-glass search-leading-icon"></i>
+                            <input type="text" id="storeProductSearchInput" placeholder="Search in this store..." autocomplete="off">
+                            <button type="button" id="btnClearStoreSearch" class="btn-clear-store-search" style="display:none;" title="Clear search">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <!-- Live Auto-suggest Dropdown -->
+                        <div class="store-search-suggestions" id="storeSearchSuggestions" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Horizontal Sliding Category Icons Bar (Festive/Modern Flipkart Style) -->
+                <div class="store-cats-slide-wrap">
+                    <div class="store-cats-track" id="storeCatsSlideTrack">
+                        <button type="button" class="store-cat-item cat-box-for-you active" data-cat-filter="all">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-bag-shopping"></i></div>
+                            <span>For You</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-popular" data-cat-filter="popular">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-fire"></i></div>
+                            <span>Popular</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-fashion" data-cat-filter="fashion">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-shirt"></i></div>
+                            <span>Fashion</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-electronics" data-cat-filter="electronics">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-mobile-screen"></i></div>
+                            <span>Electronics</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-grocery" data-cat-filter="grocery">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-basket-shopping"></i></div>
+                            <span>Grocery</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-beauty" data-cat-filter="beauty">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <span>Beauty</span>
+                        </button>
+                        <button type="button" class="store-cat-item cat-box-home" data-cat-filter="home">
+                            <div class="store-cat-icon-circle"><i class="fa-solid fa-house"></i></div>
+                            <span>Home</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Sliding Promotional Ad Banners (16:9 Deals Carousel with Auto-slide) -->
+                <div class="store-ads-carousel-wrap" id="storeAdsCarouselWrap" style="display:none;">
+                    <button type="button" class="store-ads-nav-btn prev" id="btnAdsPrev" aria-label="Previous Banner"><i class="fa-solid fa-chevron-left"></i></button>
+                    <div class="store-ads-slider" id="storeAdsSlider">
+                        <!-- Populated dynamically via JS: Lister Banners + Admin Fallback Banners (Max 4 slides) -->
+                    </div>
+                    <button type="button" class="store-ads-nav-btn next" id="btnAdsNext" aria-label="Next Banner"><i class="fa-solid fa-chevron-right"></i></button>
+                    <!-- Dots Indicator -->
+                    <div class="store-ads-dots" id="storeAdsDots"></div>
+                </div>
+
+                <!-- 4. Quick Horizontal Product Slide Row (Top Products & Auto-Slide Shelf) -->
+                <div class="store-featured-shelf" id="storeFeaturedShelf">
+                    <div class="store-shelf-header" id="storeShelfHeader">
+                        <h4 class="shelf-header-title" id="shelfTitle">Featured Top Picks</h4>
+                    </div>
+                    <div class="shelf-slider-container">
+                        <button type="button" class="shelf-nav-btn prev" id="btnShelfPrev" aria-label="Previous Product"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="shelf-products-slider" id="shelfProductsSlider">
+                            <!-- Dynamically filled with products -->
+                        </div>
+                        <button type="button" class="shelf-nav-btn next" id="btnShelfNext" aria-label="Next Product"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- 5. Ratings & Customer Reviews Section (Professional Mobile App Reviews Suite) -->
+                <div class="store-reviews-section" id="storeReviewsSection">
+                    
+                    <!-- Section Header Row -->
+                    <div class="reviews-section-header">
+                        <div>
+                            <div class="reviews-section-tag"><i class="fa-solid fa-star"></i> Verified Feedback</div>
+                            <h3 class="reviews-section-title">Ratings & Reviews</h3>
+                        </div>
+                        <button type="button" class="btn-write-review" id="btnWriteReviewToggle">
+                            <i class="fa-solid fa-pen-to-square"></i> <span id="writeReviewBtnText">Write a Review</span>
+                        </button>
+                    </div>
+
+                    <!-- Store Owner Notice (Visible only if current user is owner of this listing) -->
+                    <div id="ownerReviewNotice" class="owner-review-alert" style="display:none;">
+                        <i class="fa-solid fa-store"></i>
+                        <span>You are the registered owner of this business. Business owners cannot submit customer ratings for their own listing.</span>
+                    </div>
+
+                    <!-- Overall Rating Breakdown Summary Card -->
+                    <div class="reviews-summary-card">
+                        <!-- Left Score Box -->
+                        <div class="reviews-score-col">
+                            <span class="reviews-large-score" id="reviewsTabScore">0.0</span>
+                            <div class="reviews-stars-row" id="reviewsSummaryStars">
+                                <i class="fa-solid fa-star"></i>
+                                <i class="fa-solid fa-star"></i>
+                                <i class="fa-solid fa-star"></i>
+                                <i class="fa-solid fa-star"></i>
+                                <i class="fa-solid fa-star"></i>
+                            </div>
+                            <span class="reviews-count-caption" id="reviewsTabCountText">Based on 0 verified ratings</span>
+                        </div>
+
+                        <!-- Right Breakdown Progress Bars (5★ to 1★) -->
+                        <div class="reviews-breakdown-col">
+                            <div class="star-bar-row">
+                                <span class="star-bar-label">5 <i class="fa-solid fa-star"></i></span>
+                                <div class="star-bar-track"><div class="star-bar-fill green" id="starBarFill5" style="width: 0%;"></div></div>
+                                <span class="star-bar-count" id="starBarCount5">0</span>
+                            </div>
+                            <div class="star-bar-row">
+                                <span class="star-bar-label">4 <i class="fa-solid fa-star"></i></span>
+                                <div class="star-bar-track"><div class="star-bar-fill green-light" id="starBarFill4" style="width: 0%;"></div></div>
+                                <span class="star-bar-count" id="starBarCount4">0</span>
+                            </div>
+                            <div class="star-bar-row">
+                                <span class="star-bar-label">3 <i class="fa-solid fa-star"></i></span>
+                                <div class="star-bar-track"><div class="star-bar-fill amber" id="starBarFill3" style="width: 0%;"></div></div>
+                                <span class="star-bar-count" id="starBarCount3">0</span>
+                            </div>
+                            <div class="star-bar-row">
+                                <span class="star-bar-label">2 <i class="fa-solid fa-star"></i></span>
+                                <div class="star-bar-track"><div class="star-bar-fill orange" id="starBarFill2" style="width: 0%;"></div></div>
+                                <span class="star-bar-count" id="starBarCount2">0</span>
+                            </div>
+                            <div class="star-bar-row">
+                                <span class="star-bar-label">1 <i class="fa-solid fa-star"></i></span>
+                                <div class="star-bar-track"><div class="star-bar-fill red" id="starBarFill1" style="width: 0%;"></div></div>
+                                <span class="star-bar-count" id="starBarCount1">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Write / Edit Review Collapsible Form Card -->
+                    <div class="write-review-card" id="writeReviewCard" style="display:none;">
+                        <div class="write-review-card-header">
+                            <div>
+                                <h4 class="write-review-title" id="writeReviewCardTitle">Rate & Review This Business</h4>
+                                <span class="write-review-subtitle" id="writeReviewCardSub">Tap stars to rate and write your genuine customer experience</span>
+                            </div>
+                            <button type="button" class="btn-close-rev-form" id="btnCancelReview" title="Close review form">&times;</button>
+                        </div>
+
+                        <form id="writeReviewForm" class="write-review-form" onsubmit="event.preventDefault();">
+                            <input type="hidden" id="reviewStarValue" value="5">
+                            <input type="hidden" id="editingReviewId" value="">
+
+                            <!-- Interactive Star Rating Picker -->
+                            <div class="star-picker-container">
+                                <div class="star-rating-select" id="starRatingPicker">
+                                    <i class="fa-solid fa-star star-pick active" data-val="1"></i>
+                                    <i class="fa-solid fa-star star-pick active" data-val="2"></i>
+                                    <i class="fa-solid fa-star star-pick active" data-val="3"></i>
+                                    <i class="fa-solid fa-star star-pick active" data-val="4"></i>
+                                    <i class="fa-solid fa-star star-pick active" data-val="5"></i>
+                                </div>
+                                <span class="star-rating-label" id="starRatingLabel">Excellent (5 Stars)</span>
+                            </div>
+
+                            <!-- Reviewer Name -->
+                            <div class="rev-input-group">
+                                <label for="reviewUserName">Your Name *</label>
+                                <input type="text" id="reviewUserName" required placeholder="Enter your full name" autocomplete="name">
+                            </div>
+
+                            <!-- Review Comment -->
+                            <div class="rev-input-group">
+                                <label for="reviewUserText">Your Experience & Feedback *</label>
+                                <textarea id="reviewUserText" rows="3" required placeholder="Share details of your experience (quality, service, behavior, price, ambiance)..."></textarea>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="review-form-actions">
+                                <button type="button" class="btn-cancel-rev" id="btnCancelReviewBtn">Cancel</button>
+                                <button type="submit" class="btn-submit-rev" id="btnSubmitReview">
+                                    <i class="fa-solid fa-paper-plane"></i> <span id="submitReviewBtnText">Submit Review</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Customer Reviews Feed List -->
+                    <div class="reviews-feed-wrapper">
+                        <div class="reviews-feed-header">
+                            <h4 class="reviews-feed-title">Customer Reviews</h4>
+                            <span class="reviews-feed-count" id="reviewsFeedCountText">Showing verified reviews</span>
+                        </div>
+                        <div class="reviews-list-container" id="detailReviewsList">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JustDial-Style 70% Bottom Slide Sheet for Operating Schedule & Timings -->
+    <div class="schedule-bottom-sheet-backdrop" id="scheduleSheetBackdrop">
+        <div class="schedule-bottom-sheet-panel" id="scheduleSheetPanel">
+            <!-- Pull Handle -->
+            <div class="sheet-pull-bar">
+                <span class="sheet-pull-handle"></span>
+            </div>
+
+            <!-- Sheet Header -->
+            <div class="schedule-sheet-header">
+                <div class="sheet-title-meta">
+                    <div class="sheet-icon-circle">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                    <div>
+                        <h3 class="sheet-main-title">Operating Schedule & Timings</h3>
+                        <p class="sheet-sub-title" id="sheetPlaceNameSub">Business Schedule</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-sheet" id="btnCloseScheduleSheet" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Sheet Content Body (70% viewport coverage) -->
+            <div class="schedule-sheet-body">
+                <!-- Today Live Status Banner -->
+                <div class="sheet-today-highlight" id="sheetTodayHighlight">
+                    <div class="today-left">
+                        <span class="pulse-status-dot"></span>
+                        <strong id="sheetTodayStatusTitle">Open Today</strong>
+                    </div>
+                    <span class="today-time-badge" id="sheetTodayTimingBadge">09:00 AM - 08:30 PM</span>
+                </div>
+
+                <!-- 7 Days Weekly Timings List (Exact JustDial Format) -->
+                <div class="sheet-week-days-table" id="sheetWeekDaysTable">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Holidays / Specific Off Dates (Current Month Only) -->
+                <div class="sheet-holidays-box" id="sheetHolidaysBox" style="display:none;">
+                    <div class="sheet-holidays-title">
+                        <i class="fa-regular fa-calendar-xmark"></i>
+                        <span><span id="sheetHolidayMonthName">This Month</span>'s Holidays / Off Dates (<strong id="sheetHolidayCountText">0</strong>)</span>
+                    </div>
+                    <div class="sheet-holidays-pill-grid" id="sheetHolidaysPillGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address & Contact Full 70% Bottom Slide Sheet -->
+    <div class="address-bottom-sheet-backdrop" id="addressSheetBackdrop">
+        <div class="address-bottom-sheet-panel">
+            <div class="sheet-pull-bar">
+                <span class="sheet-pull-handle"></span>
+            </div>
+
+            <!-- Sheet Header -->
+            <div class="schedule-sheet-header">
+                <div class="sheet-title-meta">
+                    <div class="sheet-icon-circle blue-tint">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div>
+                        <h3 class="sheet-main-title">Store Address</h3>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-sheet" id="btnCloseAddressSheet" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Sheet Scroll Body: ONLY Full Address Text + Branches & Outlets List -->
+            <div class="schedule-sheet-body">
+                <!-- Location Card: Text Only -->
+                <div class="addr-sheet-card" style="margin-bottom:0.85rem; padding:1.1rem 1.25rem;">
+                    <div class="addr-sheet-card-header" style="margin-bottom:0;">
+                        <span class="addr-sheet-icon"><i class="fa-solid fa-location-dot"></i></span>
+                        <div class="addr-sheet-info-col">
+                            <span class="addr-sheet-label">Full Address</span>
+                            <p class="addr-sheet-val" id="sheetFullAddressText" style="font-size:0.95rem; font-weight:600; color:#1e293b; line-height:1.5;">Loading address...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multi-Branch Outlets Block in Address Sheet -->
+                <div class="addr-sheet-branches-card" id="sheetBranchesBlock" style="display:none;">
+                    <div class="addr-sheet-branches-header">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fa-solid fa-code-branch" style="color:#2563eb;"></i>
+                            <strong>Store Branches & Outlets (<span id="sheetBranchesCount">0</span>)</strong>
+                        </div>
+                        <button type="button" class="btn-sheet-view-all-branches" onclick="openBranchesListModal()">View All</button>
+                    </div>
+                    <div class="sheet-branches-scroll-list" id="sheetBranchesList">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holidays Full View Modal Popup (when clicking More) -->
+    <div class="holidays-modal-backdrop" id="holidaysModalBackdrop">
+        <div class="holidays-modal-card">
+            <div class="holidays-modal-header">
+                <div class="holidays-modal-title-meta">
+                    <div class="holidays-modal-icon">
+                        <i class="fa-regular fa-calendar-xmark"></i>
+                    </div>
+                    <div>
+                        <h4 class="holidays-modal-title"><span id="holidaysModalMonthTitle">This Month</span>'s Off Dates</h4>
+                        <p class="holidays-modal-sub" id="holidaysModalPlaceName">Store Scheduled Holidays</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-holidays-modal" id="btnCloseHolidaysModal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="holidays-modal-body" id="holidaysModalFullList">
+                <!-- All month dates populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Branches List Modal Popup -->
+    <div class="branches-modal-backdrop" id="branchesListModalBackdrop" style="display:none;" onclick="closeBranchesListModal()">
+        <div class="branches-modal-card" onclick="event.stopPropagation()">
+            <div class="branches-modal-header">
+                <div class="branches-modal-title-meta">
+                    <div class="branches-modal-icon">
+                        <i class="fa-solid fa-code-branch"></i>
+                    </div>
+                    <div>
+                        <h4 class="branches-modal-title">Our Store Branches</h4>
+                        <p class="branches-modal-sub" id="branchesModalSubtitle">Addresses, contacts & GPS directions</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-branches-modal" id="btnCloseBranchesModal" onclick="closeBranchesListModal()" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="branches-modal-body" id="branchesModalFullList">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="chat-modal-backdrop" id="chatModalBackdrop">
+        <div class="chat-modal-card">
+            <div class="chat-modal-header">
+                <div class="chat-partner-meta">
+                    <img id="chatPartnerImg" src="" alt="Place Logo" class="chat-partner-avatar">
+                    <div>
+                        <h4 class="chat-partner-name" id="chatPartnerName">Business Name</h4>
+                        <span class="chat-status-text"><i class="fa-solid fa-circle-check"></i> Verified Business</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-chat" id="btnCloseChatModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="chat-modal-body" id="chatModalBody">
+                <div class="chat-msg-row incoming">
+                    <div class="msg-bubble" id="chatAutoGreetingMsg">
+                        Hello! Welcome. How can we assist you today?
+                    </div>
+                </div>
+            </div>
+            <div class="chat-modal-footer">
+                <!-- Attached Product Inquiry Context Banner -->
+                <div class="chat-product-preview-bar" id="chatProductPreviewBar" style="display:none;">
+                    <img id="chatProductThumb" src="" alt="Product" class="chat-product-thumb">
+                    <div class="chat-product-info">
+                        <span class="chat-product-tag"><i class="fa-solid fa-tag"></i> Inquiring About:</span>
+                        <div class="chat-product-name" id="chatProductName">Product Name</div>
+                        <div class="chat-product-price" id="chatProductPrice">₹ 0</div>
+                    </div>
+                    <button type="button" class="btn-clear-chat-product" id="btnClearChatProduct" title="Remove product attachment"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="chatMessageForm" class="chat-input-form">
+                    <input type="text" id="chatInputField" placeholder="Type your message here..." required autocomplete="off">
+                    <button type="submit" class="btn-send-chat"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storefront Product Viewer Modal (Multi-image slider, stock status & details) -->
+    <div class="detail-product-modal-backdrop" id="detailProductModalBackdrop" style="display:none;" onclick="closeDetailProductViewer()">
+        <div class="detail-product-modal-card" onclick="event.stopPropagation()">
+            <div class="detail-product-modal-header">
+                <span class="detail-modal-cat-badge" id="dpmCategory">Category</span>
+                <button type="button" class="btn-close-dpm" onclick="closeDetailProductViewer()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="detail-product-modal-body">
+                <!-- Multi-Image Carousel -->
+                <div class="dpm-slider-wrap">
+                    <div class="dpm-slider-track" id="dpmSliderTrack"></div>
+                    <div class="dpm-slider-dots" id="dpmSliderDots"></div>
+                </div>
+                <div class="dpm-meta">
+                    <div class="dpm-price-row">
+                        <span class="dpm-price" id="dpmPrice">₹ 0</span>
+                        <span class="dpm-stock-pill" id="dpmStockPill">In Stock</span>
+                    </div>
+                    <h3 class="dpm-title" id="dpmTitle">Product Name</h3>
+                    <p class="dpm-desc" id="dpmDesc"></p>
+                </div>
+            </div>
+            <div class="detail-product-modal-footer">
+                <button type="button" class="btn-dpm-action chat" id="btnDpmChat"><i class="fa-solid fa-comments"></i> Inquire in Chat</button>
+                <button type="button" class="btn-dpm-action call" id="btnDpmCall"><i class="fa-solid fa-phone"></i> Call Store</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 1. STORE ALL PHOTOS GALLERY MODAL ================= -->
+    <div class="store-gallery-modal-backdrop" id="storeGalleryModalBackdrop" style="display:none;" onclick="closeStoreGalleryModal()">
+        <div class="store-gallery-modal-card" onclick="event.stopPropagation()">
+            <div class="store-gallery-modal-header">
+                <div class="gallery-header-info">
+                    <h3 class="gallery-store-title" id="galleryStoreTitle">Store Photos</h3>
+                    <span class="gallery-count-badge" id="galleryPhotoCountBadge"><i class="fa-solid fa-camera"></i> 0 Photos</span>
+                </div>
+                <button type="button" class="btn-close-gallery" onclick="closeStoreGalleryModal()" title="Close Gallery">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="store-gallery-modal-body">
+                <p class="gallery-sub-tip"><i class="fa-solid fa-arrow-pointer"></i> Click any photo below to expand in full-screen</p>
+                <div class="store-gallery-grid" id="storeGalleryGrid">
+                    <!-- Dynamic gallery photo cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. FULLSCREEN HIGH-RES LIGHTBOX PHOTO VIEWER ================= -->
+    <div class="store-lightbox-backdrop" id="storeLightboxModalBackdrop" style="display:none;" onclick="closeStoreLightbox()">
+        <div class="store-lightbox-container" onclick="event.stopPropagation()">
+            <!-- Top Controls Bar -->
+            <div class="lightbox-top-bar">
+                <div class="lightbox-title-wrap">
+                    <span class="lightbox-store-name" id="lightboxStoreName">Store Name</span>
+                    <span class="lightbox-counter-pill" id="lightboxCounter">1 / 1</span>
+                </div>
+                <div class="lightbox-actions">
+                    <button type="button" class="btn-lightbox-icon" id="btnLightboxBackToGrid" onclick="backToGalleryGrid()" title="View All Photos Grid">
+                        <i class="fa-solid fa-table-cells"></i> <span>All Photos</span>
+                    </button>
+                    <button type="button" class="btn-lightbox-icon close" onclick="closeStoreLightbox()" title="Close Viewer (Esc)">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Stage Photo with Navigation Arrows -->
+            <div class="lightbox-main-stage">
+                <button type="button" class="lightbox-arrow prev" id="btnLightboxPrev" onclick="slideLightboxPrev()" title="Previous Photo (Left Arrow)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="lightbox-img-wrapper" id="lightboxImgWrapper">
+                    <img id="lightboxMainImg" src="" alt="Full Screen Photo">
+                </div>
+                <button type="button" class="lightbox-arrow next" id="btnLightboxNext" onclick="slideLightboxNext()" title="Next Photo (Right Arrow)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Bottom Thumbnail Filmstrip -->
+            <div class="lightbox-filmstrip-bar" id="lightboxFilmstrip">
+                <!-- Mini thumbnails for direct jump -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Dedicated Store QR & Share Standee Modal -->
+    <div class="m-submodal-overlay" id="listingShareQRModal" style="display:none;" onclick="closeListingShareQRModal()">
+        <div class="m-submodal-card qr-modal-card" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4><i class="fa-solid fa-qrcode text-primary"></i> Store QR & Share Standee</h4>
+                <button type="button" class="btn-submodal-close" onclick="closeListingShareQRModal()" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="qr-modal-body">
+                <!-- PRINTABLE STANDEE CARD (Square, Luxury Merchant Standee) -->
+                <div class="qr-standee-card" id="qrPrintableStandee">
+                    <!-- Top Standee Brand Header -->
+                    <div class="standee-header">
+                        <div class="standee-brand-pill">
+                            <i class="fa-solid fa-bag-shopping"></i> LocalBazar
+                        </div>
+                        <span class="standee-verified-badge"><i class="fa-solid fa-circle-check"></i> Verified Store</span>
+                    </div>
+
+                    <!-- Store Identity -->
+                    <div class="standee-store-info">
+                        <img id="qrStandeeAvatar" src="" alt="Store Avatar" class="standee-avatar">
+                        <h3 id="qrStandeeName" class="standee-store-name">Store Name</h3>
+                        <p id="qrStandeeMeta" class="standee-store-meta">Category • City</p>
+                    </div>
+
+                    <!-- QR Code Frame & Box -->
+                    <div class="standee-qr-frame">
+                        <div class="qr-corner-bracket top-left"></div>
+                        <div class="qr-corner-bracket top-right"></div>
+                        <div class="qr-corner-bracket bottom-left"></div>
+                        <div class="qr-corner-bracket bottom-right"></div>
+                        <div class="standee-qr-box" id="qrCodeContainer">
+                            <!-- High-Res QR code inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Footer Instructions -->
+                    <div class="standee-footer">
+                        <p class="standee-scan-prompt"><i class="fa-solid fa-camera"></i> Scan with any Camera or QR App</p>
+                        <div class="standee-link-row" title="Store Direct Link">
+                            <a href="#" id="qrStandeeLinkAnchor" target="_blank" class="standee-link-url" title="Click to view Store Details Page">
+                                <i class="fa-solid fa-link"></i>
+                                <span class="standee-link-text" id="qrStandeeLinkText">localbazar.com/store</span>
+                            </a>
+                            <button type="button" class="standee-copy-btn" id="standeeCopyBtn" onclick="copyStoreShareLink()" title="Copy Store Link">
+                                <i class="fa-regular fa-copy" id="standeeCopyIcon"></i>
+                                <span class="standee-copy-text" id="standeeCopyText">Copy</span>
+                            </button>
+                        </div>
+                        <small class="standee-tagline">Browse catalog, view offers & order directly</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dedicated Pinned Action Footer (Download Image: More Space, Share: Less Space) -->
+            <div class="qr-modal-footer">
+                <button type="button" class="btn-qr-action download" onclick="downloadStoreQRStandee()" title="Download image to save or share">
+                    <i class="fa-solid fa-download"></i> <span>Download Image</span>
+                </button>
+                <button type="button" class="btn-qr-action share" onclick="shareStoreQRStandee()" title="Share QR Standee via WhatsApp or any App">
+                    <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listing-Dedicated App Bottom Navigation Bar (Strictly Home & Reviews) -->
+    <nav class="app-bottom-navbar" id="listingBottomNavbar">
+        <!-- 1. Store Home (Listing Overview) -->
+        <button type="button" class="app-nav-tab active" id="tabListingHome" onclick="switchListingView('overview')" title="Store Overview">
+            <i class="fa-solid fa-store"></i>
+            <span>Home</span>
+        </button>
+
+        <!-- 2. Ratings & Reviews (Directly next to Home) -->
+        <button type="button" class="app-nav-tab" id="tabListingReviews" onclick="switchListingView('reviews')" title="Ratings & Customer Reviews">
+            <div style="position:relative; display:inline-flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-star"></i>
+                <span class="app-tab-badge" id="tabReviewCountBadge">0</span>
+            </div>
+            <span>Reviews</span>
+        </button>
+    </nav>
+
+    <!-- Firebase Cloud SDK & Central Config -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <!-- QRCode.js Library for Client-side Vector QR Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="listing-detail.js"></script>
+    <!-- App Navigation & PWA Controllers -->
+    <script src="app-nav.js"></script>
+    <script src="pwa.js"></script>
+</body>
+</html>

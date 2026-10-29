@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Category - LocalBazar</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="listing-detail.css">
+    <link rel="stylesheet" href="store-category.css">
+    <link rel="stylesheet" href="pwa.css?v=7">
+
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="manifest.json?v=7">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LocalBazar">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=7">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=7">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png?v=7">
+</head>
+<body class="store-cat-page-body">
+
+    <!-- Sticky Top Navigation Bar -->
+    <header class="store-cat-top-nav">
+        <div class="store-cat-nav-container">
+            <a href="javascript:void(0)" id="btnBackToStore" class="nav-back-btn" title="Back to Store">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div class="nav-store-meta">
+                <h2 class="nav-store-name" id="storeNavName">Local Business</h2>
+                <span class="nav-store-sub" id="storeNavSub"><i class="fa-solid fa-location-dot"></i> Store Products</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="store-cat-main-layout">
+        <div class="store-cat-container">
+
+            <!-- Amazon / Flipkart Style Filter & Sort Bar -->
+            <div class="fk-toolbar-row">
+                <div class="fk-toolbar-filters">
+                    <select id="fkSortSelect" class="fk-sort-select">
+                        <option value="featured">Sort: Featured</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="name_asc">Name: A to Z</option>
+                    </select>
+                    <button type="button" class="fk-filter-pill-btn" id="btnFilterInStock">
+                        <i class="fa-solid fa-check"></i> In Stock Only
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Grid / Listing Feed -->
+            <div class="store-products-catalog-section">
+                <div class="store-products-catalog-grid view-list" id="categoryProductsGrid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Storefront Product Viewer Modal (Multi-image slider, stock status & details) -->
+    <div class="detail-product-modal-backdrop" id="catProductModalBackdrop" style="display:none;" onclick="closeCatProductViewer()">
+        <div class="detail-product-modal-card" onclick="event.stopPropagation()">
+            <div class="detail-product-modal-header">
+                <span class="detail-modal-cat-badge" id="cpmCategory">Category</span>
+                <button type="button" class="btn-close-dpm" onclick="closeCatProductViewer()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="detail-product-modal-body">
+                <!-- Multi-Image Carousel -->
+                <div class="dpm-slider-wrap">
+                    <div class="dpm-slider-track" id="cpmSliderTrack"></div>
+                    <div class="dpm-slider-dots" id="cpmSliderDots"></div>
+                </div>
+                <div class="dpm-meta">
+                    <div class="dpm-price-row">
+                        <span class="dpm-price" id="cpmPrice">₹ 0</span>
+                        <span class="dpm-stock-pill" id="cpmStockPill">In Stock</span>
+                    </div>
+                    <h3 class="dpm-title" id="cpmTitle">Product Name</h3>
+                    <p class="dpm-desc" id="cpmDesc"></p>
+                </div>
+            </div>
+            <div class="detail-product-modal-footer">
+                <button type="button" class="btn-dpm-action chat" id="btnCpmChat"><i class="fa-solid fa-comments"></i> Inquire in Chat</button>
+                <button type="button" class="btn-dpm-action call" id="btnCpmCall"><i class="fa-solid fa-phone"></i> Call Store</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store In-Page Live Chat Modal -->
+    <div class="chat-modal-backdrop" id="chatModalBackdrop">
+        <div class="chat-modal-card">
+            <div class="chat-modal-header">
+                <div class="chat-partner-meta">
+                    <img id="chatPartnerImg" src="" alt="Store Logo" class="chat-partner-avatar">
+                    <div>
+                        <h4 class="chat-partner-name" id="chatPartnerName">Business Name</h4>
+                        <span class="chat-status-text"><i class="fa-solid fa-circle-check"></i> Verified Business</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-chat" id="btnCloseChatModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="chat-modal-body" id="chatModalBody">
+                <div class="chat-msg-row incoming">
+                    <div class="msg-bubble" id="chatAutoGreetingMsg">
+                        Hello! Welcome. How can we assist you today?
+                    </div>
+                </div>
+            </div>
+            <div class="chat-modal-footer">
+                <!-- Attached Product Inquiry Context Banner -->
+                <div class="chat-product-preview-bar" id="chatProductPreviewBar" style="display:none;">
+                    <img id="chatProductThumb" src="" alt="Product" class="chat-product-thumb">
+                    <div class="chat-product-info">
+                        <span class="chat-product-tag"><i class="fa-solid fa-tag"></i> Inquiring About:</span>
+                        <div class="chat-product-name" id="chatProductName">Product Name</div>
+                        <div class="chat-product-price" id="chatProductPrice">₹ 0</div>
+                    </div>
+                    <button type="button" class="btn-clear-chat-product" id="btnClearChatProduct" title="Remove product attachment"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="chatMessageForm" class="chat-input-form">
+                    <input type="text" id="chatInputField" placeholder="Type your message here..." required autocomplete="off">
+                    <button type="submit" class="btn-send-chat"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Bottom Navigation Bar -->
+    <nav class="app-bottom-navbar">
+        <a href="index.html" class="app-nav-tab">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </a>
+        <a href="explore.html" class="app-nav-tab">
+            <i class="fa-solid fa-compass"></i>
+            <span>Explore</span>
+        </a>
+        <a href="explore.html?tab=categories" class="app-nav-tab">
+            <i class="fa-solid fa-table-cells-large"></i>
+            <span>Categories</span>
+        </a>
+        <a href="account.html" class="app-nav-tab">
+            <i class="fa-regular fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Firebase Cloud SDK & Central Config -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="store-category.js"></script>
+    <script src="app-nav.js"></script>
+    <script src="pwa.js"></script>
+</body>
+</html>

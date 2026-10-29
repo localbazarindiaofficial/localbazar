@@ -1,0 +1,280 @@
+/* LocalBazar PWA 1-Click Install Banner Styling */
+.lb-pwa-install-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    z-index: 999999;
+    width: calc(100% - 32px);
+    max-width: 480px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    animation: lbPwaSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    box-sizing: border-box;
+}
+
+.lb-pwa-install-bar.hide {
+    transform: translateX(-50%) translateY(120%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes lbPwaSlideUp {
+    from {
+        transform: translateX(-50%) translateY(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+.lb-pwa-install-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.lb-pwa-icon-box {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.lb-pwa-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.lb-pwa-text-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.lb-pwa-app-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-bottom: 2px;
+}
+
+.lb-pwa-app-desc {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lb-pwa-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.btn-pwa-install {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-pwa-install:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.btn-pwa-dismiss {
+    background: #f1f5f9;
+    border: none;
+    color: #64748b;
+    font-size: 1.2rem;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-pwa-dismiss:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* =========================================================
+   IOS / SAFARI INSTALLATION GUIDE POPUP
+   ========================================================= */
+.lb-ios-install-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999999;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    animation: lbFadeIn 0.25s ease forwards;
+}
+
+.lb-ios-install-card {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 2rem 1.75rem 1.5rem;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+    box-sizing: border-box;
+    text-align: center;
+    animation: lbModalZoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lb-ios-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lb-ios-icon-box {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.85rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 2px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.lb-ios-icon-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.lb-ios-install-card h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+}
+
+.lb-ios-install-card p {
+    font-size: 0.84rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin-bottom: 1.25rem;
+}
+
+.lb-ios-steps {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.ios-step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ios-step-num {
+    width: 22px;
+    height: 22px;
+    background: #2563eb;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ios-step-text {
+    font-size: 0.82rem;
+    color: #334155;
+    line-height: 1.35;
+}
+
+.btn-ios-done {
+    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-ios-done:hover {
+    background: #1d4ed8;
+}

@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile & Settings - LocalBazar</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="listing-detail.css">
+    <link rel="stylesheet" href="account.css">
+    <link rel="stylesheet" href="pwa.css?v=7">
+
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="manifest.json?v=7">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LocalBazar">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=7">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=7">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png?v=7">
+</head>
+<body class="account-hub-body">
+
+    <!-- Center Stage Container -->
+    <main class="account-hub-main">
+        <div class="account-hub-card">
+            
+            <!-- ================= VIEW 1: MAIN MENU HUB ================= -->
+            <div class="account-view-screen active" id="viewMainMenu">
+                <!-- Top Nav Back to Home Row -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; padding:0.25rem 0.25rem;">
+                    <button type="button" class="btn-sub-back" onclick="window.lbSmartBack('index.html')" title="Back to Home" style="width:36px; height:36px; border-radius:50%; border:1px solid #e2e8f0; background:#ffffff; color:#334155; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.95rem; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <span style="font-size:0.95rem; font-weight:700; color:#1e293b;">Account & Settings</span>
+                    <div style="width:36px; height:36px;"></div>
+                </div>
+
+                <!-- Top Hero Profile Header -->
+                <div class="account-profile-header">
+                    <div class="profile-avatar-wrapper">
+                        <img id="userHubAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" alt="Profile Avatar" class="profile-avatar-circle">
+                        <span class="auth-source-badge" id="userAuthBadge"><i class="fa-brands fa-google"></i></span>
+                    </div>
+                    <h2 class="user-display-name" id="userHubName">User</h2>
+                    <p class="user-display-email" id="userHubEmail">user@domain.com</p>
+                    <span class="member-since-chip" id="userHubMemberSince"><i class="fa-regular fa-calendar-check"></i> Member Since Today</span>
+                </div>
+
+                <!-- Live Merchant Inquiries Alert Banner (Shows when customers send inquiries) -->
+                <div id="merchantUnreadInquiryBanner" style="display:none; margin: 1rem 0 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 0.85rem 1rem; box-shadow: 0 4px 12px rgba(37,99,235,0.08); cursor: pointer;" onclick="openFirstUnreadStoreInbox()">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <div style="width:36px; height:36px; border-radius:10px; background:#2563eb; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:1.05rem; flex-shrink:0;">
+                                <i class="fa-solid fa-bell"></i>
+                            </div>
+                            <div>
+                                <strong style="color:#1e3a8a; font-size:0.9rem; display:block;" id="inquiryBannerTitle">New Customer Inquiry</strong>
+                                <span style="color:#2563eb; font-size:0.78rem; font-weight:600;" id="inquiryBannerSub">Tap to view incoming message in Store Inbox</span>
+                            </div>
+                        </div>
+                        <span style="background:#2563eb; color:#ffffff; font-size:0.74rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:20px;" id="inquiryBannerBadge">New</span>
+                    </div>
+                </div>
+
+                <!-- Push Notification Quick Prompt Card for User -->
+                <div id="userNotifPromptBanner" style="display:none; margin:1rem 0; padding:0.85rem 1rem; background:linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border:1px solid #bfdbfe; border-radius:14px; align-items:center; justify-content:space-between; gap:0.75rem;">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="width:36px; height:36px; border-radius:50%; background:#2563eb; color:#ffffff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700; font-size:0.85rem; color:#1e3a8a;">Turn on Instant Push Alerts</div>
+                            <div style="font-size:0.75rem; color:#475569;">Get notified when customers message your store or admin updates your claim.</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.4rem; align-items:center;">
+                        <button type="button" onclick="requestUserPushPermission()" style="padding:0.4rem 0.75rem; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-weight:700; font-size:0.78rem; cursor:pointer; white-space:nowrap;">
+                            Allow
+                        </button>
+                        <button type="button" onclick="dismissUserNotifBanner()" style="background:none; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; padding:2px 6px;" title="Dismiss">
+                            &times;
+                        </button>
+                    </div>
+                </div>
+
+                <!-- List by List Enterprise Menu Items -->
+                <div class="account-menu-list">
+                    
+                    <!-- 1. Account -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewAccount')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box blue"><i class="fa-regular fa-user"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Account</strong>
+                                <span>Personal profile, contact & identity details</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                    </div>
+
+                    <!-- 2. Saved Places / Bookmarks -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewSavedPlaces')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box gold"><i class="fa-solid fa-bookmark"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Saved Places</strong>
+                                <span>Bookmarked shops, clinics & favorite spots</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="menu-badge" id="hubSavedPlacesCountBadge" style="font-size: 0.74rem; font-weight: 700; color: #b45309; background: #fef3c7; padding: 0.2rem 0.55rem; border-radius: 20px;">0</span>
+                            <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                        </div>
+                    </div>
+
+                    <!-- 2. Add Listing -->
+                    <div class="menu-list-row" onclick="openCreateListingForm()">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box amber"><i class="fa-solid fa-circle-plus"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Add Listing</strong>
+                                <span>Register a new business, service, office, or shop</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                    </div>
+
+                    <!-- 3. Manage Your Business (Enterprise Merchant Control Hub) -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewManageListings')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box teal"><i class="fa-solid fa-briefcase"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Manage Your Business</strong>
+                                <span>Overview, sales leads, catalog & operation dashboard</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                    </div>
+
+                    <!-- Claim My Listing (Verify & Claim Existing Business) -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewClaimListing')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box indigo" style="background:#e0e7ff; color:#4f46e5;"><i class="fa-solid fa-id-card-clip"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Claim My Listing</strong>
+                                <span>Verify & claim ownership of your business or shop</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="menu-badge" id="hubClaimBadge" style="display:none; font-size: 0.74rem; font-weight: 700; color: #4338ca; background: #e0e7ff; padding: 0.2rem 0.55rem; border-radius: 20px;">0</span>
+                            <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                        </div>
+                    </div>
+
+                    <!-- Trust Badge -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewTrustBadge')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box gold" style="background:#fef3c7; color:#d97706;"><i class="fa-solid fa-shield-halved"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Trust Badge</strong>
+                                <span>Check verification status & apply for Gold ✔ Trust badge</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="menu-badge" style="font-size: 0.72rem; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 0.15rem 0.5rem; border-radius: 20px;">₹99/Yr</span>
+                            <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                        </div>
+                    </div>
+
+                    <!-- 4. Help & Support -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewHelp')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box green"><i class="fa-regular fa-circle-question"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Help & Support</strong>
+                                <span>Send message or email to admin with attachments</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                    </div>
+
+                    <!-- 5. Settings -->
+                    <div class="menu-list-row" onclick="switchAccountScreen('viewSettings')">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box purple"><i class="fa-solid fa-sliders"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Settings</strong>
+                                <span>Notifications, Dark / Light theme preferences</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right menu-chevron"></i>
+                    </div>
+
+                    <!-- Install Mobile App (PWA) -->
+                    <div class="menu-list-row" onclick="window.installPwaApp()" id="hubInstallAppRow" style="cursor:pointer;">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box blue" style="background:#dbeafe; color:#2563eb;"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                            <div class="menu-row-info">
+                                <strong>Install LocalBazar App</strong>
+                                <span>Fast 1-click install on your home screen</span>
+                            </div>
+                        </div>
+                        <span class="menu-badge" style="background:#eff6ff; color:#2563eb; font-size:0.75rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:20px;"><i class="fa-solid fa-download"></i> Free</span>
+                    </div>
+
+                    <!-- 6. Log Out (Red Styled Action) -->
+                    <button type="button" class="menu-list-row logout-row" id="hubSignOutBtn" onclick="handleHubSignOut()">
+                        <div class="menu-row-left">
+                            <div class="menu-icon-box red"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+                            <div class="menu-row-info">
+                                <strong style="color: #ef4444;">Log Out</strong>
+                                <span>Securely disconnect this device</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-power-off logout-power-icon"></i>
+                    </button>
+
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW 2: ACCOUNT (Profile Details with Empty State & Update) ================= -->
+            <div class="account-view-screen" id="viewAccount" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Account Profile</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content">
+                    <div class="account-form-banner">
+                        <i class="fa-solid fa-id-badge"></i>
+                        <span>Manage your personal profile details. Empty fields can be completed and updated below.</span>
+                    </div>
+
+                    <form id="userAccountDetailsForm" onsubmit="event.preventDefault();">
+                        <div class="form-fields-stack">
+                            <div class="hub-field-group">
+                                <label for="accName">Full Name *</label>
+                                <input type="text" id="accName" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="hub-field-row-2">
+                                <div class="hub-field-group">
+                                    <label for="accGender">Gender</label>
+                                    <select id="accGender">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="hub-field-group">
+                                    <label for="accDob">Date of Birth</label>
+                                    <input type="date" id="accDob">
+                                </div>
+                            </div>
+                            <div class="hub-field-row-3">
+                                <div class="hub-field-group">
+                                    <label for="accCity">City</label>
+                                    <input type="text" id="accCity" placeholder="e.g. Kolkata">
+                                </div>
+                                <div class="hub-field-group">
+                                    <label for="accState">State</label>
+                                    <input type="text" id="accState" placeholder="e.g. West Bengal">
+                                </div>
+                                <div class="hub-field-group">
+                                    <label for="accPincode">PIN Code</label>
+                                    <input type="text" id="accPincode" placeholder="e.g. 700001">
+                                </div>
+                            </div>
+                            <div class="hub-field-group">
+                                <label for="accEmail">Email Address *</label>
+                                <input type="email" id="accEmail" placeholder="yourname@gmail.com" required>
+                            </div>
+                            <div class="hub-field-group">
+                                <label for="accPhone">Mobile Phone Number</label>
+                                <input type="tel" id="accPhone" placeholder="e.g. +91 98300 12345">
+                            </div>
+                            <div class="hub-field-group">
+                                <label>Member Since</label>
+                                <input type="text" id="accMemberSince" readonly class="input-readonly">
+                            </div>
+                        </div>
+
+                        <div class="hub-form-submit-row">
+                            <button type="submit" class="btn-hub-primary"><i class="fa-solid fa-check"></i> Save & Update Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW 3: HELP & SUPPORT (Send Mail to Admin with Attachments) ================= -->
+            <div class="account-view-screen" id="viewHelp" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Help & Support</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content">
+                    <div class="account-form-banner help">
+                        <i class="fa-solid fa-headset"></i>
+                        <span>Contact Admin directly. Your message and attached files will be delivered straight to Admin Mailbox.</span>
+                    </div>
+
+                    <form id="userMailToAdminForm" onsubmit="event.preventDefault();">
+                        <div class="form-fields-stack">
+                            <div class="hub-field-group">
+                                <label for="helpSubject">Subject *</label>
+                                <input type="text" id="helpSubject" placeholder="e.g. Listing query, Verification request, Support" required>
+                            </div>
+                            <div class="hub-field-group">
+                                <label for="helpMessage">Message to Admin *</label>
+                                <textarea id="helpMessage" rows="4" placeholder="Describe your issue, feedback, or inquiry in detail..." required></textarea>
+                            </div>
+
+                            <!-- Attach File / Image Component -->
+                            <div class="hub-field-group">
+                                <label>Attachment (Image / Doc - Max 5MB with Auto Compression)</label>
+                                <input type="file" id="userHelpAttachInput" accept="image/*,.pdf,.doc,.docx" style="display:none;">
+                                <input type="hidden" id="userHelpAttachData">
+                                <input type="hidden" id="userHelpAttachName">
+
+                                <div class="help-attach-trigger" id="userHelpAttachTrigger">
+                                    <div class="attach-btn-pill">
+                                        <i class="fa-solid fa-paperclip"></i>
+                                        <span>Attach Image or File</span>
+                                    </div>
+                                    <span class="attach-hint-text">Auto-compressed for fast upload</span>
+                                </div>
+
+                                <div class="help-attachment-preview" id="userHelpAttachPreview" style="display:none;">
+                                    <div class="attach-file-info">
+                                        <i class="fa-solid fa-file-image" id="userHelpAttachIcon"></i>
+                                        <span id="userHelpAttachFileName">document.png</span>
+                                        <span class="attach-badge-size" id="userHelpAttachSize">35 KB</span>
+                                    </div>
+                                    <button type="button" class="btn-remove-attach" id="userRemoveAttachBtn" title="Remove attachment"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="hub-form-submit-row">
+                            <button type="submit" class="btn-hub-primary"><i class="fa-solid fa-paper-plane"></i> Send to Admin</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW 5: ADD / EDIT BUSINESS LISTING (Step-by-Step Multi-Stage Portal) ================= -->
+            <div class="account-view-screen" id="viewAddListing" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" id="uAddListingBackBtn" onclick="handleListingFormBack()"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 id="uFormScreenTitle">Add Business Listing</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <!-- Professional Step Indicator Tabs (Dynamic steps with Doctor Chamber support) -->
+                <div class="listing-steps-bar" id="listingStepsBar">
+                    <button type="button" class="step-nav-pill active" data-step="1">
+                        <span class="step-num">1</span>
+                        <span class="step-lbl">Basic & Photos</span>
+                    </button>
+                    <button type="button" class="step-nav-pill" data-step="2">
+                        <span class="step-num">2</span>
+                        <span class="step-lbl">Address & Map</span>
+                    </button>
+                    <button type="button" class="step-nav-pill" data-step="3">
+                        <span class="step-num">3</span>
+                        <span class="step-lbl">Timings</span>
+                    </button>
+                    <!-- Dynamic Doctor Chamber Tab (Appears for Medical, Pharmacy, Diagnostic, Clinic, Hospital) -->
+                    <button type="button" class="step-nav-pill" id="stepPillDoctorChamber" data-step="4" style="display:none;">
+                        <span class="step-num"><i class="fa-solid fa-user-doctor"></i></span>
+                        <span class="step-lbl">Doctor Chamber</span>
+                    </button>
+                </div>
+
+                <div class="sub-screen-content">
+                    <form id="userAddListingForm" class="enterprise-form-card" novalidate onsubmit="event.preventDefault();">
+                        <input type="hidden" id="uEditingListingId" value="">
+
+                        <!-- ================= STAGE 1: BASIC INFO & MULTIPLE IMAGES ================= -->
+                        <div class="listing-step-pane active" id="listingStepPane1">
+                            <!-- Compact Fixed Photo Picker Component -->
+                            <div class="compact-photo-picker-box">
+                                <input type="file" id="uMultiImagesInput" accept="image/*" multiple style="display:none;">
+                                
+                                <!-- Top Bar: Title & View Photos Action Pill -->
+                                <div class="compact-photo-top-bar">
+                                    <div class="compact-photo-title-wrap">
+                                        <div class="compact-photo-icon-badge" id="uPhotoIconBadge">
+                                            <i class="fa-solid fa-camera"></i>
+                                        </div>
+                                        <div>
+                                            <div class="compact-photo-title-row">
+                                                <h4 class="compact-photo-title">Add Listing Image</h4>
+                                                <span class="compact-photo-count-pill" id="uPhotoCountPill">0 Selected</span>
+                                            </div>
+                                            <p class="compact-photo-sub" id="uPhotoStatusSubText">Select single or multiple photos for your business</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-compact-view-photos" id="uBtnTogglePreviewDrawer" style="display:none;" title="View or remove selected photos">
+                                        <i class="fa-regular fa-images"></i> <span>View Photos</span>
+                                        <i class="fa-solid fa-chevron-down drawer-arrow" id="uDrawerChevron"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Action Trigger Bar -->
+                                <div class="compact-photo-action-bar">
+                                    <button type="button" class="btn-compact-add-photo" id="uBtnChoosePhotos">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> <span>Choose Photos (Single / Multiple)</span>
+                                    </button>
+                                </div>
+
+                                <!-- Collapsible / Expandable Preview Drawer (Scrollable Grid) -->
+                                <div class="compact-photo-drawer" id="uCompactPhotoDrawer" style="display: none;">
+                                    <div class="drawer-header-row">
+                                        <span><i class="fa-solid fa-photo-film"></i> Selected Photos Preview (<span id="uDrawerCountText">0</span>)</span>
+                                        <button type="button" class="btn-drawer-add-more" onclick="document.getElementById('uMultiImagesInput').click()">
+                                            <i class="fa-solid fa-plus"></i> Add More
+                                        </button>
+                                    </div>
+                                    <div class="compact-thumbnails-scroll" id="uMultiImagesPreviewGrid">
+                                        <!-- Thumbnails dynamically rendered here -->
+                                    </div>
+                                </div>
+                                <input type="hidden" id="uUploadedImageData">
+                            </div>
+
+                            <!-- Section: Basic Information -->
+                            <div class="form-section-block">
+                                <h3 class="form-section-title"><i class="fa-solid fa-circle-info"></i> Basic Business Information</h3>
+                                <div class="form-grid-3">
+                                    <div class="form-field span-2">
+                                        <label for="uFullListingName">Business / Shop / Service Name *</label>
+                                        <input type="text" id="uFullListingName" placeholder="e.g. Apollo Pharmacy & Chamber, TechNova Hub" required>
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="uFullListingCategory">Business Category *</label>
+                                        <select id="uFullListingCategory" onchange="handleCategoryChange(this.value)" required>
+                                            <option value="">Select Category</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-field" style="position: relative;">
+                                        <label for="uFullListingCity">City / Locality *</label>
+                                        <input type="text" id="uFullListingCity" placeholder="Type city (e.g. Kolkata, Siliguri)..." autocomplete="off" required>
+                                        <div class="city-suggestions-dropdown" id="uCitySuggestionsDropdown"></div>
+                                    </div>
+                                    <div class="form-field span-2">
+                                        <label for="uFullListingContact">Official Contact Phone Number *</label>
+                                        <input type="text" id="uFullListingContact" placeholder="+91 98300 12345" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Next Stage Button -->
+                            <div class="step-action-bar">
+                                <div></div>
+                                <button type="button" class="btn-step-next" onclick="navigateListingStep(2)">
+                                    <span>Continue to Address</span> <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ================= STAGE 2: ADDRESS & GOOGLE MAP ================= -->
+                        <div class="listing-step-pane" id="listingStepPane2" style="display:none;">
+                            <div class="form-section-block">
+                                <h3 class="form-section-title"><i class="fa-solid fa-map-location-dot"></i> Store Location & Google Map</h3>
+                                <div class="form-grid-2">
+                                    <div class="form-field">
+                                        <label for="uFullListingAddress">Full Detailed Address *</label>
+                                        <textarea id="uFullListingAddress" rows="4" placeholder="Building name, Floor, Street, Landmark, Pin Code" required></textarea>
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="uFullListingMapLink">Google Map Link / Share URL</label>
+                                        <textarea id="uFullListingMapLink" rows="4" placeholder="https://maps.google.com/?q=... or Share location URL"></textarea>
+                                        <small class="field-hint">Paste Google Maps share link so customers can navigate with one tap.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step Action Bar -->
+                            <div class="step-action-bar">
+                                <button type="button" class="btn-step-prev" onclick="navigateListingStep(1)">
+                                    <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
+                                </button>
+                                <button type="button" class="btn-step-next" onclick="navigateListingStep(3)">
+                                    <span>Continue to Timings</span> <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ================= STAGE 3: OPERATING SCHEDULE & TIMINGS ================= -->
+                        <div class="listing-step-pane" id="listingStepPane3" style="display:none;">
+                            <div class="form-section-block">
+                                <h3 class="form-section-title"><i class="fa-regular fa-clock"></i> Operating Schedule & Timings</h3>
+                                <p class="section-sub-desc">Set specific open and close timings for each day of the week, or mark specific days as Closed.</p>
+                                
+                                <!-- Daily Operating Schedule Matrix (Enterprise Day-by-Day Hours) -->
+                                <div class="daily-schedule-matrix" id="uDailyScheduleMatrix">
+                                    <!-- Mon to Sun rows populated cleanly -->
+                                </div>
+
+                                <!-- Holidays / Specific Off Dates -->
+                                <div class="form-section-subblock" style="margin-top: 1.5rem;">
+                                    <div class="form-field" style="max-width: 480px;">
+                                        <label><i class="fa-regular fa-calendar-xmark text-danger"></i> Scheduled Holidays / Specific Off Dates</label>
+                                        <div class="custom-holiday-picker-wrap">
+                                            <div class="holiday-trigger-box" id="uHolidayTriggerBtn">
+                                                <i class="fa-regular fa-calendar-days" style="color: #ef4444;"></i>
+                                                <span id="uHolidaySummaryDisplay">0 Holidays Selected</span>
+                                                <i class="fa-solid fa-chevron-down ml-auto"></i>
+                                            </div>
+                                            
+                                            <!-- Multi-select Calendar Dropdown -->
+                                            <div class="calendar-popover" id="uCalendarPopover">
+                                                <div class="calendar-header">
+                                                    <button type="button" class="btn-cal-nav" id="uPrevMonthBtn"><i class="fa-solid fa-chevron-left"></i></button>
+                                                    <span class="cal-month-title" id="uCalMonthTitle">October 2026</span>
+                                                    <button type="button" class="btn-cal-nav" id="uNextMonthBtn"><i class="fa-solid fa-chevron-right"></i></button>
+                                                </div>
+                                                <div class="calendar-weekdays">
+                                                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                                                </div>
+                                                <div class="calendar-days-grid" id="uCalendarDaysGrid"></div>
+                                                <div class="calendar-footer">
+                                                    <span class="cal-selected-count" id="uCalSelectedCountText">0 selected</span>
+                                                    <button type="button" class="btn-cal-done" id="uCalendarDoneBtn"><i class="fa-solid fa-check"></i> <span>Save Holidays</span></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <small class="field-hint">Select dates when your business will be completely closed this month.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step Action Bar -->
+                            <div class="step-action-bar">
+                                <button type="button" class="btn-step-prev" onclick="navigateListingStep(2)">
+                                    <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
+                                </button>
+                                <div class="step-action-right" id="timingsActionRight">
+                                    <button type="button" class="btn-step-next" id="btnNextToDoctor" style="display:none;" onclick="navigateListingStep(4)">
+                                        <span>Continue to Doctor Chamber</span> <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                    <button type="button" class="btn-primary-action btn-large" id="btnPublishFromTimings" onclick="handleListingRegistrationSubmit()">
+                                        <i class="fa-solid fa-store"></i> <span class="uPublishBtnText">Complete Your Registration</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= STAGE 4: DOCTOR CHAMBER (Dynamic for Medical, Pharmacy, Clinic, Diagnostic) ================= -->
+                        <div class="listing-step-pane" id="listingStepPane4" style="display:none;">
+                            <div class="form-section-block">
+                                <div class="section-title-action">
+                                    <h3 class="form-section-title"><i class="fa-solid fa-user-doctor"></i> Doctor Chamber & Visiting Specialists</h3>
+                                    <button type="button" class="btn-secondary-action-sm" id="uAddDoctorRowBtn"><i class="fa-solid fa-plus"></i> Add Doctor</button>
+                                </div>
+                                <p class="section-sub-desc">List the visiting doctors, their medical degrees, visiting days, timings and consultation fees.</p>
+
+                                <div class="doctors-list-wrap" id="uDoctorsContainer">
+                                    <div class="doctor-chamber-card">
+                                        <div class="doctor-card-grid">
+                                            <div class="form-field span-2">
+                                                <label>Doctor's Full Name *</label>
+                                                <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
+                                            </div>
+                                            <div class="form-field">
+                                                <label>Specialist / Department *</label>
+                                                <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
+                                            </div>
+                                            <div class="form-field">
+                                                <label>Visiting Days</label>
+                                                <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
+                                            </div>
+                                            <div class="form-field">
+                                                <label>Chamber Timings</label>
+                                                <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
+                                            </div>
+                                            <div class="form-field">
+                                                <label>Consultation Fee</label>
+                                                <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step Action Bar -->
+                            <div class="step-action-bar">
+                                <button type="button" class="btn-step-prev" onclick="navigateListingStep(3)">
+                                    <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
+                                </button>
+                                <button type="button" class="btn-primary-action btn-large" onclick="handleListingRegistrationSubmit()">
+                                    <i class="fa-solid fa-store"></i> <span class="uPublishBtnText">Complete Your Registration</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW: SAVED PLACES (Bookmarked places) ================= -->
+            <div class="account-view-screen" id="viewSavedPlaces" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Saved Places</h3>
+                    <div style="width:36px;"></div>
+                </div>
+                <div class="sub-screen-content">
+                    <div class="user-listings-feed-wrap" id="userSavedPlacesContainer">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW 6: MANAGE YOUR BUSINESS (Business List & Individual Merchant Portal) ================= -->
+            <!-- Step A: All Registered Businesses List (Direct landing from Manage Your Business) -->
+            <div class="account-view-screen" id="viewManageListings" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Manage Your Business</h3>
+                    <div style="width:36px;"></div>
+                </div>
+                <div class="sub-screen-content">
+                    <!-- Manage Listings Top Action Bar with Create Branch Button -->
+                    <div class="manage-listings-header-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; margin-bottom:1.15rem; padding-bottom:0.85rem; border-bottom:1px solid var(--slate-200);">
+                        <div>
+                            <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--slate-800);">Your Listed Businesses</h4>
+                            <span style="font-size:0.78rem; color:var(--slate-500);">Tap any store or branch to edit details, products, banners & timings</span>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <button type="button" class="btn-create-branch-action" onclick="openCreateBranchFlow()" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:0.5rem 0.95rem; border-radius:10px; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.45rem; transition:all 0.2s ease;">
+                                <i class="fa-solid fa-code-branch" style="color:#2563eb;"></i>
+                                <span>Create Branch</span>
+                            </button>
+                            <button type="button" class="btn-manage-inbox-action" onclick="openUnifiedMerchantInbox()" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; border:none; padding:0.5rem 0.95rem; border-radius:10px; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.45rem; box-shadow:0 3px 10px rgba(37,99,235,0.25);">
+                                <i class="fa-solid fa-comments"></i>
+                                <span>Inbox</span>
+                                <span id="unifiedInboxBadgeCount" style="display:none; background:#ef4444; color:#ffffff; font-size:0.68rem; font-weight:800; padding:0.1rem 0.45rem; border-radius:12px; line-height:1;">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Toolbar for Fast Branch & Store Navigation (handles 500+ branches easily) -->
+                    <div class="manage-search-filter-bar" id="manageSearchFilterBar" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:0.75rem 0.9rem; margin-bottom:1.15rem; display:flex; flex-direction:column; gap:0.65rem;">
+                        <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+                            <!-- Instant Search Input -->
+                            <div style="flex:1; min-width:220px; position:relative; display:flex; align-items:center;">
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:0.85rem; color:#94a3b8; font-size:0.88rem; pointer-events:none;"></i>
+                                <input type="text" id="manageListingsSearchInput" placeholder="Search by name, branch, city, address..." oninput="filterUserManageListings()" style="width:100%; padding:0.55rem 2.2rem 0.55rem 2.35rem; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.86rem; font-weight:600; color:#1e293b; background:#ffffff; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#cbd5e1'">
+                                <button type="button" id="manageListingsClearSearch" onclick="clearManageListingsSearch()" style="position:absolute; right:0.6rem; background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:0.9rem; display:none; padding:0.25rem;"><i class="fa-solid fa-circle-xmark"></i></button>
+                            </div>
+                            
+                            <!-- City Filter Dropdown -->
+                            <div style="min-width:150px; display:flex; align-items:center;">
+                                <select id="manageListingsCityFilter" onchange="filterUserManageListings()" style="width:100%; padding:0.55rem 0.8rem; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.84rem; font-weight:700; color:#334155; background:#ffffff; outline:none; cursor:pointer;">
+                                    <option value="ALL">All Cities</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filter Chips & Count Line -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; font-size:0.8rem;">
+                            <div style="display:flex; gap:0.4rem; align-items:center;" id="manageTypeChips">
+                                <button type="button" class="btn-manage-filter-chip active" id="chipFilterAll" data-type="all" onclick="setManageListingsTypeFilter('all', this)" style="background:#2563eb; color:#ffffff; border:1px solid #2563eb; padding:0.28rem 0.7rem; border-radius:8px; font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.15s;">
+                                    All (<span id="manageCountAll">0</span>)
+                                </button>
+                                <button type="button" class="btn-manage-filter-chip" id="chipFilterMain" data-type="main" onclick="setManageListingsTypeFilter('main', this)" style="background:#ffffff; color:#475569; border:1px solid #cbd5e1; padding:0.28rem 0.7rem; border-radius:8px; font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.15s;">
+                                    Main Stores (<span id="manageCountMain">0</span>)
+                                </button>
+                                <button type="button" class="btn-manage-filter-chip" id="chipFilterBranch" data-type="branch" onclick="setManageListingsTypeFilter('branch', this)" style="background:#ffffff; color:#475569; border:1px solid #cbd5e1; padding:0.28rem 0.7rem; border-radius:8px; font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.15s;">
+                                    Branches (<span id="manageCountBranches">0</span>)
+                                </button>
+                            </div>
+                            <div id="manageShowingCountText" style="color:#64748b; font-weight:700; font-size:0.76rem;">
+                                Showing all businesses
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- All Business Cards Feed -->
+                    <div class="user-listings-feed-wrap" id="userListingsContainer">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: UNIFIED MERCHANT INBOX (Customer Queries & Chat) ================= -->
+            <div class="account-view-screen" id="viewMerchantInbox" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewManageListings')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Business Inbox</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content" style="padding: 0.75rem 0.5rem;">
+                    <!-- Filter & Controls Toolbar -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem; padding:0 0.5rem;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex:1; min-width:260px;">
+                            <label for="unifiedInboxStoreFilter" style="font-size:0.82rem; font-weight:700; color:#475569; white-space:nowrap; display:flex; align-items:center; gap:0.35rem;">
+                                <i class="fa-solid fa-store" style="color:#2563eb;"></i> Store:
+                            </label>
+                            <select id="unifiedInboxStoreFilter" onchange="renderUnifiedInboxThreads()" style="flex:1; padding:0.45rem 0.75rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.84rem; font-weight:700; color:#1e293b; background:#ffffff;">
+                                <option value="ALL">All Your Businesses</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.4rem;">
+                            <button type="button" id="btnFilterAllChats" onclick="setUnifiedChatFilter('all')" style="background:#2563eb; color:#ffffff; border:none; padding:0.4rem 0.75rem; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                                All Chats
+                            </button>
+                            <button type="button" id="btnFilterUnreadChats" onclick="setUnifiedChatFilter('unread')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:0.4rem 0.75rem; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                                Unread Only
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Layout: Left (Thread List) + Right (Active Chat Panel) -->
+                    <div class="m-inbox-layout" id="unifiedInboxLayout" style="border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.06); height: calc(100vh - 220px); min-height:520px;">
+                        <!-- Left: Conversations Sidebar -->
+                        <div class="m-inbox-sidebar" id="unifiedInboxSidebar" style="width:360px; max-width:40%;">
+                            <div class="m-inbox-search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="unifiedInboxSearch" placeholder="Search customer, phone, message..." oninput="filterUnifiedInboxConversations(this.value)">
+                            </div>
+                            <div class="m-inbox-threads" id="unifiedInboxThreadsList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Active Chat Panel -->
+                        <div class="m-inbox-main" id="unifiedInboxMainView">
+                            <div class="m-inbox-empty-state" id="unifiedInboxEmptyPlaceholder">
+                                <div style="width:72px; height:72px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:2rem; margin-bottom:1rem;">
+                                    <i class="fa-regular fa-comments"></i>
+                                </div>
+                                <h4>Customer Inquiries & Chat</h4>
+                                <p>Select a customer conversation from the list to view queries, product inquiries and reply directly.</p>
+                            </div>
+
+                            <div class="m-inbox-chat-panel" id="unifiedInboxChatPanel" style="display:none;">
+                                <div class="m-inbox-chat-header" style="background:#ffffff; border-bottom:1.5px solid #e2e8f0; padding:0.75rem 1rem;">
+                                    <div style="display:flex; align-items:center; gap:0.65rem;">
+                                        <!-- Mobile Back Button to Thread List -->
+                                        <button type="button" class="btn-inbox-mobile-back" onclick="closeUnifiedMobileChat()" style="display:none; background:#f1f5f9; border:none; width:34px; height:34px; border-radius:50%; cursor:pointer; color:#475569; align-items:center; justify-content:center; margin-right:0.25rem;">
+                                            <i class="fa-solid fa-arrow-left"></i>
+                                        </button>
+                                        <div class="m-chat-user-avatar" id="unifiedActiveChatAvatar" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.05rem;">U</div>
+                                        <div>
+                                            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                                <h4 style="margin:0; font-size:0.95rem; font-weight:800; color:#1e293b;" id="unifiedActiveChatName">Customer Name</h4>
+                                                <span id="unifiedActiveChatStoreBadge" style="font-size:0.72rem; font-weight:700; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:0.1rem 0.45rem; border-radius:12px;">Store Name</span>
+                                            </div>
+                                            <div style="font-size:0.78rem; color:#64748b; margin-top:0.15rem;" id="unifiedActiveChatPhone">
+                                                <i class="fa-solid fa-phone" style="font-size:0.7rem;"></i> +91 98765 43210
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="m-chat-actions" style="display:flex; align-items:center; gap:0.4rem;">
+                                        <a href="#" id="btnUnifiedWaCustomer" target="_blank" class="m-chat-act-btn wa" title="Chat on WhatsApp" style="background:#25d366; color:#ffffff; width:34px; height:34px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
+                                            <i class="fa-brands fa-whatsapp"></i>
+                                        </a>
+                                        <a href="#" id="btnUnifiedCallCustomer" class="m-chat-act-btn call" title="Call Customer" style="background:#3b82f6; color:#ffffff; width:34px; height:34px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
+                                            <i class="fa-solid fa-phone"></i>
+                                        </a>
+                                        <button type="button" class="m-chat-act-btn del" onclick="deleteUnifiedConversation()" title="Delete Chat" style="background:#fee2e2; color:#ef4444; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="m-inbox-chat-messages" id="unifiedActiveChatMessages" style="background:#f8fafc; padding:1.25rem;">
+                                    <!-- Messages rendered here -->
+                                </div>
+
+                                <form class="m-inbox-reply-bar" onsubmit="handleUnifiedInboxReply(event)" style="background:#ffffff; border-top:1.5px solid #e2e8f0; padding:0.75rem 1rem;">
+                                    <input type="text" id="unifiedInboxReplyInput" required placeholder="Type your reply to customer..." autocomplete="off">
+                                    <button type="submit" class="btn-portal-primary" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; border:none; padding:0.65rem 1.25rem; border-radius:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+                                        <i class="fa-solid fa-paper-plane"></i> Reply
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                
+
+            <!-- ================= VIEW 4: SETTINGS (Notifications & Dark/Light Theme) ================= -->
+            <div class="account-view-screen" id="viewSettings" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Settings</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content">
+                    <!-- 1. Theme Selection -->
+                    <div class="settings-block-card">
+                        <h4><i class="fa-solid fa-circle-half-stroke"></i> Appearance Theme</h4>
+                        <p class="settings-desc">Choose between standard clean light mode or comfortable dark theme.</p>
+                        <div class="theme-switch-pills">
+                            <button type="button" class="theme-pill-btn active" id="btnThemeLight" onclick="setUserTheme('light')">
+                                <i class="fa-regular fa-sun"></i>
+                                <span>Light Theme</span>
+                            </button>
+                            <button type="button" class="theme-pill-btn" id="btnThemeDark" onclick="setUserTheme('dark')">
+                                <i class="fa-solid fa-moon"></i>
+                                <span>Dark Theme</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. Notifications Management -->
+                    <div class="settings-block-card" style="margin-top:1.25rem;">
+                        <h4><i class="fa-regular fa-bell"></i> Push Notifications Management</h4>
+                        <p class="settings-desc">Receive instant browser & device alerts for messages, claim updates and offers.</p>
+
+                        <!-- Permission Trigger Box -->
+                        <div style="background:#f8fafc; padding:0.85rem 1rem; border-radius:12px; border:1px solid var(--slate-200); margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                            <div>
+                                <div style="font-weight:700; font-size:0.86rem; color:var(--slate-800);"><i class="fa-solid fa-tower-broadcast" style="color:#2563eb; margin-right:4px;"></i> Device Push Permission</div>
+                                <div id="userNotifPermStatus" style="font-size:0.75rem; color:var(--slate-500); margin-top:2px;">Status: Checking...</div>
+                            </div>
+                            <button type="button" id="btnEnableUserPushNotifs" onclick="requestUserPushPermission()" style="padding:0.45rem 0.85rem; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;">
+                                Enable Push Notifications
+                            </button>
+                        </div>
+                        
+                        <div class="toggle-setting-row">
+                            <div>
+                                <strong>Store Inquiries & Customer Chat</strong>
+                                <span>Notify when customers inquire about your shop, clinic or products</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="notifyInquiries" checked onchange="saveNotificationSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-setting-row">
+                            <div>
+                                <strong>Claim & Verification Status</strong>
+                                <span>Get instant alerts when Admin approves, rejects or replies to your claim</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="notifyClaims" checked onchange="saveNotificationSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-setting-row">
+                            <div>
+                                <strong>Festival Offers & Product Ads</strong>
+                                <span>Get updates regarding featured deals and top picks in your city</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="notifyPromotions" checked onchange="saveNotificationSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-setting-row">
+                            <div>
+                                <strong>Support & Admin Responses</strong>
+                                <span>Notify when Admin replies to your support ticket or reports</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="notifyAdmin" checked onchange="saveNotificationSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--slate-200); display:flex; justify-content:flex-end;">
+                            <button type="button" onclick="testUserPushNotification()" style="padding:0.4rem 0.8rem; background:transparent; border:1px solid var(--slate-200); border-radius:6px; font-size:0.76rem; font-weight:700; color:var(--slate-700); cursor:pointer;">
+                                <i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i> Send Test Alert
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: CLAIM MY LISTING (Business Verification & Ownership Transfer) ================= -->
+            <div class="account-view-screen" id="viewClaimListing" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Claim My Listing</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content">
+                    <div class="account-form-banner" style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-color: #c7d2fe; color: #3730a3;">
+                        <i class="fa-solid fa-id-card-clip" style="color: #4f46e5; font-size: 1.25rem;"></i>
+                        <span>Is your business already listed on LocalBazar? Claim your ownership by providing city, category, business name, and official proof documents.</span>
+                    </div>
+
+                    <!-- Navigation Tabs between New Claim and My Claims -->
+                    <div class="claim-tabs-bar" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;">
+                        <button type="button" class="claim-tab-btn active" id="btnClaimTabForm" onclick="switchClaimTab('form')" style="flex: 1; padding: 0.65rem 0.75rem; border: none; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; background: #4f46e5; color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                            <i class="fa-solid fa-file-pen"></i> Submit Claim
+                        </button>
+                        <button type="button" class="claim-tab-btn" id="btnClaimTabHistory" onclick="switchClaimTab('history')" style="flex: 1; padding: 0.65rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; background: #f9fafb; color: #4b5563; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> My Claim Status <span class="claim-history-badge" id="claimHistoryBadge" style="display:none; background:#e0e7ff; color:#4338ca; padding:0.1rem 0.45rem; border-radius:12px; font-size:0.75rem;">0</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: CLAIM SUBMISSION FORM -->
+                    <div id="claimSectionForm">
+                        <form id="claimListingForm" onsubmit="event.preventDefault();">
+                            <div class="form-fields-stack">
+
+                                <!-- Field 1: Target City with Auto-suggest Popover -->
+                                <div class="hub-field-group position-relative" style="position: relative;">
+                                    <label for="claimCityInput">1. Target City *</label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="claimCityInput" placeholder="Type city name to auto-suggest (e.g. Kolkata, Siliguri)..." autocomplete="off" required>
+                                    </div>
+                                    <div class="city-suggestions-dropdown" id="claimCitySuggestions"></div>
+                                </div>
+
+                                <!-- Field 2: Target Category with Auto-suggest Popover -->
+                                <div class="hub-field-group position-relative" style="position: relative;">
+                                    <label for="claimCategoryInput">2. Target Category *</label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="claimCategoryInput" placeholder="Type category to auto-suggest (e.g. Healthcare, Dining)..." autocomplete="off" required>
+                                    </div>
+                                    <div class="city-suggestions-dropdown" id="claimCategorySuggestions"></div>
+                                </div>
+
+                                <!-- Field 3: Listing Name with Auto-suggest Popover -->
+                                <div class="hub-field-group position-relative" style="position: relative;">
+                                    <label for="claimListingInput">3. Listing / Business Name *</label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="claimListingInput" placeholder="Type a word to search businesses added in platform..." autocomplete="off" required>
+                                        <input type="hidden" id="claimListingId" value="">
+                                    </div>
+                                    <div class="city-suggestions-dropdown" id="claimListingSuggestions"></div>
+                                    
+                                    <!-- Selected Confirmation Badge -->
+                                    <div id="claimSelectedListingNotice" style="display:none; margin-top:0.45rem; padding:0.5rem 0.75rem; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; font-size:0.8rem; color:#065f46; align-items:center; gap:0.5rem;">
+                                        <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+                                        <span id="claimSelectedListingText">Listing selected</span>
+                                    </div>
+                                </div>
+
+                                <!-- Field 4: Description & Ownership Statement -->
+                                <div class="hub-field-group">
+                                    <label for="claimDescription">4. Ownership Details & Description *</label>
+                                    <textarea id="claimDescription" rows="4" placeholder="Explain your connection to this business (e.g., Founder, Store Manager, Legal Owner) and describe why you are claiming this listing..." required></textarea>
+                                </div>
+
+                                <!-- Field 5: Proof Documents Multi-File Uploader (Max 5 Files) -->
+                                <div class="hub-field-group">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                                        <label style="margin:0;">5. Proof Documents / Identity Verification *</label>
+                                        <span style="font-size:0.75rem; color:#6366f1; font-weight:700;"><span id="claimFilesCountDisplay">0</span> / 5 files selected</span>
+                                    </div>
+                                    <input type="file" id="claimFilesInput" accept="image/*,.pdf,.doc,.docx" multiple style="display:none;">
+
+                                    <div class="help-attach-trigger" id="claimFilesTrigger" onclick="document.getElementById('claimFilesInput').click()" style="cursor: pointer;">
+                                        <div class="attach-btn-pill" style="background: #eef2ff; color: #4f46e5;">
+                                            <i class="fa-solid fa-file-circle-plus"></i>
+                                            <span>Add Proof Files (Max 5)</span>
+                                        </div>
+                                        <span class="attach-hint-text">JPG, PNG, PDF, DOC (Trade License, Bills, Tax ID, Visiting Card)</span>
+                                    </div>
+
+                                    <!-- Selected Files Preview List -->
+                                    <div id="claimFilesPreviewList" style="margin-top:0.65rem; display:flex; flex-direction:column; gap:0.45rem;"></div>
+                                </div>
+                            </div>
+
+                            <div class="hub-form-submit-row" style="margin-top: 1.5rem;">
+                                <button type="button" class="btn-hub-primary" id="btnSubmitListingClaim" onclick="handleSubmitListingClaim()" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-paper-plane"></i> Submit Claim Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- TAB 2: MY CLAIM STATUS & HISTORY -->
+                    <div id="claimSectionHistory" style="display:none;">
+                        <div id="claimHistoryListContainer"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= VIEW: TRUST BADGE (Status-First Verification Suite) ================= -->
+            <div class="account-view-screen" id="viewTrustBadge" style="display:none;">
+                <div class="sub-screen-header">
+                    <button type="button" class="btn-sub-back" onclick="switchAccountScreen('viewMainMenu')"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3>Trust Badge</h3>
+                    <div style="width:36px;"></div>
+                </div>
+
+                <div class="sub-screen-content">
+                    <!-- Stores & Outlets List (with individual Trust / Not Trusted status badges) -->
+                    <div id="trustStoresListSection" style="margin-bottom:1.35rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.65rem;">
+                            <label style="font-size:0.88rem; font-weight:800; color:#334155; display:flex; align-items:center; gap:0.4rem; margin:0;">
+                                <i class="fa-solid fa-store" style="color:#d97706;"></i> Your Businesses & Outlets:
+                            </label>
+                            <span style="font-size:0.75rem; color:#64748b;" id="trustStoresCountText">Select a store below</span>
+                        </div>
+                        <div id="trustStoresListContainer" style="display:flex; flex-direction:column; gap:0.65rem;">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                        <input type="hidden" id="trustSelectedStoreId" value="">
+                    </div>
+
+                    <!-- DYNAMIC STATUS CARD: Displays Big Trusted or Big Not Trusted badge -->
+                    <div id="trustStatusCardWrap" style="margin-bottom:1.5rem;">
+                        <!-- Injected via JavaScript -->
+                    </div>
+
+                    <!-- APPLICATION FORM (Collapsible: Shown when clicking Apply Now) -->
+                    <div id="trustApplicationSection" style="display:none; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid #e2e8f0;">
+                            <div>
+                                <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:#1e293b;"><i class="fa-solid fa-file-signature text-primary"></i> Verification & Audit Form</h4>
+                                <span style="font-size:0.78rem; color:#64748b;">Annual Plan: ₹99 / 1 Year Validity</span>
+                            </div>
+                            <button type="button" onclick="closeTrustApplyForm()" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; color:#64748b; display:flex; align-items:center; justify-content:center;">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <form id="trustBadgeForm" onsubmit="event.preventDefault(); handleTrustBadgeSubmit();">
+                            <div class="form-fields-stack">
+                                <!-- Field 1: Owner Full Name -->
+                                <div class="hub-field-group">
+                                    <label for="trustOwnerName">1. Proprietor / Owner Full Name *</label>
+                                    <input type="text" id="trustOwnerName" placeholder="As shown on official Govt ID" required>
+                                </div>
+
+                                <!-- Field 2: Verification Document Type -->
+                                <div class="hub-field-group">
+                                    <label for="trustDocType">2. Verification Document Type *</label>
+                                    <select id="trustDocType" required style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem; font-weight:600; background:#ffffff;">
+                                        <option value="Trade License">Trade License / Municipal Certificate</option>
+                                        <option value="GST Certificate">GSTIN Registration Certificate</option>
+                                        <option value="Udyam / MSME">Udyam / MSME Certificate</option>
+                                        <option value="Shop Board Photo">Shop Front Board Photo with Owner</option>
+                                        <option value="Electricity Bill">Commercial Electricity Bill of Shop</option>
+                                        <option value="Aadhaar / Voter ID">Proprietor Aadhaar / Voter ID</option>
+                                    </select>
+                                </div>
+
+                                <!-- Field 3: Document / Registration Number -->
+                                <div class="hub-field-group">
+                                    <label for="trustDocNumber">3. Document / Registration Number (Optional)</label>
+                                    <input type="text" id="trustDocNumber" placeholder="e.g. TL-2024-98765 or GSTIN or ID Number">
+                                </div>
+
+                                <!-- Field 4: Document Photo / Proof Upload -->
+                                <div class="hub-field-group">
+                                    <label>4. Upload Document / Shop Photo Proof *</label>
+                                    <div class="user-listing-upload-card" onclick="document.getElementById('trustDocFileInput').click()" style="min-height:90px; padding:0.85rem; border-color:#f59e0b; background:#fffbeb;">
+                                        <input type="file" id="trustDocFileInput" accept="image/*,application/pdf" style="display:none;" onchange="handleTrustDocFileSelected(event)">
+                                        <div id="trustDocUploadPlaceholder" style="text-align:center;">
+                                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.7rem; color:#d97706; margin-bottom:0.25rem;"></i>
+                                            <div style="font-size:0.85rem; font-weight:700; color:#92400e;">Click to upload proof photo / document</div>
+                                            <span style="font-size:0.72rem; color:#b45309;">JPG, PNG or PDF (Max 5MB)</span>
+                                        </div>
+                                        <div id="trustDocPreviewWrap" style="display:none; text-align:center;">
+                                            <img id="trustDocPreviewImg" src="" alt="Proof Preview" style="max-height:120px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:0.35rem;">
+                                            <div style="font-size:0.75rem; color:#059669; font-weight:700;"><i class="fa-solid fa-check"></i> Document selected</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Field 5: Payment Section (₹99 for 1 Year) -->
+                                <div class="hub-field-group" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.15rem;">
+                                    <label style="color:#1e293b; font-size:0.92rem; font-weight:800; display:flex; align-items:center; gap:0.4rem;">
+                                        <i class="fa-solid fa-qrcode" style="color:#d97706;"></i> 5. Verification Fee (₹99 / 1 Year Plan)
+                                    </label>
+                                    <p style="font-size:0.78rem; color:#64748b; margin:0.35rem 0 0.85rem 0;">Scan via Google Pay, PhonePe, Paytm or any UPI app & enter 12-digit UTR below:</p>
+                                    
+                                    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; padding:0.85rem;">
+                                        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:0.35rem; display:flex; align-items:center; justify-content:center;">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=upi://pay?pa=localbazar@upi%26pn=LocalBazar%26am=99%26cu=INR" alt="UPI QR Code" style="width:90px; height:90px; display:block;">
+                                        </div>
+                                        <div style="flex:1; min-width:180px;">
+                                            <div style="font-size:0.78rem; font-weight:700; color:#64748b;">UPI ID:</div>
+                                            <div style="font-size:0.95rem; font-weight:800; color:#1e293b; letter-spacing:0.3px;">localbazar@upi</div>
+                                            <div style="font-size:0.78rem; font-weight:700; color:#059669; margin-top:0.25rem;">Amount: ₹99 (1 Year Validity)</div>
+                                            <button type="button" onclick="navigator.clipboard.writeText('localbazar@upi'); showHubToast('UPI ID copied to clipboard!', 'info');" style="margin-top:0.35rem; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; font-size:0.72rem; font-weight:700; padding:0.25rem 0.55rem; cursor:pointer;">
+                                                <i class="fa-regular fa-copy"></i> Copy UPI ID
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top:0.85rem;">
+                                        <label for="trustPaymentUtr" style="font-size:0.82rem; font-weight:700; color:#334155;">12-Digit UPI Ref / Transaction UTR No. *</label>
+                                        <input type="text" id="trustPaymentUtr" placeholder="e.g. 428938472910" required style="width:100%; padding:0.65rem 0.85rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem;">
+                                        <small style="color:#64748b; font-size:0.72rem;">Found in your payment app receipt after completing ₹99 transfer.</small>
+                                    </div>
+                                </div>
+
+                                <!-- Submit Button -->
+                                <button type="submit" class="btn-hub-primary" id="btnSubmitTrustBadge" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size:0.95rem; font-weight:800; box-shadow:0 4px 15px rgba(245,158,11,0.35);">
+                                    <i class="fa-solid fa-shield-halved"></i> Submit & Activate 1-Year Trust
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            
+
+        </div>
+    </main>
+
+    <!-- ================= MULTINATIONAL ENTERPRISE MERCHANT PORTAL MODAL (DESKTOP & MOBILE SUITE) ================= -->
+    <div class="m-portal-overlay" id="merchantPortalOverlay" style="display:none;" onclick="handlePortalBackdropClick(event)">
+        <div class="m-portal-window" onclick="event.stopPropagation()">
+            
+            <!-- Side Drawer Overlay Backdrop -->
+            <div class="m-portal-drawer-backdrop" id="mPortalDrawerBackdrop" onclick="closePortalDrawer()"></div>
+
+            <!-- Auto-Hide Side Hamburger Drawer Navigation -->
+            <aside class="m-portal-drawer" id="mPortalDrawer">
+                <div class="m-portal-drawer-header">
+                    <div class="m-portal-brand">
+                        <div class="m-brand-avatar">
+                            <img id="mDrawerStoreAvatar" src="" alt="Store">
+                        </div>
+                        <div class="m-brand-text">
+                            <h4 id="mDrawerStoreName">Store Name</h4>
+                            <span class="m-brand-badge">Business Portal</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-drawer-close" onclick="closePortalDrawer()" title="Close Menu">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <nav class="m-portal-drawer-menu" id="mPortalDrawerMenu">
+                    <button type="button" class="m-drawer-item active" data-tab="tabPhotos">
+                        <div class="m-drawer-item-icon"><i class="fa-solid fa-images"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Listing Images</span>
+                            <span class="m-drawer-item-sub">Store photos, upload & gallery view</span>
+                        </div>
+                    </button>
+                    <button type="button" class="m-drawer-item" data-tab="tabIdentity">
+                        <div class="m-drawer-item-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Identity & Address</span>
+                            <span class="m-drawer-item-sub">Shop name, category, city & address</span>
+                        </div>
+                    </button>
+                    <button type="button" class="m-drawer-item" data-tab="tabActionButtons">
+                        <div class="m-drawer-item-icon"><i class="fa-solid fa-sliders"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Action Buttons</span>
+                            <span class="m-drawer-item-sub">Call, WhatsApp & Direction setup</span>
+                        </div>
+                    </button>
+                    <button type="button" class="m-drawer-item" data-tab="tabProductsServices">
+                        <div class="m-drawer-item-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Products & Services</span>
+                            <span class="m-drawer-item-sub">In-store categories, multi-pics & stock</span>
+                        </div>
+                    </button>
+                    <button type="button" class="m-drawer-item" data-tab="tabBanners">
+                        <div class="m-drawer-item-icon"><i class="fa-solid fa-bullhorn"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Banners</span>
+                            <span class="m-drawer-item-sub">16:9 promotional banners & deals</span>
+                        </div>
+                    </button>
+                    <button type="button" class="m-drawer-item" data-tab="tabSchedule">
+                        <div class="m-drawer-item-icon"><i class="fa-regular fa-clock"></i></div>
+                        <div class="m-drawer-item-content">
+                            <span class="m-drawer-item-title">Schedule</span>
+                            <span class="m-drawer-item-sub">Daily open/close times & off-days</span>
+                        </div>
+                    </button>
+                </nav>
+
+                <div class="m-portal-drawer-footer">
+                    <button type="button" class="btn-drawer-exit" onclick="closeMerchantPortal()">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Exit Business Portal</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Floating Top Hamburger Trigger Bar -->
+            <div class="m-portal-floating-topbar">
+                <button type="button" class="m-hamburger-btn" onclick="togglePortalDrawer()" title="Open Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                    <span class="m-hamburger-label">Menu</span>
+                </button>
+                <div class="m-portal-active-tab-title" id="mPortalActiveTabTitle">
+                    <i class="fa-solid fa-store"></i> <span>Profile</span>
+                </div>
+            </div>
+
+                
+
+            <!-- Scrollable Body Content -->
+            <div class="m-portal-body">
+                
+                <!-- TAB 1: LISTING IMAGES (Gallery view, upload, delete, set primary) -->
+                <div class="m-tab-panel active" id="tabPhotos">
+                    <div class="m-panel-box">
+                        <div class="m-panel-box-header">
+                            <div>
+                                <h4><i class="fa-solid fa-images text-primary"></i> Listing Photo Gallery</h4>
+                                <p>Upload, manage and view all storefront, signboard, interior and shop photos.</p>
+                            </div>
+                            <div>
+                                <input type="file" id="mGalleryFileInput" accept="image/*" multiple style="display:none;" onchange="handlePortalGalleryUpload(this)">
+                                <button type="button" class="btn-portal-primary-sm" onclick="document.getElementById('mGalleryFileInput').click()">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Photos
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gallery Photos Grid -->
+                        <div class="m-gallery-grid" id="mPortalGalleryGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: IDENTITY & ADDRESS -->
+                <div class="m-tab-panel" id="tabIdentity">
+                    <form id="mIdentityForm" onsubmit="handlePortalIdentitySubmit(event)">
+                        <div class="m-panel-box">
+                            <div class="m-panel-box-header">
+                                <div>
+                                    <h4><i class="fa-solid fa-location-dot text-primary"></i> Business Identity & Address</h4>
+                                    <p>Configure shop name, admin-approved category, city auto-suggest and full physical landmark.</p>
+                                </div>
+                            </div>
+                            <div class="m-form-grid">
+                                <div class="m-field span-2">
+                                    <label>Business / Shop Name *</label>
+                                    <input type="text" id="mInputBizName" required placeholder="Enter shop or business name">
+                                </div>
+                                <div class="m-field">
+                                    <label>Category *</label>
+                                    <select id="mInputBizCategory" required>
+                                        <option value="">Select Category</option>
+                                    </select>
+                                </div>
+                                <div class="m-field" style="position: relative;">
+                                    <label>City / Locality *</label>
+                                    <input type="text" id="mInputBizCity" required placeholder="Type city (e.g. Kolkata)..." autocomplete="off">
+                                    <div class="city-suggestions-dropdown" id="mCitySuggestionsDropdown"></div>
+                                </div>
+                                <div class="m-field span-2">
+                                    <label>Full Address / Landmark</label>
+                                    <input type="text" id="mInputBizAddress" placeholder="e.g. Main Market, Near Railway Gate">
+                                </div>
+                            </div>
+                            <div class="m-form-action-row">
+                                <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Identity & Address</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 3: ACTION BUTTONS CONFIGURATION -->
+                <div class="m-tab-panel" id="tabActionButtons">
+                    <form id="mActionButtonsForm" onsubmit="handlePortalActionButtonsSubmit(event)">
+                        <div class="m-panel-box">
+                            <div class="m-panel-box-header">
+                                <div>
+                                    <h4><i class="fa-solid fa-sliders text-primary"></i> Action Buttons Configuration</h4>
+                                    <p>Customize direct customer contact numbers and Google Maps direction destination.</p>
+                                </div>
+                            </div>
+                            <div class="m-form-grid">
+                                <div class="m-field">
+                                    <label><i class="fa-solid fa-phone" style="color:#2563eb;"></i> Call Now - Phone Number *</label>
+                                    <input type="tel" id="mInputBizPhone" required placeholder="e.g. +91 98765 43210">
+                                    <small style="color:#64748b; font-size:0.75rem;">Incoming customer phone calls will connect to this number.</small>
+                                </div>
+                                <div class="m-field">
+                                    <label><i class="fa-brands fa-whatsapp" style="color:#16a34a;"></i> WhatsApp - Contact Number</label>
+                                    <input type="tel" id="mInputBizWhatsapp" placeholder="e.g. +91 98765 43210 (Leave blank to use Call number)">
+                                    <small style="color:#64748b; font-size:0.75rem;">Incoming customer WhatsApp chats will be sent to this number.</small>
+                                </div>
+                                <div class="m-field span-2">
+                                    <label><i class="fa-solid fa-location-arrow" style="color:#0284c7;"></i> Direction - Google Maps Destination URL</label>
+                                    <input type="url" id="mInputBizMapLink" placeholder="https://maps.app.goo.gl/..." data-no-capitalize="true">
+                                    <small style="color:#64748b; font-size:0.75rem;">Paste Google Maps link for 1-click GPS navigation.</small>
+                                </div>
+                                <div class="m-field">
+                                    <label><i class="fa-solid fa-comments" style="color:#6366f1;"></i> In-App Chat</label>
+                                    <input type="text" value="Direct In-App Messages (Receive in Portal Inbox)" readonly style="background:#f1f5f9; color:#64748b; cursor:not-allowed;">
+                                </div>
+                                <div class="m-field">
+                                    <label><i class="fa-solid fa-share-nodes" style="color:#9333ea;"></i> Share Store</label>
+                                    <input type="text" value="System 1-Click Link Sharing" readonly style="background:#f1f5f9; color:#64748b; cursor:not-allowed;">
+                                </div>
+                            </div>
+                            <div class="m-form-action-row">
+                                <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Action Buttons</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 4: PRODUCTS & SERVICES (Sliding Categories + Multi-Pic Product Catalog with Stock Status) -->
+                <div class="m-tab-panel" id="tabProductsServices">
+                    <!-- 1. In-Store Category Slide Bar Management -->
+                    <div class="m-panel-box">
+                        <div class="m-panel-box-header">
+                            <div>
+                                <h4><i class="fa-solid fa-layer-group text-primary"></i> 1. In-Store Sliding Categories</h4>
+                                <p>Add, edit or delete filter chips that appear below the search bar on your store page.</p>
+                            </div>
+                            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                                <button type="button" class="btn-portal-secondary-sm" id="btnSyncCatDefaults" onclick="syncStoreCategoriesWithAdminDefaults()" title="Load/Reset to default sliding categories from Admin for this business category">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Reset to Category Defaults
+                                </button>
+                                <button type="button" class="btn-portal-primary-sm" onclick="openPortalStoreCategoryModal()">
+                                    <i class="fa-solid fa-plus"></i> Add Category
+                                </button>
+                            </div>
+                        </div>
+                        <div class="m-store-cats-manager-grid" id="mPortalStoreCatsGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- 2. Products & Services List under Categories -->
+                    <div class="m-panel-box" style="margin-top:1.25rem;">
+                        <div class="m-panel-box-header">
+                            <div>
+                                <h4><i class="fa-solid fa-boxes-stacked text-primary"></i> 2. Products & Services Catalog</h4>
+                                <p>Manage products under sliding categories with multi-image gallery, price, details, and In Stock / Out of Stock toggle.</p>
+                            </div>
+                            <button type="button" class="btn-portal-primary-sm" onclick="openPortalCatalogModal('product')">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </button>
+                        </div>
+
+                        <!-- Product Category Filter Selector in Portal -->
+                        <div class="m-catalog-filter-bar">
+                            <span style="font-size:0.8rem; font-weight:700; color:#64748b;">Filter by Category:</span>
+                            <div class="m-filter-chips" id="mPortalCatFilterChips">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="m-catalog-grid" id="mPortalCatalogGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- 3. Top Products Showcase Selection -->
+                    <div class="m-panel-box" style="margin-top:1.25rem;">
+                        <div class="m-panel-box-header">
+                            <div>
+                                <h4><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 3. Top Products Showcase</h4>
+                                <p>Select which products from your catalog to feature prominently in the square product shelf at the bottom of your storefront page.</p>
+                            </div>
+                            <button type="button" class="btn-portal-primary-sm" onclick="openSelectTopProductsModal()">
+                                <i class="fa-solid fa-star"></i> Select Top Products
+                            </button>
+                        </div>
+
+                        <div class="m-top-products-grid" id="mPortalTopProductsGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: BANNERS (16:9 Aspect Ratio) -->
+                <div class="m-tab-panel" id="tabBanners">
+                    <div class="m-panel-box">
+                        <div class="m-panel-box-header">
+                            <div>
+                                <h4><i class="fa-solid fa-bullhorn text-primary"></i> Promotional Banners & Deals (16:9)</h4>
+                                <p>Upload high-resolution 16:9 banner images or design festive gradient promo cards.</p>
+                            </div>
+                            <button type="button" class="btn-portal-primary-sm" onclick="openPortalBannerModal()">
+                                <i class="fa-solid fa-plus"></i> Add Banner
+                            </button>
+                        </div>
+
+                        <div class="m-banners-grid" id="mPortalBannersGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: SCHEDULE (Daily Open / Close Timings & Holidays) -->
+                <div class="m-tab-panel" id="tabSchedule">
+                    <form id="mScheduleForm" onsubmit="handlePortalScheduleSubmit(event)">
+                        <div class="m-panel-box">
+                            <div class="m-panel-box-header">
+                                <div>
+                                    <h4><i class="fa-regular fa-clock text-primary"></i> Store Operating Schedule & Timings</h4>
+                                    <p>Configure open/close hours for every day of the week, mark weekly offs and holiday dates.</p>
+                                </div>
+                            </div>
+
+                            <!-- 7-day schedule rows with daily hours -->
+                            <div class="m-daily-schedule-list" id="mPortalDailyScheduleList">
+                                <!-- Populated dynamically via JS -->
+                            </div>
+
+                            <div class="m-field span-2" style="margin-top:1.25rem;">
+                                <label>Holidays / Emergency Off-dates (comma separated or notes)</label>
+                                <input type="text" id="mInputScheduleHolidays" placeholder="e.g. 2026-10-25, Sunday, Durga Puja Off">
+                            </div>
+
+                            <div class="m-form-action-row" style="margin-top:1.25rem;">
+                                <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Daily Schedule</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= NESTED MODAL 1: ADD / EDIT CATALOG ITEM (MULTI-IMAGE & STOCK STATUS) ================= -->
+    <div class="m-submodal-overlay" id="portalCatalogModal" style="display:none;" onclick="closePortalCatalogModal()">
+        <div class="m-submodal-card" style="max-width: 580px;" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4 id="portalCatalogModalTitle"><i class="fa-solid fa-box-open text-primary"></i> Add Product</h4>
+                <button type="button" class="btn-submodal-close" onclick="closePortalCatalogModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="portalCatalogForm" onsubmit="handlePortalCatalogSubmit(event)">
+                <input type="hidden" id="pCatItemIndex" value="-1">
+
+                <div class="m-form-grid">
+                    <div class="m-field span-2">
+                        <label>Product / Service Name *</label>
+                        <input type="text" id="pCatItemName" required placeholder="e.g. Wireless Noise Cancelling Headphones">
+                    </div>
+                    <div class="m-field">
+                        <label>Category *</label>
+                        <select id="pCatItemCategory" required>
+                            <option value="">Select In-Store Category</option>
+                        </select>
+                    </div>
+                    <div class="m-field">
+                        <label>Price *</label>
+                        <input type="text" id="pCatItemPrice" required placeholder="e.g. ₹ 1,499 or On Request">
+                    </div>
+                    <div class="m-field">
+                        <label>Stock Status</label>
+                        <select id="pCatItemStock">
+                            <option value="in_stock">In Stock (Available)</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="m-field span-2">
+                        <label>Product Description / Specifications</label>
+                        <textarea id="pCatItemDetails" rows="3" placeholder="Enter key details, brand, warranty, colors, sizes or package contents..."></textarea>
+                    </div>
+                    <div class="m-field span-2" style="background:#fffbeb; padding:0.65rem 0.85rem; border:1px solid #fde68a; border-radius:10px;">
+                        <label style="display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer; font-weight:700; color:#92400e; user-select:none; margin:0;">
+                            <input type="checkbox" id="pCatItemIsTop" style="width:18px; height:18px; accent-color:#f59e0b; cursor:pointer;">
+                            <span><i class="fa-solid fa-star" style="color:#f59e0b;"></i> Mark as Top Product (Feature in Storefront Square Shelf)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Multi-image Upload & Thumbnails for Product -->
+                <div class="m-field span-2" style="margin-top:0.75rem;">
+                    <label>Product Images (Upload multiple photos - 1st image will be cover)</label>
+                    <input type="file" id="pCatItemFilesInput" accept="image/*" multiple style="display:none;" onchange="handleProductMultiImagesUpload(this)">
+                    <div class="m-submodal-upload" onclick="document.getElementById('pCatItemFilesInput').click()">
+                        <div id="pCatItemPlaceholder">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Click to upload 1 or more product photos</span>
+                        </div>
+                    </div>
+                    <!-- Thumbnails row -->
+                    <div class="m-multi-img-preview-row" id="pCatImagesPreviewRow">
+                        <!-- Thumbs rendered dynamically -->
+                    </div>
+                </div>
+
+                <div class="m-submodal-actions">
+                    <button type="button" class="btn-submodal-cancel" onclick="closePortalCatalogModal()">Cancel</button>
+                    <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= NESTED MODAL 1B: VIEW PRODUCT DETAILS & SLIDING IMAGES ================= -->
+    <div class="m-submodal-overlay" id="portalProductPreviewModal" style="display:none;" onclick="closeProductPreviewModal()">
+        <div class="m-submodal-card" style="max-width: 560px;" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4 id="prevModalTitle">Product Details</h4>
+                <button type="button" class="btn-submodal-close" onclick="closeProductPreviewModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="m-prev-modal-body">
+                <!-- Image Slider -->
+                <div class="m-prev-slider-wrap">
+                    <div class="m-prev-slider-track" id="prevSliderTrack">
+                        <!-- Img slides rendered here -->
+                    </div>
+                    <div class="m-prev-slider-dots" id="prevSliderDots"></div>
+                </div>
+                <!-- Details -->
+                <div class="m-prev-meta">
+                    <div class="m-prev-price-row">
+                        <span class="m-prev-price" id="prevPrice">₹ 0</span>
+                        <span class="m-prev-stock-badge" id="prevStockBadge">In Stock</span>
+                    </div>
+                    <h3 class="m-prev-name" id="prevName">Product Name</h3>
+                    <p class="m-prev-desc" id="prevDesc">Description</p>
+                </div>
+            </div>
+
+                
+        </div>
+    </div>
+
+    <!-- ================= NESTED MODAL 1C: SELECT TOP PRODUCTS ================= -->
+    <div class="m-submodal-overlay" id="selectTopProductsModal" style="display:none;" onclick="closeSelectTopProductsModal()">
+        <div class="m-submodal-card" style="max-width: 600px;" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4><i class="fa-solid fa-star" style="color:#f59e0b;"></i> Select Top Products to Feature</h4>
+                <button type="button" class="btn-submodal-close" onclick="closeSelectTopProductsModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="padding:1rem 1.25rem;">
+                <p style="font-size:0.84rem; color:#64748b; margin-top:0; margin-bottom:0.85rem;">Check the products below that you want to feature in the <strong>Top Products</strong> square shelf on your storefront:</p>
+                <div class="m-top-select-list" id="mTopSelectItemsList" style="max-height:55vh; overflow-y:auto; display:flex; flex-direction:column; gap:0.6rem;">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+                
+            <div class="m-submodal-actions">
+                <button type="button" class="btn-submodal-cancel" onclick="closeSelectTopProductsModal()">Cancel</button>
+                <button type="button" class="btn-portal-primary" onclick="saveTopProductsSelection()"><i class="fa-solid fa-check"></i> Save Selection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= NESTED MODAL 2: ADD / EDIT PROMOTIONAL BANNER (16:9 SUPPORT) ================= -->
+    <div class="m-submodal-overlay" id="portalBannerModal" style="display:none;" onclick="closePortalBannerModal()">
+        <div class="m-submodal-card" style="max-width: 540px;" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4 id="portalBannerModalTitle"><i class="fa-solid fa-bullhorn text-primary"></i> Add Banner (16:9)</h4>
+                <button type="button" class="btn-submodal-close" onclick="closePortalBannerModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="portalBannerForm" onsubmit="handlePortalBannerSubmit(event)">
+                <input type="hidden" id="pBannerIndex" value="-1">
+                <input type="hidden" id="pBannerImgData" value="">
+
+                <div class="m-field">
+                    <label>Banner Type</label>
+                    <select id="pBannerTypeSelect" onchange="toggleBannerUploadType(this.value)">
+                        <option value="custom_image">Upload 16:9 Banner Image (Recommended)</option>
+                        <option value="styled_card">Styled Gradient Promotional Card</option>
+                    </select>
+                </div>
+
+                <div id="pBannerImageUploadBlock" class="m-field">
+                    <label>16:9 Banner Image (e.g. 1280x720 or 1920x1080)</label>
+                    <input type="file" id="pBannerFileInput" accept="image/*" style="display:none;" onchange="previewPortalBannerImage(this)">
+                    <div class="m-submodal-upload" style="aspect-ratio: 16/9; min-height: 140px; position: relative; overflow: hidden;" onclick="document.getElementById('pBannerFileInput').click()">
+                        <div id="pBannerPlaceholder">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Click to upload 16:9 banner image</span>
+                        </div>
+                        <img id="pBannerPreviewImg" alt="16:9 Banner" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                        <div id="pBannerChangeBadge" style="display:none; position:absolute; bottom:8px; right:8px; background:rgba(15,23,42,0.8); color:#fff; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:6px; backdrop-filter:blur(4px); pointer-events:none;">
+                            <i class="fa-solid fa-camera"></i> Change Image
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pBannerCardDetailsBlock" style="display:none;">
+                    <div class="m-field">
+                        <label>Offer Tag / Badge *</label>
+                        <input type="text" id="pBannerBadge" placeholder="e.g. FESTIVE UTSAV, 20% OFF, SUPER DEAL">
+                    </div>
+                    <div class="m-field">
+                        <label>Main Headline *</label>
+                        <input type="text" id="pBannerHeading" placeholder="e.g. Big Discount on All Electronics">
+                    </div>
+                    <div class="m-field">
+                        <label>Offer Details / Deal Subtext *</label>
+                        <input type="text" id="pBannerDeal" placeholder="e.g. Flat 20% OFF on direct inquiries & free delivery">
+                    </div>
+                    <div class="m-field">
+                        <label>Color Theme</label>
+                        <select id="pBannerTheme">
+                            <option value="festive-ad-1">Royal Blue & Indigo Gradient</option>
+                            <option value="festive-ad-2">Vibrant Rose & Pink Gradient</option>
+                            <option value="festive-ad-3">Emerald Green & Gold Gradient</option>
+                            <option value="festive-ad-4">Sunset Orange & Amber Gradient</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="m-submodal-actions">
+                    <button type="button" class="btn-submodal-cancel" onclick="closePortalBannerModal()">Cancel</button>
+                    <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Banner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= NESTED MODAL 3: ADD / EDIT IN-STORE SLIDING CATEGORY ================= -->
+    <div class="m-submodal-overlay" id="portalStoreCategoryModal" style="display:none;" onclick="closePortalStoreCategoryModal()">
+        <div class="m-submodal-card" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4 id="portalStoreCatModalTitle"><i class="fa-solid fa-layer-group text-primary"></i> Add Store Category</h4>
+                <button type="button" class="btn-submodal-close" onclick="closePortalStoreCategoryModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="portalStoreCatForm" onsubmit="handlePortalStoreCategorySubmit(event)">
+                <input type="hidden" id="pStoreCatIndex" value="-1">
+
+                <div class="m-field">
+                    <label>Category Label *</label>
+                    <input type="text" id="pStoreCatLabel" required placeholder="e.g. Smart Watches, Kurtis, Cold Drinks">
+                </div>
+
+                <div class="m-field">
+                    <label>Filter Tag / Identifier (Optional)</label>
+                    <input type="text" id="pStoreCatTag" placeholder="e.g. watches, fashion, electronics (auto-generated if empty)">
+                </div>
+
+                <div class="m-field">
+                    <label>Category Emoji <span style="font-weight:normal; color:#94a3b8;">(যেমন: 🍔, 👗, 📱, 🛒 - যেকোনো Emoji পেস্ট করুন)</span></label>
+                    <div style="position:relative;">
+                        <input type="text" id="pStoreCatIconInput" placeholder="Emoji পেস্ট করুন (যেমন 🍔 বা 👗)" data-no-capitalize style="padding-left:38px; font-size:1.05rem;">
+                        <span id="pStoreCatIconPreview" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:1.25rem; pointer-events:none;">🏷️</span>
+                    </div>
+                    <small style="color:#64748b; font-size:0.75rem; margin-top:0.35rem; display:block;">যেকোনো ওয়েবসাইট থেকে Emoji কপি করে এখানে পেস্ট করুন, অথবা খালি রাখলে স্বয়ংক্রিয়ভাবে মানানসই Emoji সেট হবে।</small>
+                </div>
+
+                <div class="m-submodal-actions">
+                    <button type="button" class="btn-submodal-cancel" onclick="closePortalStoreCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CREATE BRANCH OUTLET ================= -->
+    <div class="m-submodal-overlay" id="createBranchModal" style="display:none;" onclick="closeCreateBranchFlow()">
+        <div class="m-submodal-card" style="max-width: 520px;" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <div>
+                    <h4 style="margin:0; font-size:1.1rem; font-weight:800; color:#1e293b;"><i class="fa-solid fa-code-branch text-primary"></i> Create Store Branch</h4>
+                    <span style="font-size:0.78rem; color:#64748b;">Add an outlet in another city with instant catalog & profile inheritance</span>
+                </div>
+                <button type="button" class="btn-submodal-close" onclick="closeCreateBranchFlow()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="createBranchForm" onsubmit="handleCreateBranchSubmit(event)">
+                <input type="hidden" id="cbParentStoreId" value="">
+                <div class="m-form-grid">
+                    <div class="m-field span-2" style="position:relative;">
+                        <label>Branch City / Locality (Admin Approved) *</label>
+                        <div style="position:relative;">
+                            <input type="text" id="cbBranchCityInput" autocomplete="off" required placeholder="Type city or locality (e.g. Chandrakona, Khirpai)..." oninput="handleBranchCityInput(this.value)" onfocus="handleBranchCityInput(this.value)" style="width:100%; padding:0.6rem 2.2rem 0.6rem 0.85rem; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.88rem; font-weight:600; color:#1e293b; background:#fff; outline:none; transition:border-color 0.2s;">
+                            <i class="fa-solid fa-location-dot omni-sugg-icon-city" style="position:absolute; right:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none;"></i>
+                        </div>
+                        <div id="cbBranchCityPopover" class="omni-suggestions-popover" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.15); max-height:220px; overflow-y:auto; z-index:1050; padding:0.4rem;"></div>
+                        <small style="color:#64748b; font-size:0.75rem;">Type to search admin-approved cities. Customers searching this city will find this branch.</small>
+                    </div>
+
+                    <div class="m-field span-2">
+                        <label>Branch Full Address & Landmark *</label>
+                        <textarea id="cbBranchAddress" rows="2" required placeholder="e.g. 14/B Gariahat Road, Near Pantaloons, Pin 700019"></textarea>
+                    </div>
+
+                    <div class="m-field">
+                        <label>Branch Phone Number</label>
+                        <input type="tel" id="cbBranchPhone" placeholder="Branch phone (leave blank to use main store phone)">
+                    </div>
+
+                    <div class="m-field">
+                        <label>Branch WhatsApp (Optional)</label>
+                        <input type="tel" id="cbBranchWhatsapp" placeholder="e.g. +91 98300 12345 (Optional)">
+                    </div>
+
+                    <div class="m-field span-2">
+                        <label>Google Maps Direction Link (Optional)</label>
+                        <input type="url" id="cbBranchMapLink" placeholder="https://maps.app.goo.gl/... or Share location URL" data-no-capitalize="true">
+                    </div>
+                </div>
+
+                <div class="m-submodal-actions">
+                    <button type="button" class="btn-submodal-cancel" onclick="closeCreateBranchFlow()">Cancel</button>
+                    <button type="submit" class="btn-portal-primary" id="btnSubmitCreateBranch"><i class="fa-solid fa-check"></i> Create Branch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: STORE SHARE & PRINTABLE QR STANDEE ================= -->
+    <div class="m-submodal-overlay" id="listingShareQRModal" style="display:none;" onclick="closeListingShareQRModal()">
+        <div class="m-submodal-card qr-modal-card" onclick="event.stopPropagation()">
+            <div class="m-submodal-header">
+                <h4><i class="fa-solid fa-qrcode text-primary"></i> Store QR & Share Standee</h4>
+                <button type="button" class="btn-submodal-close" onclick="closeListingShareQRModal()" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="qr-modal-body">
+                <!-- PRINTABLE STANDEE CARD (Square, Luxury Merchant Standee) -->
+                <div class="qr-standee-card" id="qrPrintableStandee">
+                    <!-- Top Standee Brand Header -->
+                    <div class="standee-header">
+                        <div class="standee-brand-pill">
+                            <i class="fa-solid fa-bag-shopping"></i> LocalBazar
+                        </div>
+                        <span class="standee-verified-badge"><i class="fa-solid fa-circle-check"></i> Verified Store</span>
+                    </div>
+
+                    <!-- Store Identity -->
+                    <div class="standee-store-info">
+                        <img id="qrStandeeAvatar" src="" alt="Store Avatar" class="standee-avatar">
+                        <h3 id="qrStandeeName" class="standee-store-name">Store Name</h3>
+                        <p id="qrStandeeMeta" class="standee-store-meta">Category • City</p>
+                    </div>
+
+                    <!-- QR Code Frame & Box -->
+                    <div class="standee-qr-frame">
+                        <div class="qr-corner-bracket top-left"></div>
+                        <div class="qr-corner-bracket top-right"></div>
+                        <div class="qr-corner-bracket bottom-left"></div>
+                        <div class="qr-corner-bracket bottom-right"></div>
+                        <div class="standee-qr-box" id="qrCodeContainer">
+                            <!-- High-Res QR code inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Footer Instructions -->
+                    <div class="standee-footer">
+                        <p class="standee-scan-prompt"><i class="fa-solid fa-camera"></i> Scan with any Camera or QR App</p>
+                        <div class="standee-link-row" title="Store Direct Link">
+                            <a href="#" id="qrStandeeLinkAnchor" target="_blank" class="standee-link-url" title="Click to view Store Details Page">
+                                <i class="fa-solid fa-link"></i>
+                                <span class="standee-link-text" id="qrStandeeLinkText">localbazar.com/store</span>
+                            </a>
+                            <button type="button" class="standee-copy-btn" id="standeeCopyBtn" onclick="copyStoreShareLink()" title="Copy Store Link">
+                                <i class="fa-regular fa-copy" id="standeeCopyIcon"></i>
+                                <span class="standee-copy-text" id="standeeCopyText">Copy</span>
+                            </button>
+                        </div>
+                        <small class="standee-tagline">Browse catalog, view offers & order directly</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dedicated Pinned Action Footer (Download Image: More Space, Share: Less Space) -->
+            <div class="qr-modal-footer">
+                <button type="button" class="btn-qr-action download" onclick="downloadStoreQRStandee()" title="Download image to save or share">
+                    <i class="fa-solid fa-download"></i> <span>Download Image</span>
+                </button>
+                <button type="button" class="btn-qr-action share" onclick="shareStoreQRStandee()" title="Share QR Standee via WhatsApp or any App">
+                    <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium System Alert & Notification Modal -->
+    <div class="lb-alert-overlay" id="lbAlertOverlay" style="display:none;" onclick="closeLbAlert(event)">
+        <div class="lb-alert-card" id="lbAlertCard" onclick="event.stopPropagation()">
+            <div class="lb-alert-icon-wrap" id="lbAlertIconWrap">
+                <i class="fa-solid fa-circle-exclamation" id="lbAlertIcon"></i>
+            </div>
+            <h3 class="lb-alert-title" id="lbAlertTitle">Attention Required</h3>
+            <p class="lb-alert-desc" id="lbAlertDesc">Please fill out all required details before continuing.</p>
+            <div class="lb-alert-action-row" id="lbAlertActions">
+                <button type="button" class="btn-lb-alert-primary" id="lbAlertOkBtn" onclick="closeLbAlert()">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Cloud SDK & Central Config -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <!-- QRCode.js Library for Client-side Vector QR Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="account.js"></script>
+    <script src="app-nav.js"></script>
+    <script src="pwa.js"></script>
+</body>
+</html>

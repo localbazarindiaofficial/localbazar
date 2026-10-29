@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="adminBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="roofStripe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <filter id="adminGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#f59e0b" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Executive Rounded Container -->
+  <rect width="512" height="512" rx="112" fill="url(#adminBg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="104" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-opacity="0.4"/>
+
+  <!-- Store Graphics Group with Premium Gold Glow -->
+  <g filter="url(#adminGlow)">
+    <!-- Store Awning Roof -->
+    <path d="M96 195 L416 195 L376 115 L136 115 Z" fill="url(#goldGrad)"/>
+    
+    <!-- Awning Stripes (White / Gold) -->
+    <path d="M152 115 L144 195 L184 195 L192 115 Z" fill="url(#roofStripe)"/>
+    <path d="M232 115 L228 195 L268 195 L272 115 Z" fill="url(#roofStripe)"/>
+    <path d="M312 115 L312 195 L352 195 L352 115 Z" fill="url(#roofStripe)"/>
+
+    <!-- Scalloped Awning Valance -->
+    <path d="M96 195 Q128 225 160 195 Q192 225 224 195 Q256 225 288 195 Q320 225 352 195 Q384 225 416 195" fill="none" stroke="url(#goldGrad)" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Store Building Structure -->
+    <rect x="116" y="215" width="280" height="195" rx="20" fill="#ffffff"/>
+    
+    <!-- Large Store Display Windows -->
+    <rect x="144" y="245" width="65" height="75" rx="10" fill="#1e293b"/>
+    <line x1="176" y1="245" x2="176" y2="320" stroke="#f59e0b" stroke-width="3"/>
+    
+    <rect x="303" y="245" width="65" height="75" rx="10" fill="#1e293b"/>
+    <line x1="335" y1="245" x2="335" y2="320" stroke="#f59e0b" stroke-width="3"/>
+
+    <!-- Center Store Entrance Door -->
+    <rect x="225" y="275" width="62" height="135" rx="8" fill="url(#goldGrad)"/>
+    <circle cx="275" cy="345" r="5" fill="#0f172a"/>
+
+    <!-- Bottom Store Step -->
+    <rect x="96" y="410" width="320" height="14" rx="7" fill="#cbd5e1"/>
+  </g>
+
+  <!-- "ADMIN LB" Badge Banner on Icon -->
+  <g>
+    <rect x="136" y="434" width="240" height="42" rx="21" fill="url(#goldGrad)"/>
+    <text x="256" y="462" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="22" fill="#0f172a" text-anchor="middle" letter-spacing="3">ADMIN LB</text>
+  </g>
+</svg>

@@ -1,0 +1,195 @@
+/* =========================================================
+   LocalBazar - Ultra Clean One-Click Google Authentication
+   ========================================================= */
+
+.auth-body {
+    background-color: #f8fafc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Center Stage */
+.auth-main {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.25rem;
+}
+
+.auth-card {
+    background: #ffffff;
+    border: 1px solid var(--slate-200);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 400px;
+    padding: 2.75rem 2.25rem;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+    text-align: center;
+}
+
+/* Brand Header */
+.card-brand-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth-brand-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-heading);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--slate-900);
+}
+
+.brand-icon-sm {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.auth-brand-logo span span {
+    color: var(--brand-blue);
+}
+
+/* Header Text */
+.auth-header-text {
+    margin-bottom: 2.25rem;
+}
+
+.auth-header-text h2 {
+    font-family: var(--font-heading);
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -0.4px;
+    margin-bottom: 0.45rem;
+}
+
+.auth-header-text p {
+    font-size: 0.9rem;
+    color: var(--slate-400);
+    line-height: 1.5;
+}
+
+/* Social Buttons (Google & Facebook) */
+.auth-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 1.75rem;
+}
+
+.btn-social-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+}
+
+.btn-social-full:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.btn-social-full:active {
+    transform: translateY(0);
+}
+
+.google-icon {
+    flex-shrink: 0;
+}
+
+.btn-facebook {
+    border-color: #dbeafe;
+}
+
+.btn-facebook:hover {
+    border-color: #bfdbfe;
+    background: #f0f7ff;
+}
+
+.btn-facebook i {
+    color: #1877F2;
+    font-size: 1.25rem;
+}
+
+/* Security Note */
+.auth-security-note {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: var(--slate-400);
+    margin-bottom: 2rem;
+}
+
+.auth-security-note i {
+    color: #10b981;
+    font-size: 0.85rem;
+}
+
+/* Card Footer */
+.auth-card-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--slate-100);
+}
+
+.auth-card-footer p {
+    font-size: 0.78rem;
+    color: var(--slate-400);
+    line-height: 1.4;
+}
+
+.auth-card-footer a {
+    color: var(--brand-blue);
+    font-weight: 500;
+}
+
+.auth-card-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .auth-main {
+        padding: 1.5rem 1rem;
+        align-items: flex-start;
+    }
+
+    .auth-card {
+        padding: 2.25rem 1.5rem;
+        border-radius: 20px;
+        margin-top: 2rem;
+    }
+
+    .auth-header-text h2 {
+        font-size: 1.4rem;
+    }
+}
