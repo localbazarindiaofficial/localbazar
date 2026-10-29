@@ -172,25 +172,34 @@
             return;
         }
 
-        // 2. Android / Desktop Chrome / Edge native 1-click install prompt
-        if (deferredInstallPrompt) {
-            deferredInstallPrompt.prompt();
-            const { outcome } = await deferredInstallPrompt.userChoice;
-            if (outcome === 'accepted') {
-                console.log('User accepted LocalBazar PWA installation');
-            }
-            deferredInstallPrompt = null;
-            removePwaInstallBanner();
-            return;
+        // 2. If prompt is in-flight, give it a brief moment
+        if (!deferredInstallPrompt) {
+            await new Promise(r => setTimeout(r, 600));
         }
 
-        // 3. iOS iPhone / iPad Safari
+        // 3. Android / Desktop Chrome / Edge native 1-click install prompt
+        if (deferredInstallPrompt) {
+            try {
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User accepted LocalBazar PWA installation');
+                }
+                deferredInstallPrompt = null;
+                removePwaInstallBanner();
+                return;
+            } catch(e) {
+                console.warn('Native install prompt failed:', e);
+            }
+        }
+
+        // 4. iOS iPhone / iPad Safari
         if (isIos) {
             showIosInstallGuide();
             return;
         }
 
-        // 4. Fallback for Android / Desktop Chrome
+        // 5. Fallback for Android / Desktop Chrome
         showAndroidInstallGuide();
     };
 })();

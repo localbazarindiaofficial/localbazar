@@ -85,23 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const prefixMatches = [];
-            const otherMatches = [];
-
-            cities.forEach(c => {
-                const name = (c.name || '').toLowerCase();
-                const dist = (c.district || '').toLowerCase();
-                const pin = (c.pincode || '').toString().toLowerCase();
-                const state = (c.state || '').toLowerCase();
-
-                if (name.startsWith(val)) {
-                    prefixMatches.push(c);
-                } else if (name.includes(val) || dist.startsWith(val) || dist.includes(val) || pin.startsWith(val) || state.includes(val)) {
-                    otherMatches.push(c);
-                }
-            });
-
-            const matches = [...prefixMatches, ...otherMatches].slice(0, 8);
+            // Only cities whose name starts with the typed characters (Strict Prefix Match, A-Z)
+            const matches = cities
+                .filter(c => (c.name || '').toLowerCase().startsWith(val))
+                .slice(0, 8);
 
             if (matches.length === 0) {
                 homeCityPopover.classList.remove('open');
@@ -158,24 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const prefixMatches = [];
-            const otherMatches = [];
-
-            categories.forEach(cat => {
-                const name = (cat.name || '').toLowerCase();
-                const rawTags = Array.isArray(cat.tags) ? cat.tags : (cat.tags ? cat.tags.split(',') : (cat.desc ? cat.desc.split(',') : []));
-                const tagsLower = rawTags.map(t => String(t).trim().toLowerCase());
-
-                if (name.startsWith(val)) {
-                    prefixMatches.push(cat);
-                } else if (name.includes(val) || tagsLower.some(t => t.startsWith(val))) {
-                    otherMatches.push(cat);
-                } else if (tagsLower.some(t => t.includes(val))) {
-                    otherMatches.push(cat);
-                }
-            });
-
-            const catMatches = [...prefixMatches, ...otherMatches].slice(0, 8);
+            // Only categories whose name starts with the typed characters (Strict Prefix Match, A-Z)
+            const catMatches = categories
+                .filter(cat => (cat.name || '').toLowerCase().startsWith(val))
+                .slice(0, 8);
 
             if (catMatches.length === 0) {
                 homeCatPopover.classList.remove('open');
