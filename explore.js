@@ -685,20 +685,32 @@ window.handleModalGoogleSignIn = async function() {
             const result = await firebase.auth().signInWithPopup(provider);
             const user = result.user;
 
-            const activeUser = {
-                id: 'USR-' + Math.floor(100000 + Math.random() * 900000),
-                name: user.displayName || 'Google User',
-                email: user.email || '',
-                method: 'Google',
-                role: 'Member',
-                avatar: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                phone: user.phoneNumber || '',
-                city: pendingSearchData ? pendingSearchData.city : '',
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                memberSince: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-                savedPlaces: 0,
-                reviewsCount: 0
-            };
+            let activeUser;
+            if (typeof window.syncAuthUser === 'function') {
+                activeUser = window.syncAuthUser(user.displayName, user.email, user.photoURL, 'Google', user.uid, user.phoneNumber, pendingSearchData ? pendingSearchData.city : '');
+            } else {
+                let existingUser = null;
+                try {
+                    const users = JSON.parse(localStorage.getItem('lb_users') || '[]');
+                    existingUser = users.find(u => (user.email && u.email && u.email.toLowerCase() === user.email.toLowerCase()) || (user.uid && u.uid === user.uid));
+                } catch(e) {}
+
+                activeUser = {
+                    id: existingUser ? existingUser.id : ('USR-' + Math.floor(100000 + Math.random() * 900000)),
+                    uid: user.uid,
+                    name: user.displayName || (existingUser ? existingUser.name : 'Google User'),
+                    email: user.email || (existingUser ? existingUser.email : ''),
+                    method: 'Google',
+                    role: existingUser ? (existingUser.role || 'Member') : 'Member',
+                    avatar: user.photoURL || (existingUser ? existingUser.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'),
+                    phone: user.phoneNumber || (existingUser ? existingUser.phone : ''),
+                    city: pendingSearchData ? pendingSearchData.city : (existingUser ? existingUser.city : ''),
+                    date: existingUser ? (existingUser.date || existingUser.memberSince) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    memberSince: existingUser ? (existingUser.memberSince || existingUser.date) : new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    savedPlaces: existingUser ? (existingUser.savedPlaces || 0) : 0,
+                    reviewsCount: existingUser ? (existingUser.reviewsCount || 0) : 0
+                };
+            }
 
             // Sync user to Cloud Firestore
             if (window.lbCloudSync && window.lbCloudSync.saveUser) {

@@ -18,35 +18,69 @@
     // 2. Custom Multi-Platform Install Banner Controller (Android & iOS)
     let deferredInstallPrompt = null;
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    function isAppAlreadyInstalled() {
+        // A. Already running as installed standalone PWA app
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            return true;
+        }
+        // B. Recorded in local storage that this device/browser already completed installation
+        if (localStorage.getItem('lb_pwa_installed') === 'true') {
+            return true;
+        }
+        return false;
+    }
+
+    // If currently running in standalone mode, permanently remember install state & sync UI
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
+    }
 
     // A. Android & Desktop Chrome/Edge Native Prompt Listener
     window.addEventListener('beforeinstallprompt', (e) => {
+        if (isAppAlreadyInstalled()) return;
         e.preventDefault();
         deferredInstallPrompt = e;
         showPwaInstallBanner();
     });
 
-    // B. Auto-Discovery on page load for all mobile & desktop visitors
+    // B. Auto-Discovery on page load for visitors without the app
     window.addEventListener('load', () => {
-        if (!isStandalone) {
-            setTimeout(showPwaInstallBanner, 1500);
+        // Sync account hub row if already installed
+        if (isAppAlreadyInstalled()) {
+            const hubRow = document.getElementById('hubInstallAppRow');
+            if (hubRow) hubRow.style.display = 'none';
+            return;
         }
+        setTimeout(showPwaInstallBanner, 1500);
     });
 
     window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
+        try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
         removePwaInstallBanner();
+        const hubRow = document.getElementById('hubInstallAppRow');
+        if (hubRow) hubRow.style.display = 'none';
         console.log('LocalBazar PWA: App installed successfully.');
         if (typeof showLbToast === 'function') {
             showLbToast('LocalBazar app installed successfully!', 'success');
         }
     });
 
-    function showPwaInstallBanner() {
+    async function showPwaInstallBanner() {
         if (document.getElementById('lbPwaInstallBar')) return;
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            return;
+        if (isAppAlreadyInstalled()) return;
+        if (sessionStorage.getItem('lb_pwa_install_dismissed') === 'true') return;
+
+        // Check Chrome's getInstalledRelatedApps API if supported
+        if ('getInstalledRelatedApps' in navigator) {
+            try {
+                const related = await navigator.getInstalledRelatedApps();
+                if (related && related.length > 0) {
+                    try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
+                    return;
+                }
+            } catch (e) {}
         }
 
         const banner = document.createElement('div');
@@ -55,7 +89,7 @@
         banner.innerHTML = `
             <div class="lb-pwa-install-content">
                 <div class="lb-pwa-icon-box">
-                    <img src="icon-192.png" onerror="this.onerror=null; this.src='icons/icon-192.png';" alt="LocalBazar App" class="lb-pwa-thumb">
+                    <img src="icon-512.png" onerror="this.onerror=null; this.src='icons/icon-512.png';" alt="LocalBazar App" class="lb-pwa-thumb">
                 </div>
                 <div class="lb-pwa-text-group">
                     <strong class="lb-pwa-app-title">Install LocalBazar App</strong>
@@ -166,9 +200,14 @@
 
     // Global Universal Install Trigger (Used across all pages & Account Hub)
     window.installPwaApp = async function() {
-        // 1. Already running as standalone app
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            alert('LocalBazar is already installed and running as an App on your device!');
+        // 1. Already running as standalone app or previously installed
+        if (isAppAlreadyInstalled()) {
+            if (typeof showLbToast === 'function') {
+                showLbToast('LocalBazar is already installed on your device!', 'info');
+            } else {
+                alert('LocalBazar is already installed and running as an App on your device!');
+            }
+            removePwaInstallBanner();
             return;
         }
 
@@ -184,6 +223,9 @@
                 const { outcome } = await deferredInstallPrompt.userChoice;
                 if (outcome === 'accepted') {
                     console.log('User accepted LocalBazar PWA installation');
+                    try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
+                    const hubRow = document.getElementById('hubInstallAppRow');
+                    if (hubRow) hubRow.style.display = 'none';
                 }
                 deferredInstallPrompt = null;
                 removePwaInstallBanner();

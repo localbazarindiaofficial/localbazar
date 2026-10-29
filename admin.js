@@ -2708,13 +2708,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Edit City Form Handler
-    document.getElementById('editCityForm')?.addEventListener('submit', (e) => {
+    document.getElementById('editCityForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const originalName = decodeURIComponent(document.getElementById('editCityOriginalName').value.trim());
         const newName = document.getElementById('editCityNameInput').value.trim();
         const newDistrict = document.getElementById('editCityDistrictInput').value.trim();
         const newState = document.getElementById('editCityStateInput').value.trim();
         const newPincode = document.getElementById('editCityPincodeInput').value.trim();
+
+        const ok = await window.adminSecurityConfirm({
+            title: 'Save City Changes',
+            message: `Are you sure you want to save changes for city <strong>"${originalName}"</strong>?`,
+            actionType: 'edit'
+        });
+        if (!ok) return;
 
         let cities = getDB(DB_KEYS.CITIES);
         const cityIndex = cities.findIndex(c => c.name.toLowerCase() === originalName.toLowerCase());
@@ -2794,13 +2801,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Edit Category Form Handler
-    document.getElementById('editCategoryForm')?.addEventListener('submit', (e) => {
+    document.getElementById('editCategoryForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const originalName = decodeURIComponent(document.getElementById('editCatOriginalName').value.trim());
         const newName = document.getElementById('editCatNameInput').value.trim();
         const rawTags = document.getElementById('editCatTagsInput')?.value.trim() || '';
         const tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
         const storeCategories = window.editStoreCatBuilder ? window.editStoreCatBuilder.getChips() : [];
+
+        const ok = await window.adminSecurityConfirm({
+            title: 'Save Category Changes',
+            message: `Are you sure you want to save changes for category <strong>"${originalName}"</strong>?`,
+            actionType: 'edit'
+        });
+        if (!ok) return;
 
         let categories = getDB(DB_KEYS.CATEGORIES);
         const catIndex = categories.findIndex(c => c.name.toLowerCase() === originalName.toLowerCase());
@@ -3951,46 +3965,190 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// ================= UNIVERSAL ADMIN SECURITY VERIFICATION CONTROLLER (CONFIRM TO PROCEED) =================
+window.adminSecurityConfirm = function({ title = 'Confirm Action', message = 'Are you sure you want to proceed?', actionType = 'delete' } = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('adminSecurityModal');
+        if (!modal) {
+            const cleanMsg = (message || '').replace(/<[^>]*>/g, '');
+            const val = window.prompt(`${title}\n\n${cleanMsg}\n\nPlease type CONFIRM in capital letters to verify:`);
+            return resolve(val && val.trim() === 'CONFIRM');
+        }
+
+        const titleEl = document.getElementById('adminSecurityTitle');
+        const msgEl = document.getElementById('adminSecurityMessage');
+        const badge = document.getElementById('adminSecurityBadge');
+        const icon = document.getElementById('adminSecurityIcon');
+        const input = document.getElementById('adminSecurityInput');
+        const errorEl = document.getElementById('adminSecurityInputError');
+        const confirmBtn = document.getElementById('adminSecurityConfirmBtn');
+        const cancelBtn = document.getElementById('adminSecurityCancelBtn');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.innerHTML = message;
+        if (input) input.value = '';
+        if (errorEl) errorEl.style.display = 'none';
+
+        if (actionType === 'delete') {
+            if (badge) { badge.style.background = '#fee2e2'; badge.style.color = '#ef4444'; }
+            if (icon) icon.className = 'fa-solid fa-trash-can';
+            if (confirmBtn) {
+                confirmBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                confirmBtn.style.boxShadow = '0 4px 12px rgba(239,68,68,0.3)';
+                confirmBtn.innerHTML = '<i class="fa-solid fa-trash-can" style="margin-right:6px;"></i> Yes, Delete';
+            }
+        } else {
+            if (badge) { badge.style.background = '#eff6ff'; badge.style.color = '#2563eb'; }
+            if (icon) icon.className = 'fa-solid fa-pen-to-square';
+            if (confirmBtn) {
+                confirmBtn.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+                confirmBtn.style.boxShadow = '0 4px 12px rgba(37,99,235,0.3)';
+                confirmBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:6px;"></i> Yes, Save Changes';
+            }
+        }
+
+        if (confirmBtn) {
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.style.pointerEvents = 'none';
+        }
+        if (input) input.style.borderColor = '#cbd5e1';
+
+        function validateInput() {
+            if (!input || !confirmBtn) return;
+            if (input.value.trim() === 'CONFIRM') {
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.pointerEvents = 'auto';
+                input.style.borderColor = '#16a34a';
+                if (errorEl) errorEl.style.display = 'none';
+            } else {
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.style.pointerEvents = 'none';
+                input.style.borderColor = '#cbd5e1';
+            }
+        }
+
+        function cleanup() {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+            if (input) {
+                input.oninput = null;
+                input.onkeydown = null;
+            }
+            if (confirmBtn) confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            modal.onclick = null;
+        }
+
+        if (input) {
+            input.oninput = () => {
+                input.value = input.value.toUpperCase();
+                validateInput();
+            };
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (input.value.trim() === 'CONFIRM') {
+                        cleanup();
+                        resolve(true);
+                    } else if (errorEl) {
+                        errorEl.style.display = 'block';
+                    }
+                }
+            };
+        }
+
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                if (input && input.value.trim() === 'CONFIRM') {
+                    cleanup();
+                    resolve(true);
+                } else if (errorEl) {
+                    errorEl.style.display = 'block';
+                }
+            };
+        }
+
+        if (cancelBtn) {
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(false);
+            };
+        }
+
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(false);
+            }
+        };
+
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+        setTimeout(() => input?.focus(), 100);
+    });
+};
+
 // Global Window Actions (Approve, Reject, Delete)
 window.approveListing = async function(id) {
     const listings = getDB(DB_KEYS.LISTINGS);
     const item = listings.find(l => String(l.id) === String(id));
-    if (item) {
-        item.status = 'Verified';
-        setDB(DB_KEYS.LISTINGS, listings);
-        if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-            await window.lbCloudSync.saveListing(item);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
-        alert(`Listing "${item.name}" has been Approved and is now Live to the public!`);
+    if (!item) return;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Approve & Publish Listing',
+        message: `Are you sure you want to approve <strong>"${item.name}"</strong> and publish it live on the platform?`,
+        actionType: 'edit'
+    });
+    if (!ok) return;
+
+    item.status = 'Verified';
+    setDB(DB_KEYS.LISTINGS, listings);
+    if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+        await window.lbCloudSync.saveListing(item);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
+    alert(`Listing "${item.name}" has been Approved and is now Live to the public!`);
 };
 
 window.rejectListing = async function(id) {
-    if (!confirm('Are you sure you want to reject this listing submission?')) return;
     const listings = getDB(DB_KEYS.LISTINGS);
     const item = listings.find(l => String(l.id) === String(id));
-    if (item) {
-        item.status = 'Rejected';
-        setDB(DB_KEYS.LISTINGS, listings);
-        if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-            await window.lbCloudSync.saveListing(item);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
-        alert(`Listing "${item.name}" has been marked as Rejected.`);
+    if (!item) return;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Reject Listing Application',
+        message: `Are you sure you want to reject <strong>"${item.name}"</strong>?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    item.status = 'Rejected';
+    setDB(DB_KEYS.LISTINGS, listings);
+    if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+        await window.lbCloudSync.saveListing(item);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
+    alert(`Listing "${item.name}" has been marked as Rejected.`);
 };
 
-window.deleteListing = function(id) {
-    if (confirm('Are you sure you want to remove this listing?')) {
-        let listings = getDB(DB_KEYS.LISTINGS);
-        listings = listings.filter(l => l.id !== id);
-        setDB(DB_KEYS.LISTINGS, listings);
-        if (window.lbCloudSync && typeof window.lbCloudSync.deleteListing === 'function') {
-            window.lbCloudSync.deleteListing(id);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
+window.deleteListing = async function(id) {
+    let listings = getDB(DB_KEYS.LISTINGS);
+    const item = listings.find(l => String(l.id) === String(id));
+    const title = item ? item.name : `Listing #${id}`;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete Business Listing',
+        message: `Are you sure you want to permanently delete <strong>"${title}"</strong>? This action cannot be undone.`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    listings = listings.filter(l => String(l.id) !== String(id));
+    setDB(DB_KEYS.LISTINGS, listings);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteListing === 'function') {
+        window.lbCloudSync.deleteListing(id);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
 };
 
 window.populateAdminListingOwnerDropdown = function() {
@@ -4025,7 +4183,7 @@ window.openAdminReassignOwnerModal = function(listingId) {
     modal?.classList.add('active');
 };
 
-document.getElementById('reassignOwnerForm')?.addEventListener('submit', (e) => {
+document.getElementById('reassignOwnerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('reassignListingId')?.value;
     const ownerId = document.getElementById('reassignOwnerSelect')?.value || '';
@@ -4041,27 +4199,43 @@ document.getElementById('reassignOwnerForm')?.addEventListener('submit', (e) => 
         if (u) ownerName = u.name;
     }
 
+    const ok = await window.adminSecurityConfirm({
+        title: 'Reassign Business Owner',
+        message: `Are you sure you want to assign ownership of <strong>"${listings[idx].name}"</strong> to <strong>"${ownerName}"</strong>?`,
+        actionType: 'edit'
+    });
+    if (!ok) return;
+
     listings[idx].ownerId = ownerId;
     listings[idx].ownerName = ownerName;
     setDB(DB_KEYS.LISTINGS, listings);
+    if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+        await window.lbCloudSync.saveListing(listings[idx]);
+    }
 
     document.getElementById('reassignOwnerModal')?.classList.remove('active');
     refreshAll();
     alert(`Success: Ownership for "${listings[idx].name}" set to "${ownerName}".`);
 });
 
-window.deleteUser = function(id) {
+window.deleteUser = async function(id) {
     let users = getDB(DB_KEYS.USERS);
     const user = users.find(u => String(u.id) === String(id));
-    const userName = user ? user.name : 'this user';
-    if (confirm(`Are you sure you want to delete user "${userName}"? This cannot be undone.`)) {
-        users = users.filter(u => String(u.id) !== String(id));
-        setDB(DB_KEYS.USERS, users);
-        if (window.lbCloudSync && typeof window.lbCloudSync.deleteUser === 'function') {
-            window.lbCloudSync.deleteUser(id);
-        }
-        refreshAll();
+    const userName = user ? (user.name || user.email) : `User #${id}`;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete User Account',
+        message: `Are you sure you want to permanently delete user <strong>"${userName}"</strong>? This action cannot be undone.`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    users = users.filter(u => String(u.id) !== String(id));
+    setDB(DB_KEYS.USERS, users);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteUser === 'function') {
+        window.lbCloudSync.deleteUser(id);
     }
+    refreshAll();
 };
 
 window.openEditUserModal = function(id) {
@@ -4100,7 +4274,7 @@ window.openEditUserModal = function(id) {
     window.openModal('editUserModal');
 };
 
-document.getElementById('editUserForm')?.addEventListener('submit', (e) => {
+document.getElementById('editUserForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('editUserId')?.value;
     const name = document.getElementById('editUserName')?.value.trim();
@@ -4113,6 +4287,13 @@ document.getElementById('editUserForm')?.addEventListener('submit', (e) => {
         alert('Please fill out Name and Email.');
         return;
     }
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Update User Profile',
+        message: `Are you sure you want to save profile changes for user <strong>"${name}"</strong>?`,
+        actionType: 'edit'
+    });
+    if (!ok) return;
 
     let users = getDB(DB_KEYS.USERS);
     const idx = users.findIndex(u => String(u.id) === String(id));
@@ -4172,21 +4353,32 @@ window.openEditCityModal = function(encodedName) {
     }
 };
 
-window.deleteCity = function(encodedName) {
+window.deleteCity = async function(encodedName) {
     const name = decodeURIComponent(encodedName);
-    if (confirm(`Remove city "${name}" from coverage?`)) {
-        let cities = getDB(DB_KEYS.CITIES);
-        cities = cities.filter(c => (c.name || c).toLowerCase() !== name.toLowerCase());
-        setDB(DB_KEYS.CITIES, cities);
-        if (window.lbCloudSync && typeof window.lbCloudSync.deleteCity === 'function') {
-            window.lbCloudSync.deleteCity(name);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete City',
+        message: `Are you sure you want to remove city <strong>"${name}"</strong> from LocalBazar coverage?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    let cities = getDB(DB_KEYS.CITIES);
+    cities = cities.filter(c => (c.name || c).toLowerCase() !== name.toLowerCase());
+    setDB(DB_KEYS.CITIES, cities);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCity === 'function') {
+        window.lbCloudSync.deleteCity(name);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
 };
 
 window.clearAllCitiesPrompt = async function() {
-    if (!confirm('Are you sure you want to DELETE ALL CITIES from the entire system and Cloud? This will remove all demo or registered cities.')) return;
+    const ok = await window.adminSecurityConfirm({
+        title: 'Clear All Cities',
+        message: 'Are you sure you want to <strong>DELETE ALL CITIES</strong> from the entire system and Cloud? This cannot be undone.',
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
     try {
         if (window.lbCloudSync && typeof window.lbCloudSync.clearAllCities === 'function') {
             await window.lbCloudSync.clearAllCities();
@@ -4251,21 +4443,32 @@ window.openEditCategoryModal = function(encodedName) {
     }
 };
 
-window.deleteCategory = function(encodedName) {
+window.deleteCategory = async function(encodedName) {
     const name = decodeURIComponent(encodedName);
-    if (confirm(`Delete category "${name}"?`)) {
-        let categories = getDB(DB_KEYS.CATEGORIES);
-        categories = categories.filter(c => (c.name || c).toLowerCase() !== name.toLowerCase());
-        setDB(DB_KEYS.CATEGORIES, categories);
-        if (window.lbCloudSync && typeof window.lbCloudSync.deleteCategory === 'function') {
-            window.lbCloudSync.deleteCategory(name);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete Category',
+        message: `Are you sure you want to delete category <strong>"${name}"</strong> from LocalBazar?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    let categories = getDB(DB_KEYS.CATEGORIES);
+    categories = categories.filter(c => (c.name || c).toLowerCase() !== name.toLowerCase());
+    setDB(DB_KEYS.CATEGORIES, categories);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCategory === 'function') {
+        window.lbCloudSync.deleteCategory(name);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
 };
 
 window.clearAllCategoriesPrompt = async function() {
-    if (!confirm('Are you sure you want to DELETE ALL CATEGORIES from the entire system and Cloud? This will remove all demo or registered categories.')) return;
+    const ok = await window.adminSecurityConfirm({
+        title: 'Clear All Categories',
+        message: 'Are you sure you want to <strong>DELETE ALL CATEGORIES</strong> from the entire system and Cloud? This cannot be undone.',
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
     try {
         if (window.lbCloudSync && typeof window.lbCloudSync.clearAllCategories === 'function') {
             await window.lbCloudSync.clearAllCategories();
@@ -4279,25 +4482,35 @@ window.clearAllCategoriesPrompt = async function() {
     }
 };
 
-window.deleteMail = function(id) {
-    if (confirm('Delete this message?')) {
-        let mail = getDB(DB_KEYS.MAIL);
-        mail = mail.filter(m => m.id !== id);
-        setDB(DB_KEYS.MAIL, mail);
-        if (typeof window.refreshAll === 'function') window.refreshAll();
-    }
+window.deleteMail = async function(id) {
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete Message',
+        message: 'Are you sure you want to delete this message?',
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    let mail = getDB(DB_KEYS.MAIL);
+    mail = mail.filter(m => m.id !== id);
+    setDB(DB_KEYS.MAIL, mail);
+    if (typeof window.refreshAll === 'function') window.refreshAll();
 };
 
-window.deleteNews = function(id) {
-    if (confirm('Remove this news announcement?')) {
-        let news = getDB(DB_KEYS.NEWS);
-        news = news.filter(n => n.id !== id);
-        setDB(DB_KEYS.NEWS, news);
-        if (window.lbCloudSync && typeof window.lbCloudSync.deleteNewsItem === 'function') {
-            window.lbCloudSync.deleteNewsItem(id);
-        }
-        if (typeof window.refreshAll === 'function') window.refreshAll();
+window.deleteNews = async function(id) {
+    const ok = await window.adminSecurityConfirm({
+        title: 'Delete News Announcement',
+        message: 'Are you sure you want to remove this news announcement?',
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    let news = getDB(DB_KEYS.NEWS);
+    news = news.filter(n => n.id !== id);
+    setDB(DB_KEYS.NEWS, news);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteNewsItem === 'function') {
+        window.lbCloudSync.deleteNewsItem(id);
     }
+    if (typeof window.refreshAll === 'function') window.refreshAll();
 };
 
 // =========================================================================
@@ -4480,15 +4693,18 @@ window.renderListingClaims = function() {
     }).join('');
 };
 
-window.approveListingClaim = function(claimId) {
+window.approveListingClaim = async function(claimId) {
     const claims = getDB(DB_KEYS.CLAIMS, []);
     const idx = claims.findIndex(c => String(c.id) === String(claimId));
     if (idx === -1) return;
 
     const claim = claims[idx];
-    if (!confirm(`Are you sure you want to APPROVE ownership of "${claim.listingName}" to user "${claim.userName}"?\n\nThis will transfer the listing into their "Manage Your Business" dashboard.`)) {
-        return;
-    }
+    const ok = await window.adminSecurityConfirm({
+        title: 'Approve Ownership Claim',
+        message: `Are you sure you want to APPROVE ownership of <strong>"${claim.listingName}"</strong> to user <strong>"${claim.userName}"</strong>?<br><br>This will transfer the listing into their business dashboard.`,
+        actionType: 'edit'
+    });
+    if (!ok) return;
 
     // 1. Assign ownership on target listing in lb_listings
     const listings = getDB(DB_KEYS.LISTINGS, []);
@@ -4552,13 +4768,20 @@ window.openRejectClaimModal = function(claimId) {
     openModal('rejectClaimModal');
 };
 
-window.submitAdminRejectClaim = function() {
+window.submitAdminRejectClaim = async function() {
     const claimId = document.getElementById('rejectClaimId')?.value;
     const reason = document.getElementById('rejectClaimReason')?.value.trim();
     if (!claimId || !reason) {
         alert('Please specify the reason explaining why this claim was rejected.');
         return;
     }
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Reject Ownership Claim',
+        message: 'Are you sure you want to reject this ownership claim request?',
+        actionType: 'delete'
+    });
+    if (!ok) return;
 
     const claims = getDB(DB_KEYS.CLAIMS, []);
     const idx = claims.findIndex(c => String(c.id) === String(claimId));
@@ -4751,115 +4974,7 @@ window.testImgbbCdnUpload = async function() {
     }
 };
 
-// ================= MASTER PLATFORM PURGE (RESET TO 0) =================
-window.handlePurgeAllPlatformData = function() {
-    const modal = document.getElementById('purgeConfirmModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.classList.add('active');
-    } else if (typeof window.executePurgeAllPlatformDataNow === 'function') {
-        window.executePurgeAllPlatformDataNow();
-    }
-};
 
-window.closePurgeConfirmModal = function() {
-    const modal = document.getElementById('purgeConfirmModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('active');
-    }
-};
-
-window.executePurgeAllPlatformDataNow = async function() {
-    const btn = document.getElementById('btnConfirmPurgeExecution');
-    const notice = document.getElementById('purgeModalStatusNotice');
-    if (btn) btn.disabled = true;
-    if (notice) notice.style.display = 'block';
-
-    try {
-        // 1. Purge from Firebase Cloud Firestore if available
-        let db = window.lbFirestore;
-        if (!db && window.firebase && typeof window.firebase.firestore === 'function') {
-            try { db = window.firebase.firestore(); } catch(e) {}
-        }
-
-        if (db) {
-            const collectionsToPurge = ['listings', 'users', 'claims', 'trust_requests', 'mail'];
-            for (const colName of collectionsToPurge) {
-                try {
-                    const snap = await db.collection(colName).get();
-                    if (!snap.empty) {
-                        const batch = db.batch();
-                        snap.forEach(doc => batch.delete(doc.ref));
-                        await batch.commit();
-                        console.log(`[Purge] Cleared Firestore collection: ${colName}`);
-                    }
-                } catch (colErr) {
-                    console.warn(`[Purge] Error purging ${colName}:`, colErr);
-                }
-            }
-
-            // Purge reviews subcollections
-            try {
-                const snapReviews = await db.collection('reviews').get();
-                for (const storeDoc of snapReviews.docs) {
-                    try {
-                        const subSnap = await storeDoc.ref.collection('items').get();
-                        const subBatch = db.batch();
-                        subSnap.forEach(d => subBatch.delete(d.ref));
-                        await subBatch.commit();
-                    } catch(e) {}
-                    await storeDoc.ref.delete().catch(() => {});
-                }
-            } catch(revErr) {
-                console.warn('[Purge] Error purging reviews:', revErr);
-            }
-
-            // Purge inquiries subcollections
-            try {
-                const snapInquiries = await db.collection('inquiries').get();
-                for (const inqDoc of snapInquiries.docs) {
-                    try {
-                        const subSnap = await inqDoc.ref.collection('messages').get();
-                        const subBatch = db.batch();
-                        subSnap.forEach(d => subBatch.delete(d.ref));
-                        await subBatch.commit();
-                    } catch(e) {}
-                    await inqDoc.ref.delete().catch(() => {});
-                }
-            } catch(inqErr) {
-                console.warn('[Purge] Error purging inquiries:', inqErr);
-            }
-        }
-
-        // 2. Purge from Browser LocalStorage
-        localStorage.setItem('lb_listings', '[]');
-        localStorage.setItem('lb_users', '[]');
-        localStorage.removeItem('lb_current_user');
-        localStorage.setItem('lb_listing_claims', '[]');
-        localStorage.setItem('lb_trust_requests', '[]');
-        localStorage.setItem('lb_mail', '[]');
-        localStorage.setItem('lb_notifications', '[]');
-        localStorage.setItem('lb_saved_places', '[]');
-
-        // Remove all dynamic keys: reviews, store inboxes, chat history
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && (k.startsWith('lb_reviews_') || k.startsWith('lb_store_inbox_') || k.startsWith('lb_chat_history_'))) {
-                keysToRemove.push(k);
-            }
-        }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-
-        alert('✅ SUCCESS: All listings, users, reviews, inboxes, and claims have been permanently deleted to 0!\n\nAll counts are now 0. The platform will now reload.');
-        window.location.reload();
-    } catch (err) {
-        console.error('Purge error:', err);
-        alert('Notice during reset: ' + err.message + '\nLocal data has been reset to 0.');
-        window.location.reload();
-    }
-};
 
 // Initialize Admin Settings ImgBB Input on load
 document.addEventListener('DOMContentLoaded', () => {
@@ -5345,8 +5460,6 @@ window.renderAdminTrustBadgeRequests = function() {
 };
 
 window.adminApproveTrustBadge = async function(reqId) {
-    if (!confirm('Are you sure you want to approve this request and activate the Gold ✔ Trust Badge?')) return;
-
     let reqs = [];
     try {
         const raw = localStorage.getItem('lb_trust_requests');
@@ -5355,6 +5468,13 @@ window.adminApproveTrustBadge = async function(reqId) {
 
     const req = reqs.find(r => String(r.id) === String(reqId));
     if (!req) return;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Approve Trust Badge',
+        message: `Are you sure you want to activate the Gold Verified Trust Badge for <strong>"${req.listingName}"</strong>?`,
+        actionType: 'edit'
+    });
+    if (!ok) return;
 
     req.status = 'Approved';
     req.approvedAt = new Date().toISOString();
@@ -5411,6 +5531,13 @@ window.adminRejectTrustBadge = async function(reqId) {
     const req = reqs.find(r => String(r.id) === String(reqId));
     if (!req) return;
 
+    const ok = await window.adminSecurityConfirm({
+        title: 'Reject Trust Badge Request',
+        message: `Are you sure you want to reject the Trust Badge application for <strong>"${req.listingName}"</strong>?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
     req.status = 'Rejected';
     req.adminRemarks = reason;
     req.rejectedAt = new Date().toISOString();
@@ -5426,8 +5553,6 @@ window.adminRejectTrustBadge = async function(reqId) {
 };
 
 window.adminRevokeTrustBadge = async function(reqId) {
-    if (!confirm('Are you sure you want to revoke the Trust Badge for this listing?')) return;
-
     let reqs = [];
     try {
         const raw = localStorage.getItem('lb_trust_requests');
@@ -5436,6 +5561,13 @@ window.adminRevokeTrustBadge = async function(reqId) {
 
     const req = reqs.find(r => String(r.id) === String(reqId));
     if (!req) return;
+
+    const ok = await window.adminSecurityConfirm({
+        title: 'Revoke Trust Badge',
+        message: `Are you sure you want to revoke the Trust Badge for <strong>"${req.listingName}"</strong>?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
 
     req.status = 'Pending';
     localStorage.setItem('lb_trust_requests', JSON.stringify(reqs));
@@ -5474,6 +5606,15 @@ window.adminToggleListingTrustBadge = async function(listingId) {
     if (!item) return;
 
     const willBeTrusted = !(item.hasTrustBadge || item.status === 'Verified');
+    const ok = await window.adminSecurityConfirm({
+        title: willBeTrusted ? 'Grant Verified Trust Badge' : 'Revoke Verified Trust Badge',
+        message: willBeTrusted 
+            ? `Are you sure you want to grant the Verified Trust Badge to <strong>"${item.name}"</strong>?`
+            : `Are you sure you want to remove the Verified Trust Badge from <strong>"${item.name}"</strong>?`,
+        actionType: willBeTrusted ? 'edit' : 'delete'
+    });
+    if (!ok) return;
+
     item.hasTrustBadge = willBeTrusted;
     if (willBeTrusted) {
         item.isVerified = true;

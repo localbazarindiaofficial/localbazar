@@ -911,29 +911,7 @@
                             </div>
                         </div>
 
-                        <!-- Danger Zone: Reset All Listings, Users & Reviews to 0 -->
-                        <div class="settings-card" style="border: 1.5px solid #fecaca; background: #fffaf0;">
-                            <div class="settings-card-header" style="border-bottom: 1px solid #fee2e2;">
-                                <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i>
-                                <h3 style="color: #b91c1c;">Reset Platform Data (Delete All)</h3>
-                            </div>
-                            <p style="font-size:0.84rem; color:#7f1d1d; margin-bottom:1rem; line-height:1.5;">
-                                This will permanently delete <strong>All Business Listings & Branches</strong>, <strong>All Registered Users</strong>, <strong>All Reviews & Ratings</strong>, and reset customer inboxes/claims to <strong>0</strong> across Firebase Cloud & LocalStorage.
-                            </p>
-                            
-                            <div style="background:#fff; border:1px solid #fecaca; border-radius:10px; padding:0.85rem 1rem; margin-bottom:1.15rem; display:flex; flex-direction:column; gap:0.4rem; font-size:0.8rem; color:#475569;">
-                                <div><i class="fa-solid fa-check" style="color:#16a34a; margin-right:6px;"></i><strong>Listings & Branches:</strong> Reset to 0 (Permanent)</div>
-                                <div><i class="fa-solid fa-check" style="color:#16a34a; margin-right:6px;"></i><strong>User Accounts & Sessions:</strong> Reset to 0 (Permanent)</div>
-                                <div><i class="fa-solid fa-check" style="color:#16a34a; margin-right:6px;"></i><strong>Customer Reviews & Ratings:</strong> Reset to 0 (Permanent)</div>
-                                <div><i class="fa-solid fa-check" style="color:#16a34a; margin-right:6px;"></i><strong>Claims, Mails & Inboxes:</strong> Reset to 0 (Permanent)</div>
-                                <div style="color:#64748b; font-size:0.75rem; margin-top:2px;">* Cities, Categories & Admin Login Credentials will be preserved.</div>
-                            </div>
 
-                            <button type="button" class="btn-danger-purge" id="btnPurgePlatformData" onclick="handlePurgeAllPlatformData()" style="width:100%; padding:0.75rem 1.25rem; background:linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; border:none; border-radius:10px; font-weight:800; font-size:0.92rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.55rem; box-shadow:0 4px 12px rgba(239,68,68,0.25); transition:all 0.2s ease;">
-                                <i class="fa-solid fa-trash-can"></i>
-                                <span>Delete All Listings, Users & Reviews (Reset to 0)</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1980,25 +1958,34 @@
         </div>
     </div>
 
-    <!-- ================= MODAL: PURGE ALL PLATFORM DATA CONFIRMATION ================= -->
-    <div class="modal-backdrop" id="purgeConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); z-index:999999; align-items:center; justify-content:center; padding:1rem;">
-        <div class="modal-card" style="background:#ffffff; border-radius:18px; max-width:460px; width:100%; padding:1.75rem 1.5rem; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3); border:2px solid #ef4444; margin:auto;" onclick="event.stopPropagation()">
-            <div style="width:64px; height:64px; border-radius:50%; background:#fee2e2; color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:1.85rem; margin:0 auto 1.15rem;">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+    <!-- ================= UNIVERSAL ADMIN SECURITY VERIFICATION MODAL (CONFIRM TO PROCEED) ================= -->
+    <div class="modal-backdrop" id="adminSecurityModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(5px); z-index:999999; align-items:center; justify-content:center; padding:1rem;">
+        <div class="modal-card" style="background:#ffffff; border-radius:20px; max-width:440px; width:100%; padding:1.75rem 1.5rem; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); border:2px solid #ef4444; margin:auto;" onclick="event.stopPropagation()">
+            <!-- Icon Badge -->
+            <div id="adminSecurityBadge" style="width:68px; height:68px; border-radius:50%; background:#fee2e2; color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:1.85rem; margin:0 auto 1.15rem; box-shadow:0 10px 20px rgba(239,68,68,0.2);">
+                <i id="adminSecurityIcon" class="fa-solid fa-triangle-exclamation"></i>
             </div>
-            <h3 style="margin:0 0 0.5rem 0; font-size:1.25rem; font-weight:800; color:#1e293b;">Confirm Permanent Delete</h3>
-            <p style="margin:0 0 1.25rem 0; font-size:0.88rem; color:#64748b; line-height:1.5;">
-                Are you sure you want to delete <strong>All Business Listings, Branches, Users, and Reviews</strong>? Everything will be reset to <strong>0</strong> in both Cloud & Local Storage.
+            
+            <h3 id="adminSecurityTitle" style="margin:0 0 0.5rem 0; font-size:1.25rem; font-weight:800; color:#1e293b;">Confirm Action</h3>
+            <p id="adminSecurityMessage" style="margin:0 0 1.25rem 0; font-size:0.88rem; color:#64748b; line-height:1.5;">
+                Are you sure you want to proceed with this operation?
             </p>
-            <div id="purgeModalStatusNotice" style="display:none; padding:0.65rem 0.85rem; background:#eff6ff; border-radius:8px; font-size:0.82rem; color:#1d4ed8; font-weight:700; margin-bottom:1rem;">
-                <i class="fa-solid fa-spinner fa-spin"></i> Resetting data to 0...
+
+            <!-- Typing Verification Box -->
+            <div style="background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:12px; padding:0.9rem; margin-bottom:1.25rem; text-align:center;">
+                <label style="display:block; font-size:0.8rem; font-weight:700; color:#475569; margin-bottom:0.45rem;">
+                    To proceed, type <span style="background:#fee2e2; color:#b91c1c; padding:0.15rem 0.5rem; border-radius:6px; font-family:monospace; font-weight:900; letter-spacing:1px;">CONFIRM</span> in capital letters:
+                </label>
+                <input type="text" id="adminSecurityInput" autocomplete="off" placeholder="Type CONFIRM here..." style="width:100%; text-align:center; font-family:monospace; font-weight:800; font-size:1rem; letter-spacing:2px; text-transform:uppercase; padding:0.6rem 0.75rem; border:2px solid #cbd5e1; border-radius:8px; outline:none; transition:all 0.2s;" oninput="this.value = this.value.toUpperCase();">
+                <span id="adminSecurityInputError" style="display:none; font-size:0.75rem; color:#dc2626; font-weight:700; margin-top:0.35rem;">* You must type CONFIRM in capital letters to proceed.</span>
             </div>
+
             <div style="display:flex; gap:0.75rem;">
-                <button type="button" onclick="closePurgeConfirmModal()" style="flex:1; padding:0.65rem 1rem; border:1px solid #cbd5e1; background:#f8fafc; color:#475569; border-radius:10px; font-weight:700; font-size:0.88rem; cursor:pointer;">
+                <button type="button" id="adminSecurityCancelBtn" style="flex:1; padding:0.7rem 1rem; border:1px solid #cbd5e1; background:#f8fafc; color:#475569; border-radius:10px; font-weight:700; font-size:0.88rem; cursor:pointer;">
                     Cancel
                 </button>
-                <button type="button" id="btnConfirmPurgeExecution" onclick="executePurgeAllPlatformDataNow()" style="flex:1.4; padding:0.65rem 1rem; border:none; background:linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; border-radius:10px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.3);">
-                    <i class="fa-solid fa-trash-can" style="margin-right:4px;"></i> Yes, Delete Everything
+                <button type="button" id="adminSecurityConfirmBtn" style="flex:1.4; padding:0.7rem 1rem; border:none; background:linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; border-radius:10px; font-weight:800; font-size:0.88rem; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.3); opacity:0.5; pointer-events:none;">
+                    Confirm & Proceed
                 </button>
             </div>
         </div>
@@ -2010,143 +1997,5 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="firebase-config.js?v=2.0.1"></script>
     <script src="admin.js?v=2.0.1"></script>
-    <script>
-        // Guaranteed Inline Handlers for Master Data Purge
-        window.handlePurgeAllPlatformData = function() {
-            const modal = document.getElementById('purgeConfirmModal');
-            if (modal) {
-                modal.style.display = 'flex';
-                modal.classList.add('active');
-            }
-        };
-
-        window.closePurgeConfirmModal = function() {
-            const modal = document.getElementById('purgeConfirmModal');
-            if (modal) {
-                modal.style.display = 'none';
-                modal.classList.remove('active');
-            }
-        };
-
-        window.executePurgeAllPlatformDataNow = async function() {
-            const btn = document.getElementById('btnConfirmPurgeExecution');
-            const notice = document.getElementById('purgeModalStatusNotice');
-            if (btn) btn.disabled = true;
-            if (notice) notice.style.display = 'block';
-
-            const errors = [];
-
-            try {
-                // Purge Firestore collections
-                let db = window.lbFirestore;
-                if (!db && window.firebase && typeof window.firebase.firestore === 'function') {
-                    try { db = window.firebase.firestore(); } catch(e) {}
-                }
-
-                if (window.firebase && window.firebase.auth) {
-                    try {
-                        if (!firebase.auth().currentUser) {
-                            await firebase.auth().signInAnonymously().catch(() => {});
-                        }
-                    } catch(e) {}
-                }
-
-                if (db) {
-                    const collections = ['listings', 'users', 'claims', 'trust_requests', 'mail'];
-                    for (const c of collections) {
-                        try {
-                            const snap = await db.collection(c).get();
-                            if (!snap.empty) {
-                                for (const doc of snap.docs) {
-                                    await doc.ref.delete().catch(err => {
-                                        console.warn(`Failed to delete ${c}/${doc.id}:`, err);
-                                        errors.push(`${c}: ${err.message || err}`);
-                                    });
-                                }
-                            }
-                        } catch(err) { 
-                            console.warn('Purge error ' + c, err);
-                            errors.push(`${c}: ${err.message || err}`);
-                        }
-                    }
-
-                    // Purge all reviews (subcollections and parent docs)
-                    try {
-                        const revItems = await db.collectionGroup('items').get().catch(() => null);
-                        if (revItems && !revItems.empty) {
-                            for (const doc of revItems.docs) {
-                                await doc.ref.delete().catch(() => {});
-                            }
-                        }
-                        const snapRev = await db.collection('reviews').get().catch(() => null);
-                        if (snapRev && !snapRev.empty) {
-                            for (const doc of snapRev.docs) {
-                                await doc.ref.delete().catch(() => {});
-                            }
-                        }
-                    } catch(e) {
-                        console.warn('Reviews purge notice:', e);
-                    }
-
-                    // Purge all inquiry chat messages
-                    try {
-                        const inqMsgs = await db.collectionGroup('messages').get().catch(() => null);
-                        if (inqMsgs && !inqMsgs.empty) {
-                            for (const doc of inqMsgs.docs) {
-                                await doc.ref.delete().catch(() => {});
-                            }
-                        }
-                        const snapInq = await db.collection('inquiries').get().catch(() => null);
-                        if (snapInq && !snapInq.empty) {
-                            for (const doc of snapInq.docs) {
-                                await doc.ref.delete().catch(() => {});
-                            }
-                        }
-                    } catch(e) {
-                        console.warn('Inquiries purge notice:', e);
-                    }
-                }
-
-                // Purge localStorage
-                localStorage.setItem('lb_listings', '[]');
-                localStorage.setItem('lb_users', '[]');
-                localStorage.removeItem('lb_current_user');
-                localStorage.setItem('lb_listing_claims', '[]');
-                localStorage.setItem('lb_trust_requests', '[]');
-                localStorage.setItem('lb_mail', '[]');
-                localStorage.setItem('lb_notifications', '[]');
-                localStorage.setItem('lb_saved_places', '[]');
-
-                const toRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const k = localStorage.key(i);
-                    if (k && (k.startsWith('lb_reviews_') || k.startsWith('lb_store_inbox_') || k.startsWith('lb_chat_history_'))) {
-                        toRemove.push(k);
-                    }
-                }
-                toRemove.forEach(k => localStorage.removeItem(k));
-
-                if (errors.length > 0) {
-                    alert('⚠️ Notice: Local cache was reset to 0. Cloud Firebase reported:\n' + errors.slice(0, 3).join('\n'));
-                } else {
-                    alert('✅ SUCCESS: All listings, users, reviews, inboxes, and claims have been permanently deleted to 0 in both Cloud & Local Storage!');
-                }
-                window.location.reload();
-            } catch (err) {
-                console.error(err);
-                alert('Reset complete for local data: ' + err.message);
-                window.location.reload();
-            }
-        };
-
-                alert('✅ SUCCESS: All listings, users, reviews, inboxes, and claims have been permanently deleted to 0!');
-                window.location.reload();
-            } catch (err) {
-                console.error(err);
-                alert('Reset complete for local data: ' + err.message);
-                window.location.reload();
-            }
-        };
-    </script>
 </body>
 </html>
