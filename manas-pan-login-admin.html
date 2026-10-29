@@ -3,13 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin LB - Enterprise Command Center</title>
-    <!-- Admin PWA Manifest & App Configuration -->
-    <link rel="manifest" href="admin-manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Admin LB">
+    <title>LocalBazar Admin - Enterprise Command Center</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,11 +11,9 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
-    <!-- Store Icons for Admin App -->
-    <link rel="icon" type="image/svg+xml" href="icons/admin-icon.svg">
-    <link rel="apple-touch-icon" sizes="192x192" href="icons/admin-icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/admin-icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/admin-icon-512.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
 </head>
 <body class="admin-body">
 
@@ -98,29 +90,8 @@
                 <a href="#settings" class="menu-item" data-view="settingsView"><i class="fa-solid fa-sliders"></i> <span>Settings</span></a>
             </nav>
 
-            <!-- Sidebar Admin PWA Install Box (Prominent for Mobile) -->
-            <div class="sidebar-pwa-install-card" id="adminSidebarInstallBox" style="display:none; margin: 0.75rem 0.85rem; padding: 0.85rem; background: linear-gradient(135deg, rgba(245,158,11,0.14), rgba(30,41,59,0.95)); border: 1px solid rgba(245,158,11,0.4); border-radius: 12px; flex-direction: column; gap: 0.65rem;">
-                <div style="display:flex; align-items:center; gap:0.65rem;">
-                    <img src="icons/admin-icon-192.png" style="width:36px; height:36px; border-radius:8px; border:1px solid rgba(245,158,11,0.5); object-fit:cover;" alt="Store">
-                    <div>
-                        <strong style="font-size:0.85rem; color:#f59e0b; display:block;">Admin LB App</strong>
-                        <span style="font-size:0.72rem; color:#94a3b8;">Fast mobile home app</span>
-                    </div>
-                </div>
-                <button type="button" onclick="triggerAdminPwaInstall()" style="width:100%; padding:0.5rem; background:linear-gradient(135deg, #f59e0b, #d97706); color:#0f172a; border:none; border-radius:8px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 6px rgba(245,158,11,0.35);">
-                    <i class="fa-solid fa-download"></i> Install Admin App
-                </button>
-            </div>
-
             <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="handleAdminLogout()" class="menu-item logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Log Out</span></a>
-                <div class="admin-profile-box">
-                    <div class="admin-avatar">AD</div>
-                    <div class="admin-meta">
-                        <span class="admin-name" id="sidebarAdminName">Master Admin</span>
-                        <span class="admin-email" id="sidebarAdminEmail">localbazar@adminmanaspan.com</span>
-                    </div>
-                </div>
             </div>
         </aside>
 
@@ -2176,121 +2147,6 @@
                 window.location.reload();
             }
         };
-
-        // ================= ADMIN LB PWA CONTROLLER =================
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Admin LB SW active:', reg.scope))
-                    .catch(err => console.info('Admin LB SW notice:', err));
-            });
-        }
-
-        let adminDeferredPrompt = null;
-        const isAdminStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            adminDeferredPrompt = e;
-            window.showAdminPwaInstallUI();
-        });
-
-        window.showAdminPwaInstallUI = function() {
-            if (isAdminStandalone) return;
-            const sideBox = document.getElementById('adminSidebarInstallBox');
-            if (sideBox) sideBox.style.display = 'flex';
-        };
-
-        function hideAdminPwaInstallUI() {
-            const sideBox = document.getElementById('adminSidebarInstallBox');
-            if (sideBox) sideBox.style.display = 'none';
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!isAdminStandalone) {
-                window.showAdminPwaInstallUI();
-            }
-        });
-
-        window.addEventListener('load', () => {
-            if (!isAdminStandalone) {
-                window.showAdminPwaInstallUI();
-                setTimeout(window.showAdminPwaInstallUI, 600);
-                setTimeout(window.showAdminPwaInstallUI, 1500);
-                setTimeout(window.showAdminPwaInstallUI, 3000);
-            }
-        });
-
-        window.closeAdminInstallGuideModal = function() {
-            const modal = document.getElementById('adminInstallGuideModal');
-            if (modal) modal.style.display = 'none';
-        };
-
-        window.triggerAdminPwaInstall = async function() {
-            if (adminDeferredPrompt) {
-                try {
-                    adminDeferredPrompt.prompt();
-                    const { outcome } = await adminDeferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        hideAdminPwaInstallUI();
-                    }
-                    adminDeferredPrompt = null;
-                } catch(e) {
-                    const modal = document.getElementById('adminInstallGuideModal');
-                    if (modal) modal.style.display = 'flex';
-                }
-            } else {
-                const modal = document.getElementById('adminInstallGuideModal');
-                if (modal) modal.style.display = 'flex';
-            }
-        };
-
-        window.addEventListener('appinstalled', () => {
-            adminDeferredPrompt = null;
-            hideAdminPwaInstallUI();
-            window.closeAdminInstallGuideModal();
-            console.log('Admin LB App installed successfully!');
-        });
-    </script>
-
-    <!-- Dedicated Admin App Mobile Install Modal -->
-    <div id="adminInstallGuideModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center; padding:1rem;">
-        <div style="background:#1e293b; border:1.5px solid #f59e0b; border-radius:18px; max-width:420px; width:100%; padding:1.4rem; box-shadow:0 15px 35px rgba(0,0,0,0.5); color:#ffffff; position:relative; text-align:left;">
-            <button type="button" onclick="closeAdminInstallGuideModal()" style="position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.1); border:none; color:#cbd5e1; width:30px; height:30px; border-radius:50%; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
-            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-                <img src="icons/admin-icon-192.png" alt="Admin LB" style="width:48px; height:48px; border-radius:12px; border:2px solid #f59e0b; flex-shrink:0;">
-                <div>
-                    <h3 style="margin:0; font-size:1.1rem; color:#f59e0b; font-weight:800;">Install Admin LB App</h3>
-                    <p style="margin:2px 0 0 0; font-size:0.75rem; color:#94a3b8;">Store Icon • Dedicated Admin Console</p>
-                </div>
-            </div>
-
-            <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.85rem; margin-bottom:0.9rem;">
-                <div style="font-weight:700; color:#38bdf8; font-size:0.85rem; margin-bottom:0.4rem; display:flex; align-items:center; gap:6px;">
-                    <i class="fa-brands fa-android"></i> For Android Chrome:
-                </div>
-                <ol style="margin:0; padding-left:1.2rem; font-size:0.8rem; color:#e2e8f0; line-height:1.5;">
-                    <li>Tap the <strong>3 dots (⋮)</strong> at the top right of Chrome.</li>
-                    <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
-                    <li>Done! <strong>Admin LB</strong> will appear on your phone screen with the store logo.</li>
-                </ol>
-            </div>
-
-            <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.85rem; margin-bottom:1.1rem;">
-                <div style="font-weight:700; color:#a78bfa; font-size:0.85rem; margin-bottom:0.4rem; display:flex; align-items:center; gap:6px;">
-                    <i class="fa-brands fa-apple"></i> For iPhone Safari:
-                </div>
-                <ol style="margin:0; padding-left:1.2rem; font-size:0.8rem; color:#e2e8f0; line-height:1.5;">
-                    <li>Tap the <strong>Share</strong> button (box with up arrow) at bottom.</li>
-                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong>.</li>
-                </ol>
-            </div>
-
-            <button type="button" onclick="closeAdminInstallGuideModal()" style="width:100%; padding:0.65rem; background:linear-gradient(135deg, #f59e0b, #d97706); color:#0f172a; border:none; border-radius:10px; font-weight:800; font-size:0.9rem; cursor:pointer;">
-                Got It / Close
-            </button>
-        </div>
-    </div>
     </script>
 </body>
 </html>

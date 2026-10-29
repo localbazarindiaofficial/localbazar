@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const validCities = stored
             .filter(c => c && (typeof c === 'string' ? c.trim() : (c.name && c.name.trim())))
-            .map(c => typeof c === 'string' ? { name: c.trim() } : c);
+            .map(c => typeof c === 'string' ? { name: c.trim() } : c)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
         _cachedCities = validCities;
         return _cachedCities;
@@ -53,7 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const validCategories = stored
             .filter(cat => cat && (typeof cat === 'string' ? cat.trim() : (cat.name && cat.name.trim())))
-            .map(cat => typeof cat === 'string' ? { name: cat.trim() } : cat);
+            .map(cat => typeof cat === 'string' ? { name: cat.trim() } : cat)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
         _cachedCategories = validCategories;
         return _cachedCategories;

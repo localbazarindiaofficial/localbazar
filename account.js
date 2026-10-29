@@ -5040,7 +5040,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const matches = cities.filter(c => (c.name || '').toLowerCase().startsWith(val));
+                const matches = cities.filter(c => (c.name || '').toLowerCase().startsWith(val))
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 if (matches.length === 0) {
                     cityDropdown.classList.remove('open');
                     cityDropdown.innerHTML = '';
@@ -5089,7 +5090,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const matches = categories.filter(c => (c.name || '').toLowerCase().startsWith(val));
+                const matches = categories.filter(c => (c.name || '').toLowerCase().startsWith(val))
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 if (matches.length === 0) {
                     catDropdown.classList.remove('open');
                     catDropdown.innerHTML = '';

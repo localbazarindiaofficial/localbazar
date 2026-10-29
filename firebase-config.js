@@ -510,6 +510,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                         if (d && d.name) cloudCities.push(d);
                     });
                 }
+                cloudCities.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 localStorage.setItem('lb_cities', JSON.stringify(cloudCities));
                 return cloudCities;
             } catch (err) {
@@ -567,6 +568,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                         if (d && d.name) cloudCats.push(d);
                     });
                 }
+                cloudCats.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 localStorage.setItem('lb_categories', JSON.stringify(cloudCats));
                 return cloudCats;
             } catch (err) {

@@ -24,21 +24,13 @@
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredInstallPrompt = e;
-
-        if (sessionStorage.getItem('lb_pwa_install_dismissed') === 'true') {
-            return;
-        }
         showPwaInstallBanner();
     });
 
-    // B. iOS Safari Auto-Discovery (Since Safari doesn't fire beforeinstallprompt)
+    // B. Auto-Discovery on page load for all mobile & desktop visitors
     window.addEventListener('load', () => {
-        if (isIos && !isStandalone) {
-            if (sessionStorage.getItem('lb_pwa_install_dismissed') !== 'true') {
-                setTimeout(() => {
-                    showPwaInstallBanner();
-                }, 2200);
-            }
+        if (!isStandalone) {
+            setTimeout(showPwaInstallBanner, 1500);
         }
     });
 

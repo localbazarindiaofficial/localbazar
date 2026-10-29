@@ -25,9 +25,6 @@ function checkAdminAuthSession() {
     if (isLoggedIn) {
         if (gate) gate.classList.add('hidden');
         if (wrapper) wrapper.style.display = 'flex';
-        if (typeof window.showAdminPwaInstallUI === 'function') {
-            window.showAdminPwaInstallUI();
-        }
     } else {
         if (gate) gate.classList.remove('hidden');
         if (wrapper) wrapper.style.display = 'none';
@@ -118,13 +115,28 @@ window.toggleAdminGatePasswordVisibility = function() {
 function getDB(key, defaultVal = []) {
     try {
         const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : defaultVal;
+        let res = data ? JSON.parse(data) : defaultVal;
+        if (Array.isArray(res)) {
+            if (key === DB_KEYS.CITIES) {
+                res.sort((a, b) => (a.name || a || '').localeCompare(b.name || b || '', undefined, { sensitivity: 'base' }));
+            } else if (key === DB_KEYS.CATEGORIES) {
+                res.sort((a, b) => (a.name || a || '').localeCompare(b.name || b || '', undefined, { sensitivity: 'base' }));
+            }
+        }
+        return res;
     } catch {
         return defaultVal;
     }
 }
 
 function setDB(key, val) {
+    if (Array.isArray(val)) {
+        if (key === DB_KEYS.CITIES) {
+            val.sort((a, b) => (a.name || a || '').localeCompare(b.name || b || '', undefined, { sensitivity: 'base' }));
+        } else if (key === DB_KEYS.CATEGORIES) {
+            val.sort((a, b) => (a.name || a || '').localeCompare(b.name || b || '', undefined, { sensitivity: 'base' }));
+        }
+    }
     try {
         localStorage.setItem(key, JSON.stringify(val));
     } catch (quotaErr) {
@@ -1044,6 +1056,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return matchesQuery && matchesDist && matchesState && matchesPin;
         });
 
+        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+
         if (cities.length === 0) {
             container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:3rem; color:#94a3b8; background:#fff; border-radius:14px; border:1px solid #e2e8f0;"><i class="fa-solid fa-city" style="font-size:2rem; display:block; margin-bottom:0.5rem; color:#cbd5e1;"></i>No city hubs configured yet. Click "+ Add New City" to register one.</div>`;
             return;
@@ -1157,6 +1171,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return matchesQuery && matchesTag;
         });
+
+        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
         if (categories.length === 0) {
             container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:3rem; color:#94a3b8; background:#fff; border-radius:14px; border:1px solid #e2e8f0;"><i class="fa-solid fa-layer-group" style="font-size:2rem; display:block; margin-bottom:0.5rem; color:#cbd5e1;"></i>No categories configured yet. Click "+ Add Category" to start grouping places.</div>`;
