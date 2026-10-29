@@ -55,7 +55,7 @@
         banner.innerHTML = `
             <div class="lb-pwa-install-content">
                 <div class="lb-pwa-icon-box">
-                    <img src="icons/icon-192.png" alt="LocalBazar App" class="lb-pwa-thumb">
+                    <img src="icon-192.png" onerror="this.onerror=null; this.src='icons/icon-192.png';" alt="LocalBazar App" class="lb-pwa-thumb">
                 </div>
                 <div class="lb-pwa-text-group">
                     <strong class="lb-pwa-app-title">Install LocalBazar App</strong>
@@ -103,7 +103,7 @@
             <div class="lb-ios-install-card" onclick="event.stopPropagation()">
                 <button type="button" class="lb-ios-close-btn" onclick="document.getElementById('lbIosInstallModal')?.remove()">&times;</button>
                 <div class="lb-ios-icon-box">
-                    <img src="icons/icon-192.png" alt="LocalBazar App">
+                    <img src="icon-192.png" onerror="this.onerror=null; this.src='icons/icon-192.png';" alt="LocalBazar App">
                 </div>
                 <h3>Install on iPhone / iPad</h3>
                 <p>Install LocalBazar on your home screen for instant access to local shops and deals:</p>
@@ -122,6 +122,41 @@
                     </div>
                 </div>
                 <button type="button" class="btn-ios-done" onclick="document.getElementById('lbIosInstallModal')?.remove()">
+                    Got It!
+                </button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Modal guide for Android / Chrome users
+    function showAndroidInstallGuide() {
+        if (document.getElementById('lbAndroidInstallModal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'lbAndroidInstallModal';
+        modal.className = 'lb-ios-install-overlay';
+        modal.onclick = function(e) {
+            if (e.target === modal) modal.remove();
+        };
+        modal.innerHTML = `
+            <div class="lb-ios-install-card" onclick="event.stopPropagation()">
+                <button type="button" class="lb-ios-close-btn" onclick="document.getElementById('lbAndroidInstallModal')?.remove()">&times;</button>
+                <div class="lb-ios-icon-box">
+                    <img src="icon-192.png" onerror="this.onerror=null; this.src='icons/icon-192.png';" alt="LocalBazar App">
+                </div>
+                <h3>Install LocalBazar App</h3>
+                <p>Add LocalBazar to your mobile home screen in 2 quick steps:</p>
+                <div class="lb-ios-steps">
+                    <div class="ios-step-row">
+                        <div class="ios-step-num">1</div>
+                        <div class="ios-step-text">Tap the <strong>3 dots (⋮)</strong> at the top-right corner of Chrome.</div>
+                    </div>
+                    <div class="ios-step-row">
+                        <div class="ios-step-num">2</div>
+                        <div class="ios-step-text">Tap <strong>"Install app"</strong> (or <strong>"Add to Home screen"</strong>).</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-ios-done" onclick="document.getElementById('lbAndroidInstallModal')?.remove()">
                     Got It!
                 </button>
             </div>
@@ -155,7 +190,7 @@
             return;
         }
 
-        // 4. Fallback for Desktop browser menu
-        alert('To install LocalBazar:\n\nTap your browser menu (⋮ or ...) and choose "Install App" or "Add to Home Screen".');
+        // 4. Fallback for Android / Desktop Chrome
+        showAndroidInstallGuide();
     };
 })();

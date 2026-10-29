@@ -1,5 +1,5 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v14
-const CACHE_NAME = 'localbazar-pwa-v14';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v16
+const CACHE_NAME = 'localbazar-pwa-v16';
 
 const STATIC_ASSETS = [
     './',
@@ -22,6 +22,11 @@ const STATIC_ASSETS = [
     './pwa.css',
     './pwa.js',
     './manifest.json',
+    './icon-192.png',
+    './icon-512.png',
+    './icon.svg',
+    './favicon.png',
+    './apple-touch-icon.png',
     './icons/icon.svg',
     './icons/icon-192.png',
     './icons/icon-512.png',
