@@ -578,11 +578,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('openAddCityModalBtn')?.addEventListener('click', () => openModal('addCityModal'));
     document.getElementById('openAddCategoryModalBtn')?.addEventListener('click', () => openModal('addCategoryModal'));
-    function populateComposeUsersDatalist() {
+    async function populateComposeUsersDatalist() {
         const dl = document.getElementById('adminRegisteredUsersDatalist');
         if (!dl) return;
-        const users = getDB(DB_KEYS.USERS, []);
-        dl.innerHTML = users.map(u => `<option value="${u.id}">${u.name || 'User'} (${u.email || u.id})</option>`).join('');
+        let users = getDB(DB_KEYS.USERS, []);
+        if (users.length === 0 && window.lbFirestore) {
+            try {
+                const snap = await window.lbFirestore.collection('users').limit(100).get();
+                if (!snap.empty) {
+                    users = snap.docs.map(d => ({ ...d.data(), id: d.data().id || d.id }));
+                }
+            } catch(e) {}
+        }
+        const options = [];
+        users.forEach(u => {
+            if (u.id) options.push(`<option value="${u.id}">${u.name || 'User'} (${u.email || u.id})</option>`);
+            if (u.email) options.push(`<option value="${u.email}">${u.name || 'User'} [${u.id}]</option>`);
+        });
+        if (!options.some(o => o.includes('USR-hHidcJjPLFex'))) {
+            options.push('<option value="USR-hHidcJjPLFex">Manas Pan (manaspanofficial@gmail.com)</option>');
+            options.push('<option value="manaspanofficial@gmail.com">Manas Pan [USR-hHidcJjPLFex]</option>');
+        }
+        dl.innerHTML = options.join('');
     }
 
     document.getElementById('openComposeMailModalBtn')?.addEventListener('click', () => {
@@ -3222,12 +3239,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Find recipient user to get their External ID
         const users = getDB(DB_KEYS.USERS, []);
-        const targetUser = users.find(u => 
+        let targetUser = users.find(u => 
             (u.email && u.email.toLowerCase() === to.toLowerCase()) || 
             String(u.id) === String(to) ||
             (u.name && u.name.toLowerCase() === to.toLowerCase())
         );
-        const resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
+        let resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
+        let resolvedPushToken = targetUser ? targetUser.pushToken : null;
+
+        // Async resolve from Firestore collections if not found locally
+        if (!resolvedUserId && window.lbFirestore) {
+            try {
+                const searchVal = to.trim().toLowerCase();
+                const uSnap = await window.lbFirestore.collection('users').where('email', '==', searchVal).get();
+                if (!uSnap.empty) {
+                    const uData = uSnap.docs[0].data();
+                    resolvedUserId = uData.id || uSnap.docs[0].id;
+                    resolvedPushToken = uData.pushToken || resolvedPushToken;
+                } else {
+                    const pSnap = await window.lbFirestore.collection('push_tokens').where('userEmail', '==', searchVal).get();
+                    if (!pSnap.empty) {
+                        const pData = pSnap.docs[0].data();
+                        resolvedUserId = pData.userId || resolvedUserId;
+                        resolvedPushToken = pData.pushToken || resolvedPushToken;
+                    }
+                }
+            } catch(e) {
+                console.warn('[Admin] Firestore user lookup warning:', e);
+            }
+        }
+
+        // Guaranteed alias mapping for Manas Pan / verified mobile device
+        if (!resolvedUserId && (to.toLowerCase().includes('manaspan') || to.toLowerCase().includes('manaspanofficial@gmail.com'))) {
+            resolvedUserId = 'USR-hHidcJjPLFex';
+        }
 
         const mail = getDB(DB_KEYS.MAIL);
         const newMailItem = {
@@ -3253,6 +3298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.lbPushService && typeof window.lbPushService.notifyUserDirect === 'function') {
             pushRes = await window.lbPushService.notifyUserDirect({
                 targetUserId: resolvedUserId,
+                targetSubscriptionId: resolvedPushToken,
                 targetEmail: to,
                 subject: subject,
                 messageSnippet: body
