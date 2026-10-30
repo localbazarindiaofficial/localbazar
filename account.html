@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="listing-detail.css">
-    <link rel="stylesheet" href="account.css">
+    <link rel="stylesheet" href="account.css?v=2.4.0">
     <link rel="stylesheet" href="pwa.css?v=7">
 
     <!-- PWA & Mobile Web App Meta -->
@@ -451,11 +451,10 @@
                                         <label for="uFullListingName">Business / Shop / Service Name *</label>
                                         <input type="text" id="uFullListingName" placeholder="e.g. Apollo Pharmacy & Chamber, TechNova Hub" required>
                                     </div>
-                                    <div class="form-field">
+                                    <div class="form-field" style="position: relative;">
                                         <label for="uFullListingCategory">Business Category *</label>
-                                        <select id="uFullListingCategory" onchange="handleCategoryChange(this.value)" required>
-                                            <option value="">Select Category</option>
-                                        </select>
+                                        <input type="text" id="uFullListingCategory" placeholder="Type category (e.g. Doctor, Pharmacy)..." autocomplete="off" required>
+                                        <div class="city-suggestions-dropdown" id="uCategorySuggestionsDropdown"></div>
                                         <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
                                             <button type="button" onclick="window.openUserCategoryRequestModal()" style="background: none; border: none; color: #2563eb; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0;">
                                                 <i class="fa-solid fa-circle-plus"></i> Request Category
@@ -906,11 +905,6 @@
                             </label>
                         </div>
 
-                        <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--slate-200); display:flex; justify-content:flex-end;">
-                            <button type="button" onclick="testUserPushNotification()" style="padding:0.4rem 0.8rem; background:transparent; border:1px solid var(--slate-200); border-radius:6px; font-size:0.76rem; font-weight:700; color:var(--slate-700); cursor:pointer;">
-                                <i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i> Send Test Alert
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1862,20 +1856,8 @@
                         <input type="text" id="uReqCatName" required placeholder="e.g. Electrician & Plumber, Sweet Shop, Book Store" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
                     </div>
                     <div>
-                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Industry / Sector Tag *</label>
-                        <select id="uReqCatTag" required style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box; background:#fff;">
-                            <option value="Services">Services (সেবা ও মেরামত)</option>
-                            <option value="Shopping">Shopping & Retail (কেনাকাটা ও দোকান)</option>
-                            <option value="Food & Dining">Food & Dining (খাবার ও রেস্তোরাঁ)</option>
-                            <option value="Healthcare">Healthcare & Doctors (স্বাস্থ্য ও চিকিৎসা)</option>
-                            <option value="Education">Education & Coaching (শিক্ষা ও কোচিং)</option>
-                            <option value="Automotive">Automotive & Garage (গাড়ি ও গ্যারেজ)</option>
-                            <option value="Other">Other / Miscellaneous (অন্যান্য)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Subcategories or Keywords (Optional)</label>
-                        <input type="text" id="uReqCatSubs" placeholder="e.g. AC Repair, House Wiring, Pipe Fitting" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Subcategory or Keyword (Optional)</label>
+                        <input type="text" id="uReqCatSubs" placeholder="e.g. AC Repair, House Wiring, Sweet, Fast Food" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
                     </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
@@ -1909,7 +1891,7 @@
     <script src="firebase-config.js"></script>
     <!-- QRCode.js Library for Client-side Vector QR Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="account.js?v=2.2.0"></script>
+    <script src="account.js?v=2.4.0"></script>
     <script src="app-nav.js"></script>
     <script src="pwa.js"></script>
 </body>

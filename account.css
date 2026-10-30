@@ -15,6 +15,10 @@
     --slate-900: #0f172a;
 }
 
+html {
+    overflow-x: hidden;
+}
+
 body.account-hub-body {
     margin: 0;
     padding: 0;
@@ -22,6 +26,7 @@ body.account-hub-body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--slate-900);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* ---------------- Main Container (Clean, Pro & Centered naturally) ---------------- */
@@ -354,21 +359,6 @@ body.account-hub-body {
     color: var(--slate-400);
     font-weight: 700;
     font-size: 0.85rem;
-}
-
-@media (max-width: 680px) {
-    .matrix-day-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-    }
-
-    .matrix-times-box {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
 }
 
 .account-hub-card .time-ampm-row {
@@ -4918,38 +4908,175 @@ body.dark-mode .sub-screen-header {
         font-size: 0.72rem !important;
     }
 
-    /* Schedule & Timings on Mobile */
-    .schedule-advanced-grid {
-        grid-template-columns: 1fr !important;
-        gap: 0.85rem !important;
+    /* Schedule & Timings on Mobile (Enterprise App Standard: Zero Overflow, Symmetric 2-Col, No Auto-Zoom) */
+    .daily-schedule-matrix {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
     }
 
-    .account-hub-card .schedule-advanced-grid {
-        grid-template-columns: 1fr !important;
-        gap: 0.85rem !important;
+    .matrix-quick-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+    }
+
+    .btn-copy-timings {
+        justify-content: center !important;
+        width: 100% !important;
+    }
+
+    .matrix-day-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.55rem !important;
+        padding: 0.75rem 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .matrix-day-info {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .matrix-times-box {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        align-items: stretch !important;
+    }
+
+    .matrix-time-sep {
+        display: none !important;
+    }
+
+    .matrix-time-input-wrap {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.25rem !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .matrix-time-input-wrap .time-lbl {
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        color: var(--slate-500) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.4px !important;
     }
 
     .time-ampm-row,
     .account-hub-card .time-ampm-row {
         display: flex !important;
+        align-items: center !important;
         width: 100% !important;
         max-width: 100% !important;
-        gap: 0.5rem !important;
+        gap: 0.35rem !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
     }
 
     .time-ampm-row input,
-    .account-hub-card .time-ampm-row input {
-        flex: 1 !important;
-        width: auto !important;
-        text-align: left !important;
-        padding: 0.65rem 0.75rem !important;
+    .account-hub-card .time-ampm-row input,
+    .inp-open-val,
+    .inp-close-val {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        height: 38px !important;
+        padding: 0.35rem 0.4rem !important;
+        text-align: center !important;
+        font-size: 16px !important; /* 16px prevents iOS Safari & Chrome involuntary auto-zoom */
+        font-weight: 600 !important;
+        border: 1.5px solid var(--slate-300) !important;
+        border-radius: 8px !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
     }
 
     .time-ampm-row select,
-    .account-hub-card .time-ampm-row select {
-        width: 80px !important;
+    .account-hub-card .time-ampm-row select,
+    .sel-open-ampm,
+    .sel-close-ampm {
+        width: 52px !important;
+        min-width: 52px !important;
+        max-width: 52px !important;
         flex-shrink: 0 !important;
-        padding: 0.65rem 0.5rem !important;
+        height: 38px !important;
+        padding: 0 0.2rem !important;
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        color: var(--brand-blue) !important;
+        background: #f1f5f9 !important;
+        border: 1.5px solid var(--slate-300) !important;
+        border-radius: 8px !important;
+        text-align: center !important;
+        cursor: pointer !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Portal Daily Schedule (Manage Listings Tab 6) on Mobile */
+    .m-day-schedule-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.65rem !important;
+        padding: 0.75rem 0.85rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .m-day-toggle-col {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .m-day-times-col {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .m-time-divider {
+        display: none !important;
+    }
+
+    .m-time-picker-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.25rem !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 0.25rem 0.35rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .m-time-input {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        font-size: 16px !important; /* Prevents auto-zoom */
+    }
+
+    .m-ampm-select {
+        width: 48px !important;
+        flex-shrink: 0 !important;
     }
 
     /* Calendar Popover full width on mobile */

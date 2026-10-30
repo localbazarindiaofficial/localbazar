@@ -227,23 +227,104 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Populate Category Dropdown dynamically from Admin-created categories
-    function loadUserCategories() {
-        const catSelect = document.getElementById('uFullListingCategory');
-        if (!catSelect) return;
-        try {
-            const rawCategories = localStorage.getItem('lb_categories');
-            const categories = rawCategories ? JSON.parse(rawCategories) : [];
-            const currentVal = catSelect.value;
-            catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(cat => 
-                `<option value="${cat.name}">${cat.name}</option>`
-            ).join('');
-            if (currentVal && categories.some(cat => cat.name === currentVal)) {
-                catSelect.value = currentVal;
+    // ---------------- Autocomplete Category Suggestions for Add Listing ----------------
+    function initUserCategoryAutocomplete() {
+        const uCatInputEl = document.getElementById('uFullListingCategory');
+        const uCatDropdownEl = document.getElementById('uCategorySuggestionsDropdown');
+        if (!uCatInputEl || !uCatDropdownEl) return;
+
+        function updateCategorySuggestions() {
+            const val = uCatInputEl.value.trim().toLowerCase();
+            let categories = [];
+            try {
+                const raw = localStorage.getItem('lb_categories');
+                categories = raw ? JSON.parse(raw) : [];
+            } catch (err) {}
+
+            if (!val) {
+                uCatDropdownEl.classList.remove('open');
+                uCatDropdownEl.innerHTML = '';
+                return;
             }
-        } catch (err) {
-            console.error('Failed to load categories', err);
+
+            // Suggest categories whose name or subcategories/tags match the typed keyword
+            const matches = categories.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const tags = Array.isArray(c.tags) ? c.tags.join(' ').toLowerCase() : (typeof c.tags === 'string' ? c.tags.toLowerCase() : '');
+                const subs = Array.isArray(c.subcategories) ? c.subcategories.join(' ').toLowerCase() : (typeof c.subcategories === 'string' ? c.subcategories.toLowerCase() : '');
+                return name.includes(val) || tags.includes(val) || subs.includes(val);
+            });
+
+            if (matches.length === 0) {
+                uCatDropdownEl.classList.remove('open');
+                uCatDropdownEl.innerHTML = '';
+                return;
+            }
+
+            uCatDropdownEl.innerHTML = matches.map(c => {
+                const subPreview = (Array.isArray(c.subcategories) ? c.subcategories.slice(0, 3).join(', ') : (c.subcategories || c.tags || ''));
+                return `
+                    <div class="city-suggestion-item" data-cat-name="${c.name}">
+                        <div class="sugg-city-info">
+                            <span class="sugg-city-name">
+                                <i class="fa-solid fa-layer-group" style="color:#2563eb; font-size:0.85rem;"></i>
+                                ${c.name}
+                            </span>
+                            ${subPreview ? `
+                                <div class="sugg-city-details">
+                                    <span>Includes: <strong>${subPreview}</strong></span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <span class="sugg-select-hint"><i class="fa-solid fa-arrow-turn-down-left"></i> Select</span>
+                    </div>
+                `;
+            }).join('');
+
+            uCatDropdownEl.classList.add('open');
+
+            uCatDropdownEl.querySelectorAll('.city-suggestion-item').forEach(item => {
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const chosen = item.getAttribute('data-cat-name');
+                    uCatInputEl.value = chosen;
+                    uCatDropdownEl.classList.remove('open');
+                    uCatDropdownEl.innerHTML = '';
+                    if (typeof window.handleCategoryChange === 'function') {
+                        window.handleCategoryChange(chosen);
+                    }
+                });
+            });
         }
+
+        uCatInputEl.addEventListener('input', () => {
+            updateCategorySuggestions();
+            if (typeof window.handleCategoryChange === 'function') {
+                window.handleCategoryChange(uCatInputEl.value.trim());
+            }
+        });
+        uCatInputEl.addEventListener('focus', updateCategorySuggestions);
+        uCatInputEl.addEventListener('keyup', updateCategorySuggestions);
+        uCatInputEl.addEventListener('blur', () => {
+            setTimeout(() => {
+                uCatDropdownEl.classList.remove('open');
+                if (typeof window.handleCategoryChange === 'function') {
+                    window.handleCategoryChange(uCatInputEl.value.trim());
+                }
+            }, 200);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!uCatInputEl.contains(e.target) && !uCatDropdownEl.contains(e.target)) {
+                uCatDropdownEl.classList.remove('open');
+            }
+        });
+    }
+
+    function loadUserCategories() {
+        initUserCategoryAutocomplete();
     }
     loadUserCategories();
 
@@ -492,10 +573,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (bannerEl) bannerEl.style.display = 'none';
         } else if (Notification.permission === 'denied') {
-            if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444; font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> Blocked by Browser</span>`;
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <span style="color:#ef4444; font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> Blocked by Browser</span>
+                    <div style="font-size:0.72rem; color:var(--slate-500); margin-top:2px;">Tap URL bar lock icon to Allow, then refresh</div>
+                `;
+            }
             if (btnEl) {
-                btnEl.textContent = 'Permission Blocked';
-                btnEl.style.background = '#94a3b8';
+                btnEl.textContent = 'How to Unblock?';
+                btnEl.style.background = '#f59e0b';
+                btnEl.disabled = false;
+                btnEl.style.cursor = 'pointer';
             }
             if (bannerEl) bannerEl.style.display = 'none';
         } else {
@@ -524,6 +612,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (Notification.permission === 'denied') {
+            if (typeof window.showLbAlert === 'function') {
+                window.showLbAlert({
+                    title: 'Notifications Blocked by Browser',
+                    message: 'Your browser has blocked push alerts for this site.\n\nTo Unblock:\n1. Tap the Lock (🔒) or Settings icon in your browser address bar.\n2. Tap "Site settings" or "Permissions".\n3. Change "Notifications" to "Allow".\n4. Refresh the page to activate!',
+                    type: 'warning',
+                    buttonText: 'Got It'
+                });
+            } else {
+                alert('Notifications are blocked by your browser.\n\nTo unblock:\n1. Tap the lock icon in your address bar.\n2. Change Notifications to Allow.\n3. Refresh this page.');
+            }
+            return;
+        }
+
         Notification.requestPermission().then(permission => {
             updateUserNotifPermStatusDisplay();
             if (permission === 'granted') {
@@ -533,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'system'
                 );
             } else if (permission === 'denied') {
-                alert('Notifications were blocked. You can enable them anytime from your browser address bar settings.');
+                updateUserNotifPermStatusDisplay();
             }
         });
     };
@@ -6540,7 +6642,11 @@ window.openUserCategoryRequestModal = function() {
     if (modal) {
         modal.style.display = 'flex';
         const inp = document.getElementById('uReqCatName');
-        if (inp) setTimeout(() => inp.focus(), 100);
+        if (inp) {
+            const typed = (document.getElementById('uFullListingCategory')?.value || '').trim();
+            if (typed) inp.value = typed;
+            setTimeout(() => inp.focus(), 100);
+        }
     }
 };
 
@@ -6551,7 +6657,6 @@ window.closeUserCategoryRequestModal = function() {
 
 window.submitUserCategoryRequest = async function() {
     const catName = (document.getElementById('uReqCatName')?.value || '').trim();
-    const tag = (document.getElementById('uReqCatTag')?.value || 'Services').trim();
     const subcategories = (document.getElementById('uReqCatSubs')?.value || '').trim();
 
     if (!catName) {
@@ -6569,7 +6674,7 @@ window.submitUserCategoryRequest = async function() {
         id: 'req_cat_' + Date.now(),
         categoryName: catName,
         name: catName,
-        tag: tag,
+        tag: 'General',
         subcategories: subcategories,
         userId: currentUser ? currentUser.id : 'guest',
         userName: currentUser ? currentUser.name : 'Citizen User',
@@ -6591,13 +6696,12 @@ window.submitUserCategoryRequest = async function() {
         window.lbCloudSync.saveCategoryRequest(reqObj);
     }
 
-    const catSelect = document.getElementById('uFullListingCategory');
-    if (catSelect) {
-        const opt = document.createElement('option');
-        opt.value = catName;
-        opt.textContent = `${catName} (Requested)`;
-        opt.selected = true;
-        catSelect.appendChild(opt);
+    const catInput = document.getElementById('uFullListingCategory');
+    if (catInput) {
+        catInput.value = catName;
+        if (typeof window.handleCategoryChange === 'function') {
+            window.handleCategoryChange(catName);
+        }
     }
 
     window.closeUserCategoryRequestModal();
