@@ -456,11 +456,21 @@
                                         <select id="uFullListingCategory" onchange="handleCategoryChange(this.value)" required>
                                             <option value="">Select Category</option>
                                         </select>
+                                        <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
+                                            <button type="button" onclick="window.openUserCategoryRequestModal()" style="background: none; border: none; color: #2563eb; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0;">
+                                                <i class="fa-solid fa-circle-plus"></i> Request Category
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="form-field" style="position: relative;">
                                         <label for="uFullListingCity">City / Locality *</label>
                                         <input type="text" id="uFullListingCity" placeholder="Type city (e.g. Kolkata, Siliguri)..." autocomplete="off" required>
                                         <div class="city-suggestions-dropdown" id="uCitySuggestionsDropdown"></div>
+                                        <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
+                                            <button type="button" onclick="window.openUserCityRequestModal()" style="background: none; border: none; color: #2563eb; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0;">
+                                                <i class="fa-solid fa-location-dot"></i> Request City
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="form-field span-2">
                                         <label for="uFullListingContact">Official Contact Phone Number *</label>
@@ -1794,6 +1804,90 @@
         </div>
     </div>
 
+    <!-- Modal: Request New City (User) -->
+    <div class="lb-alert-overlay" id="userCityRequestModal" style="display:none;" onclick="if(event.target===this) window.closeUserCityRequestModal();">
+        <div class="lb-alert-card" style="max-width:440px; text-align:left; padding:1.5rem;" onclick="event.stopPropagation();">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-city" style="color:#2563eb;"></i> Request New City
+                </h3>
+                <button type="button" onclick="window.closeUserCityRequestModal()" style="background:none; border:none; font-size:1.25rem; color:#94a3b8; cursor:pointer;">&times;</button>
+            </div>
+            <p style="font-size:0.84rem; color:#64748b; margin:0 0 1rem 0;">Can't find your city in LocalBazar? Submit it below and our Admin will verify and activate it shortly!</p>
+            
+            <form id="userCityRequestForm" onsubmit="event.preventDefault(); window.submitUserCityRequest();">
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">City / Town / Locality Name *</label>
+                        <input type="text" id="uReqCityName" required placeholder="e.g. Chandrakona, Ghatal, Arambagh" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">District *</label>
+                        <input type="text" id="uReqCityDistrict" required placeholder="e.g. Paschim Medinipur, Hooghly" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">State *</label>
+                        <input type="text" id="uReqCityState" required value="West Bengal" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">PIN Code *</label>
+                        <input type="text" id="uReqCityPin" required placeholder="e.g. 721201" maxlength="6" pattern="[0-9]{6}" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+                    <button type="button" onclick="window.closeUserCityRequestModal()" style="padding:0.55rem 1rem; border:1px solid #cbd5e1; background:#f8fafc; border-radius:8px; font-weight:700; font-size:0.85rem; color:#475569; cursor:pointer;">Cancel</button>
+                    <button type="submit" id="btnSubmitUserCityReq" style="padding:0.55rem 1.25rem; border:none; background:linear-gradient(135deg, #2563eb, #1d4ed8); border-radius:8px; font-weight:800; font-size:0.85rem; color:#ffffff; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Request New Category (User) -->
+    <div class="lb-alert-overlay" id="userCategoryRequestModal" style="display:none;" onclick="if(event.target===this) window.closeUserCategoryRequestModal();">
+        <div class="lb-alert-card" style="max-width:440px; text-align:left; padding:1.5rem;" onclick="event.stopPropagation();">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-tags" style="color:#0284c7;"></i> Request New Category
+                </h3>
+                <button type="button" onclick="window.closeUserCategoryRequestModal()" style="background:none; border:none; font-size:1.25rem; color:#94a3b8; cursor:pointer;">&times;</button>
+            </div>
+            <p style="font-size:0.84rem; color:#64748b; margin:0 0 1rem 0;">Can't find your business category? Submit a category request and Admin will add it to the directory!</p>
+            
+            <form id="userCatRequestForm" onsubmit="event.preventDefault(); window.submitUserCategoryRequest();">
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Category Name *</label>
+                        <input type="text" id="uReqCatName" required placeholder="e.g. Electrician & Plumber, Sweet Shop, Book Store" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Industry / Sector Tag *</label>
+                        <select id="uReqCatTag" required style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box; background:#fff;">
+                            <option value="Services">Services (সেবা ও মেরামত)</option>
+                            <option value="Shopping">Shopping & Retail (কেনাকাটা ও দোকান)</option>
+                            <option value="Food & Dining">Food & Dining (খাবার ও রেস্তোরাঁ)</option>
+                            <option value="Healthcare">Healthcare & Doctors (স্বাস্থ্য ও চিকিৎসা)</option>
+                            <option value="Education">Education & Coaching (শিক্ষা ও কোচিং)</option>
+                            <option value="Automotive">Automotive & Garage (গাড়ি ও গ্যারেজ)</option>
+                            <option value="Other">Other / Miscellaneous (অন্যান্য)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#475569; display:block; margin-bottom:3px;">Subcategories or Keywords (Optional)</label>
+                        <input type="text" id="uReqCatSubs" placeholder="e.g. AC Repair, House Wiring, Pipe Fitting" style="width:100%; padding:0.55rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+                    <button type="button" onclick="window.closeUserCategoryRequestModal()" style="padding:0.55rem 1rem; border:1px solid #cbd5e1; background:#f8fafc; border-radius:8px; font-weight:700; font-size:0.85rem; color:#475569; cursor:pointer;">Cancel</button>
+                    <button type="submit" id="btnSubmitUserCatReq" style="padding:0.55rem 1.25rem; border:none; background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:8px; font-weight:800; font-size:0.85rem; color:#ffffff; cursor:pointer; box-shadow:0 4px 12px rgba(2,132,199,0.3);">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Premium System Alert & Notification Modal -->
     <div class="lb-alert-overlay" id="lbAlertOverlay" style="display:none;" onclick="closeLbAlert(event)">
         <div class="lb-alert-card" id="lbAlertCard" onclick="event.stopPropagation()">
@@ -1815,7 +1909,7 @@
     <script src="firebase-config.js"></script>
     <!-- QRCode.js Library for Client-side Vector QR Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="account.js"></script>
+    <script src="account.js?v=2.2.0"></script>
     <script src="app-nav.js"></script>
     <script src="pwa.js"></script>
 </body>

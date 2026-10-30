@@ -6459,6 +6459,157 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// ================= USER CITY & CATEGORY REQUEST SYSTEM =================
+window.openUserCityRequestModal = function() {
+    const modal = document.getElementById('userCityRequestModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const inp = document.getElementById('uReqCityName');
+        if (inp) {
+            const typed = (document.getElementById('uFullListingCity')?.value || '').trim();
+            if (typed) inp.value = typed;
+            setTimeout(() => inp.focus(), 100);
+        }
+    }
+};
+
+window.closeUserCityRequestModal = function() {
+    const modal = document.getElementById('userCityRequestModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.submitUserCityRequest = async function() {
+    const cityName = (document.getElementById('uReqCityName')?.value || '').trim();
+    const district = (document.getElementById('uReqCityDistrict')?.value || '').trim();
+    const state = (document.getElementById('uReqCityState')?.value || '').trim();
+    const pin = (document.getElementById('uReqCityPin')?.value || '').trim();
+
+    if (!cityName || !district || !state || !pin) {
+        alert('Please fill in all city details (City, District, State, PIN).');
+        return;
+    }
+
+    let currentUser = null;
+    try {
+        const raw = localStorage.getItem('lb_current_user');
+        if (raw) currentUser = JSON.parse(raw);
+    } catch {}
+
+    const reqObj = {
+        id: 'req_city_' + Date.now(),
+        cityName: cityName,
+        name: cityName,
+        district: district,
+        state: state,
+        pincode: pin,
+        userId: currentUser ? currentUser.id : 'guest',
+        userName: currentUser ? currentUser.name : 'Citizen User',
+        userEmail: currentUser ? currentUser.email : '',
+        status: 'Pending',
+        createdAt: new Date().toISOString()
+    };
+
+    let reqs = [];
+    try {
+        const raw = localStorage.getItem('lb_city_requests');
+        reqs = raw ? JSON.parse(raw) : [];
+    } catch {}
+
+    reqs.push(reqObj);
+    localStorage.setItem('lb_city_requests', JSON.stringify(reqs));
+
+    if (window.lbCloudSync && typeof window.lbCloudSync.saveCityRequest === 'function') {
+        window.lbCloudSync.saveCityRequest(reqObj);
+    }
+
+    const cityInp = document.getElementById('uFullListingCity');
+    if (cityInp) cityInp.value = cityName;
+
+    window.closeUserCityRequestModal();
+    document.getElementById('userCityRequestForm')?.reset();
+
+    if (typeof showHubToast === 'function') {
+        showHubToast(`City request for "${cityName}" submitted successfully! Admin will verify and activate it shortly.`, 'success');
+    } else {
+        alert(`City request for "${cityName}" submitted successfully! Admin will verify and activate it shortly.`);
+    }
+};
+
+window.openUserCategoryRequestModal = function() {
+    const modal = document.getElementById('userCategoryRequestModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const inp = document.getElementById('uReqCatName');
+        if (inp) setTimeout(() => inp.focus(), 100);
+    }
+};
+
+window.closeUserCategoryRequestModal = function() {
+    const modal = document.getElementById('userCategoryRequestModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.submitUserCategoryRequest = async function() {
+    const catName = (document.getElementById('uReqCatName')?.value || '').trim();
+    const tag = (document.getElementById('uReqCatTag')?.value || 'Services').trim();
+    const subcategories = (document.getElementById('uReqCatSubs')?.value || '').trim();
+
+    if (!catName) {
+        alert('Please enter a Category Name.');
+        return;
+    }
+
+    let currentUser = null;
+    try {
+        const raw = localStorage.getItem('lb_current_user');
+        if (raw) currentUser = JSON.parse(raw);
+    } catch {}
+
+    const reqObj = {
+        id: 'req_cat_' + Date.now(),
+        categoryName: catName,
+        name: catName,
+        tag: tag,
+        subcategories: subcategories,
+        userId: currentUser ? currentUser.id : 'guest',
+        userName: currentUser ? currentUser.name : 'Citizen User',
+        userEmail: currentUser ? currentUser.email : '',
+        status: 'Pending',
+        createdAt: new Date().toISOString()
+    };
+
+    let reqs = [];
+    try {
+        const raw = localStorage.getItem('lb_category_requests');
+        reqs = raw ? JSON.parse(raw) : [];
+    } catch {}
+
+    reqs.push(reqObj);
+    localStorage.setItem('lb_category_requests', JSON.stringify(reqs));
+
+    if (window.lbCloudSync && typeof window.lbCloudSync.saveCategoryRequest === 'function') {
+        window.lbCloudSync.saveCategoryRequest(reqObj);
+    }
+
+    const catSelect = document.getElementById('uFullListingCategory');
+    if (catSelect) {
+        const opt = document.createElement('option');
+        opt.value = catName;
+        opt.textContent = `${catName} (Requested)`;
+        opt.selected = true;
+        catSelect.appendChild(opt);
+    }
+
+    window.closeUserCategoryRequestModal();
+    document.getElementById('userCatRequestForm')?.reset();
+
+    if (typeof showHubToast === 'function') {
+        showHubToast(`Category request for "${catName}" submitted successfully! Admin will review and add it shortly.`, 'success');
+    } else {
+        alert(`Category request for "${catName}" submitted successfully! Admin will review and add it shortly.`);
+    }
+};
+
 // Professional Strict Title Case: First letter capital, all subsequent letters small per word/tag
 function formatToTitleCase(str) {
     if (!str) return '';

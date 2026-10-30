@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="admin.css?v=2.3.0">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
@@ -126,60 +126,25 @@
                         </div>
                     </div>
 
-                    <!-- 7 Metric Cards -->
+                    <!-- 12 Metric Cards in 3 Structured Rows -->
                     <section class="stat-cards-grid">
-                        <div class="stat-card" onclick="switchView('usersView')">
+                        <!-- ROW 1: USERS, LISTINGS, LISTING REQUESTS, LISTING CLAIMS -->
+                        <div class="stat-card" onclick="switchView('usersView')" style="cursor:pointer;" title="Click to view all registered users">
                             <div class="stat-card-header">
                                 <span class="stat-label">Total Users</span>
                                 <div class="stat-icon-wrap blue"><i class="fa-solid fa-users"></i></div>
                             </div>
                             <div class="stat-value" id="totalUsersCount">0</div>
-                            <div class="stat-subtext">Google & Facebook authenticated</div>
+                            <div class="stat-subtext">Google & Authenticated Users</div>
                         </div>
 
-                        <div class="stat-card" onclick="switchView('listingsView')">
+                        <div class="stat-card" onclick="switchView('listingsView')" style="cursor:pointer;" title="Click to view all listings">
                             <div class="stat-card-header">
                                 <span class="stat-label">Total Listings</span>
                                 <div class="stat-icon-wrap emerald"><i class="fa-solid fa-store"></i></div>
                             </div>
                             <div class="stat-value" id="totalListingsCount">0</div>
                             <div class="stat-subtext">Active places & businesses</div>
-                        </div>
-
-                        <div class="stat-card" onclick="switchView('citiesView')">
-                            <div class="stat-card-header">
-                                <span class="stat-label">Total Cities</span>
-                                <div class="stat-icon-wrap purple"><i class="fa-solid fa-map-location-dot"></i></div>
-                            </div>
-                            <div class="stat-value" id="totalCitiesCount">0</div>
-                            <div class="stat-subtext">Registered city hubs</div>
-                        </div>
-
-                        <div class="stat-card" onclick="switchView('categoriesView')">
-                            <div class="stat-card-header">
-                                <span class="stat-label">Total Categories</span>
-                                <div class="stat-icon-wrap indigo"><i class="fa-solid fa-layer-group"></i></div>
-                            </div>
-                            <div class="stat-value" id="totalCategoriesCount">0</div>
-                            <div class="stat-subtext">Managed sectors & groups</div>
-                        </div>
-
-                        <div class="stat-card" onclick="switchView('mailboxView')">
-                            <div class="stat-card-header">
-                                <span class="stat-label">Total Mail</span>
-                                <div class="stat-icon-wrap cyan"><i class="fa-regular fa-envelope"></i></div>
-                            </div>
-                            <div class="stat-value" id="totalMailCount">0</div>
-                            <div class="stat-subtext">Inbound & outbound messages</div>
-                        </div>
-
-                        <div class="stat-card" onclick="switchView('mailboxView')">
-                            <div class="stat-card-header">
-                                <span class="stat-label">Total Unread Mail</span>
-                                <div class="stat-icon-wrap red"><i class="fa-solid fa-envelope-open-text"></i></div>
-                            </div>
-                            <div class="stat-value" id="unreadMailCount">0</div>
-                            <div class="stat-subtext">Pending user replies</div>
                         </div>
 
                         <div class="stat-card highlight-card" onclick="window.switchToListingsPending()" style="cursor:pointer;" title="Click to view pending listing requests">
@@ -191,7 +156,7 @@
                             <div class="stat-subtext" id="pendingStatusText">No pending verification</div>
                         </div>
 
-                        <div class="stat-card" onclick="switchView('claimsView')">
+                        <div class="stat-card" onclick="switchView('claimsView')" style="cursor:pointer;" title="Click to view listing ownership claims">
                             <div class="stat-card-header">
                                 <span class="stat-label">Listing Claims</span>
                                 <div class="stat-icon-wrap indigo" style="background:#e0e7ff; color:#4338ca;"><i class="fa-solid fa-file-circle-check"></i></div>
@@ -200,7 +165,54 @@
                             <div class="stat-subtext" id="claimsPendingSubtext">0 pending claims</div>
                         </div>
 
-                        <div class="stat-card" onclick="switchView('trustBadgeView')" style="cursor:pointer;" title="Click to view Trust Badge verification requests">
+                        <!-- ROW 2: TOTAL CITIES, REQUEST CITIES, TOTAL CATEGORIES, REQUEST CATEGORIES -->
+                        <div class="stat-card" onclick="switchView('citiesView')" style="cursor:pointer;" title="Click to manage all cities">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Total Cities</span>
+                                <div class="stat-icon-wrap purple"><i class="fa-solid fa-map-location-dot"></i></div>
+                            </div>
+                            <div class="stat-value" id="totalCitiesCount">0</div>
+                            <div class="stat-subtext">Registered city hubs</div>
+                        </div>
+
+                        <div class="stat-card highlight-card" onclick="window.openCityRequestsModal()" style="cursor:pointer;" title="Click to review user-requested cities">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Request Cities</span>
+                                <div class="stat-icon-wrap amber" style="background:#fef3c7; color:#d97706;"><i class="fa-solid fa-city"></i></div>
+                            </div>
+                            <div class="stat-value" id="totalCityRequestsCount">0</div>
+                            <div class="stat-subtext" id="cityRequestsSubtext">0 pending requests</div>
+                        </div>
+
+                        <div class="stat-card" onclick="switchView('categoriesView')" style="cursor:pointer;" title="Click to manage categories">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Total Categories</span>
+                                <div class="stat-icon-wrap indigo"><i class="fa-solid fa-layer-group"></i></div>
+                            </div>
+                            <div class="stat-value" id="totalCategoriesCount">0</div>
+                            <div class="stat-subtext">Managed sectors & groups</div>
+                        </div>
+
+                        <div class="stat-card highlight-card" onclick="window.openCategoryRequestsModal()" style="cursor:pointer;" title="Click to review user-requested categories">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Request Categories</span>
+                                <div class="stat-icon-wrap cyan" style="background:#e0f2fe; color:#0284c7;"><i class="fa-solid fa-tags"></i></div>
+                            </div>
+                            <div class="stat-value" id="totalCatRequestsCount">0</div>
+                            <div class="stat-subtext" id="catRequestsSubtext">0 pending requests</div>
+                        </div>
+
+                        <!-- ROW 3: TRUST BADGE, TRUST BADGE REQUESTS, TOTAL MAIL, TOTAL UNREAD MAIL -->
+                        <div class="stat-card" onclick="switchView('trustBadgeView')" style="cursor:pointer;" title="Click to view verified stores">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Trust Badge</span>
+                                <div class="stat-icon-wrap emerald" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-certificate"></i></div>
+                            </div>
+                            <div class="stat-value" id="totalApprovedTrustBadgeCount">0</div>
+                            <div class="stat-subtext">Verified gold stores</div>
+                        </div>
+
+                        <div class="stat-card" onclick="switchView('trustBadgeView')" style="cursor:pointer;" title="Click to view Trust Badge verification applications">
                             <div class="stat-card-header">
                                 <span class="stat-label">Trust Badge Requests</span>
                                 <div class="stat-icon-wrap" style="background:#fef3c7; color:#d97706;"><i class="fa-solid fa-shield-halved"></i></div>
@@ -208,31 +220,23 @@
                             <div class="stat-value" id="totalTrustBadgeCount">0</div>
                             <div class="stat-subtext" id="trustPendingSubtext">0 pending review</div>
                         </div>
-                    </section>
 
-                    <!-- Quick Overview Table -->
-                    <section class="table-card">
-                        <div class="table-header-row">
-                            <div>
-                                <h2>Recent Submissions</h2>
-                                <p>Latest listings added to LocalBazar</p>
+                        <div class="stat-card" onclick="switchView('mailboxView')" style="cursor:pointer;" title="Click to open mailbox">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Total Mail</span>
+                                <div class="stat-icon-wrap cyan"><i class="fa-regular fa-envelope"></i></div>
                             </div>
-                            <button type="button" class="btn-link-action" onclick="switchView('listingsView')">View All in Directory <i class="fa-solid fa-arrow-right"></i></button>
+                            <div class="stat-value" id="totalMailCount">0</div>
+                            <div class="stat-subtext">Inbound & outbound messages</div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Place / Business</th>
-                                        <th>Category</th>
-                                        <th>City & Address</th>
-                                        <th>Contact</th>
-                                        <th>Status</th>
-                                        <th class="text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dashboardRecentTableBody"></tbody>
-                            </table>
+
+                        <div class="stat-card" onclick="switchView('mailboxView')" style="cursor:pointer;" title="Click to open unread mail">
+                            <div class="stat-card-header">
+                                <span class="stat-label">Total Unread Mail</span>
+                                <div class="stat-icon-wrap red"><i class="fa-solid fa-envelope-open-text"></i></div>
+                            </div>
+                            <div class="stat-value" id="unreadMailCount">0</div>
+                            <div class="stat-subtext">Pending user replies</div>
                         </div>
                     </section>
                 </div>
@@ -241,59 +245,62 @@
             <!-- ================= VIEW 2: ALL USERS ================= -->
             <div class="admin-view-panel" id="usersView">
                 <div class="dashboard-container">
-                    <div class="view-header-row">
-                        <div>
-                            <h1>All Registered Users</h1>
-                            <p>Manage, search, verify and edit registered user profiles, login methods and access roles.</p>
+                    <div class="admin-sticky-header">
+                        <div class="view-header-row">
+                            <div>
+                                <h1>All Registered Users</h1>
+                                <p>Manage, search, verify and edit registered user profiles, login methods and access roles.</p>
+                            </div>
+                            <div class="view-actions">
+                                <span class="user-stats-pill" id="userCountSummaryBadge"><i class="fa-solid fa-users"></i> 0 Users</span>
+                            </div>
                         </div>
-                        <div class="view-actions">
-                            <span class="user-stats-pill" id="userCountSummaryBadge"><i class="fa-solid fa-users"></i> 0 Users</span>
-                        </div>
-                    </div>
 
-                    <div class="table-card">
-                        <div class="table-header-row user-table-filter-bar">
-                            <div class="table-filters-full user-filter-grid">
-                                <div class="user-search-wrap">
-                                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                                    <input type="text" id="userFilterKeyword" placeholder="Search users by name, email, phone, or ID...">
-                                    <button type="button" class="btn-clear-search" id="btnClearUserSearch" style="display:none;" title="Clear search"><i class="fa-solid fa-xmark"></i></button>
-                                </div>
-                                <div class="user-filter-selects">
-                                    <select id="userFilterMethod">
-                                        <option value="">All Login Methods</option>
-                                        <option value="Google">Google</option>
-                                        <option value="Facebook">Facebook</option>
-                                        <option value="Phone">Phone OTP</option>
-                                        <option value="Email">Email & Password</option>
-                                    </select>
-                                    <select id="userFilterRole">
-                                        <option value="">All Roles</option>
-                                        <option value="Member">Member</option>
-                                        <option value="Merchant">Merchant</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
-                                    <select id="userSortOrder">
-                                        <option value="newest">Newest First</option>
-                                        <option value="oldest">Oldest First</option>
-                                        <option value="name_asc">Name (A-Z)</option>
-                                    </select>
+                        <div class="table-card" style="padding: 0.85rem 1.25rem; margin-bottom: 0;">
+                            <div class="table-header-row user-table-filter-bar" style="margin-bottom: 0;">
+                                <div class="table-filters-full user-filter-grid">
+                                    <div class="user-search-wrap">
+                                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                        <input type="text" id="userFilterKeyword" placeholder="Search users by name, email, phone, or ID...">
+                                        <button type="button" class="btn-clear-search" id="btnClearUserSearch" style="display:none;" title="Clear search"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    <div class="user-filter-selects">
+                                        <select id="userFilterMethod">
+                                            <option value="">All Login Methods</option>
+                                            <option value="Google">Google</option>
+                                            <option value="Facebook">Facebook</option>
+                                            <option value="Phone">Phone OTP</option>
+                                            <option value="Email">Email & Password</option>
+                                        </select>
+                                        <select id="userFilterRole">
+                                            <option value="">All Roles</option>
+                                            <option value="Member">Member</option>
+                                            <option value="Merchant">Merchant</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                        <select id="userSortOrder">
+                                            <option value="newest">Newest First</option>
+                                            <option value="oldest">Oldest First</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>User Profile</th>
-                                        <th>Login Method</th>
-                                        <th>Joined Date</th>
-                                        <th class="text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="allUsersTableBody"></tbody>
-                            </table>
-                        </div>
+                    </div>
+
+                    <div class="table-responsive table-scroll-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User Profile</th>
+                                    <th>Login Method</th>
+                                    <th>Joined Date</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allUsersTableBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -301,46 +308,49 @@
             <!-- ================= VIEW 3: ALL LISTINGS ================= -->
             <div class="admin-view-panel" id="listingsView">
                 <div class="dashboard-container">
-                    <div class="view-header-row">
-                        <div>
-                            <h1>All Directory Listings</h1>
-                            <p>Manage, verify, edit, and publish places, offices, and businesses.</p>
+                    <div class="admin-sticky-header">
+                        <div class="view-header-row">
+                            <div>
+                                <h1>All Directory Listings</h1>
+                                <p>Manage, verify, edit, and publish places, offices, and businesses.</p>
+                            </div>
+                        </div>
+
+                        <div class="table-card" style="padding: 0.85rem 1.25rem; margin-bottom: 0;">
+                            <div class="table-header-row" style="margin-bottom: 0;">
+                                <div class="table-filters-full">
+                                    <input type="text" id="listingFilterKeyword" placeholder="Filter by place name or phone...">
+                                    <select id="listingFilterCity">
+                                        <option value="">All Cities</option>
+                                    </select>
+                                    <select id="listingFilterCategory">
+                                        <option value="">All Categories</option>
+                                    </select>
+                                    <select id="listingFilterStatus">
+                                        <option value="">All Statuses</option>
+                                        <option value="pending">⏳ Pending Review</option>
+                                        <option value="verified">✅ Verified</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="table-card">
-                        <div class="table-header-row">
-                            <div class="table-filters-full">
-                                <input type="text" id="listingFilterKeyword" placeholder="Filter by place name or phone...">
-                                <select id="listingFilterCity">
-                                    <option value="">All Cities</option>
-                                </select>
-                                <select id="listingFilterCategory">
-                                    <option value="">All Categories</option>
-                                </select>
-                                <select id="listingFilterStatus">
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">⏳ Pending Review</option>
-                                    <option value="verified">✅ Verified</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Place / Business</th>
-                                        <th>Category</th>
-                                        <th>City & Locality</th>
-                                        <th>Owner</th>
-                                        <th>Phone</th>
-                                        <th>Status</th>
-                                        <th class="text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="allListingsTableBody"></tbody>
-                            </table>
-                        </div>
+                    <div class="table-responsive table-scroll-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Place / Business</th>
+                                    <th>Category</th>
+                                    <th>City & Locality</th>
+                                    <th>Owner</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allListingsTableBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -348,104 +358,118 @@
             <!-- ================= VIEW 4: ALL CITIES ================= -->
             <div class="admin-view-panel" id="citiesView">
                 <div class="dashboard-container">
-                    <div class="view-header-row">
-                        <div>
-                            <h1>City Hubs Management</h1>
-                            <p>Configure which cities, districts, and states are covered in LocalBazar.</p>
+                    <div class="admin-sticky-header">
+                        <div class="view-header-row">
+                            <div>
+                                <h1>City Hubs Management</h1>
+                                <p>Configure which cities, districts, and states are covered in LocalBazar.</p>
+                            </div>
+                            <div class="view-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                <button type="button" class="btn-primary-action" id="openAddCityModalBtn"><i class="fa-solid fa-plus"></i> Add New City</button>
+                                <button type="button" onclick="window.openCityRequestsModal()" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:all 0.2s;" id="btnCityRequestsModal" title="View city requests submitted by users">
+                                    <i class="fa-solid fa-bell"></i> Request City <span id="badgeCityRequestsCount" style="background:#d97706; color:#fff; border-radius:20px; padding:2px 7px; font-size:0.75rem; font-weight:800; margin-left:2px;">0</span>
+                                </button>
+                                <button type="button" onclick="window.clearAllCitiesPrompt()" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:background 0.2s;"><i class="fa-regular fa-trash-can"></i> Delete All Cities</button>
+                            </div>
                         </div>
-                        <div class="view-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                            <button type="button" class="btn-primary-action" id="openAddCityModalBtn"><i class="fa-solid fa-plus"></i> Add New City</button>
-                            <button type="button" onclick="window.clearAllCitiesPrompt()" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:background 0.2s;"><i class="fa-regular fa-trash-can"></i> Delete All Cities</button>
+
+                        <!-- Professional Compact Search & Multi-Filter Bar with Done Action (Full Width Stretched) -->
+                        <div class="table-card" style="margin-bottom: 0; padding: 0.85rem 1rem;">
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
+                                <!-- Search Input (Flex 1.5) -->
+                                <div style="position: relative; flex: 1.5; min-width: 170px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.82rem;"></i>
+                                    <input type="text" id="citySearchInput" placeholder="Search city..." style="padding: 0.55rem 0.65rem 0.55rem 2rem; width: 100%; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; outline: none; box-sizing: border-box;">
+                                </div>
+
+                                <!-- District Filter (Flex 1) -->
+                                <select id="cityFilterDistrict" style="flex: 1; min-width: 135px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
+                                    <option value="">All Districts</option>
+                                </select>
+
+                                <!-- State Filter (Flex 1) -->
+                                <select id="cityFilterState" style="flex: 1; min-width: 130px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
+                                    <option value="">All States</option>
+                                </select>
+
+                                <!-- PIN Code Filter (Flex 0.9) -->
+                                <select id="cityFilterPin" style="flex: 0.9; min-width: 125px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
+                                    <option value="">All PIN Codes</option>
+                                </select>
+
+                                <!-- Actions Container (Right side) -->
+                                <div style="display: flex; gap: 0.45rem; align-items: center; flex-shrink: 0;">
+                                    <!-- Done Button (Applies filters) -->
+                                    <button type="button" id="cityApplyFilterBtn" class="btn-primary-action" style="padding: 0.55rem 1rem; font-size: 0.84rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Apply all filters">
+                                        <i class="fa-solid fa-check"></i> Done
+                                    </button>
+
+                                    <!-- Reset Button -->
+                                    <button type="button" id="cityClearFilterBtn" class="btn-secondary-action-sm" style="padding: 0.55rem 0.85rem; font-size: 0.84rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.35rem;" title="Reset all filters">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Professional Compact Search & Multi-Filter Bar with Done Action (Full Width Stretched) -->
-                    <div class="table-card" style="margin-bottom: 1.5rem; padding: 0.85rem 1rem;">
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
-                            <!-- Search Input (Flex 1.5) -->
-                            <div style="position: relative; flex: 1.5; min-width: 170px;">
-                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.82rem;"></i>
-                                <input type="text" id="citySearchInput" placeholder="Search city..." style="padding: 0.55rem 0.65rem 0.55rem 2rem; width: 100%; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; outline: none; box-sizing: border-box;">
-                            </div>
-
-                            <!-- District Filter (Flex 1) -->
-                            <select id="cityFilterDistrict" style="flex: 1; min-width: 135px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
-                                <option value="">All Districts</option>
-                            </select>
-
-                            <!-- State Filter (Flex 1) -->
-                            <select id="cityFilterState" style="flex: 1; min-width: 130px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
-                                <option value="">All States</option>
-                            </select>
-
-                            <!-- PIN Code Filter (Flex 0.9) -->
-                            <select id="cityFilterPin" style="flex: 0.9; min-width: 125px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
-                                <option value="">All PIN Codes</option>
-                            </select>
-
-                            <!-- Actions Container (Right side) -->
-                            <div style="display: flex; gap: 0.45rem; align-items: center; flex-shrink: 0;">
-                                <!-- Done Button (Applies filters) -->
-                                <button type="button" id="cityApplyFilterBtn" class="btn-primary-action" style="padding: 0.55rem 1rem; font-size: 0.84rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Apply all filters">
-                                    <i class="fa-solid fa-check"></i> Done
-                                </button>
-
-                                <!-- Reset Button -->
-                                <button type="button" id="cityClearFilterBtn" class="btn-secondary-action-sm" style="padding: 0.55rem 0.85rem; font-size: 0.84rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.35rem;" title="Reset all filters">
-                                    <i class="fa-solid fa-rotate-left"></i> Reset
-                                </button>
-                            </div>
-                        </div>
+                    <div class="grid-scroll-container">
+                        <div class="grid-cards-layout" id="citiesGridContainer"></div>
                     </div>
-
-                    <div class="grid-cards-layout" id="citiesGridContainer"></div>
                 </div>
             </div>
 
             <!-- ================= VIEW 5: ALL CATEGORIES ================= -->
             <div class="admin-view-panel" id="categoriesView">
                 <div class="dashboard-container">
-                    <div class="view-header-row">
-                        <div>
-                            <h1>Directory Categories</h1>
-                            <p>Organize places into public categories and taxonomies.</p>
+                    <div class="admin-sticky-header">
+                        <div class="view-header-row">
+                            <div>
+                                <h1>Directory Categories</h1>
+                                <p>Organize places into public categories and taxonomies.</p>
+                            </div>
+                            <div class="view-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                <button type="button" class="btn-primary-action" id="openAddCategoryModalBtn"><i class="fa-solid fa-plus"></i> Add Category</button>
+                                <button type="button" onclick="window.openCategoryRequestsModal()" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:all 0.2s;" id="btnCatRequestsModal" title="View category requests submitted by users">
+                                    <i class="fa-solid fa-bell"></i> Request Category <span id="badgeCatRequestsCount" style="background:#d97706; color:#fff; border-radius:20px; padding:2px 7px; font-size:0.75rem; font-weight:800; margin-left:2px;">0</span>
+                                </button>
+                                <button type="button" onclick="window.clearAllCategoriesPrompt()" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:background 0.2s;"><i class="fa-regular fa-trash-can"></i> Delete All Categories</button>
+                            </div>
                         </div>
-                        <div class="view-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                            <button type="button" class="btn-primary-action" id="openAddCategoryModalBtn"><i class="fa-solid fa-plus"></i> Add Category</button>
-                            <button type="button" onclick="window.clearAllCategoriesPrompt()" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.65rem 1rem; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:background 0.2s;"><i class="fa-regular fa-trash-can"></i> Delete All Categories</button>
+
+                        <!-- Professional Compact Search & Filter Bar (Full Width Stretched) -->
+                        <div class="table-card" style="margin-bottom: 0; padding: 0.85rem 1rem;">
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
+                                <!-- Search Input (Category Title / Keywords) -->
+                                <div style="position: relative; flex: 2; min-width: 190px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.82rem;"></i>
+                                    <input type="text" id="catSearchInput" placeholder="Search category title or keyword..." style="padding: 0.55rem 0.65rem 0.55rem 2rem; width: 100%; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; outline: none; box-sizing: border-box;">
+                                </div>
+
+                                <!-- Tag / Keyword Filter Dropdown -->
+                                <select id="catFilterTag" style="flex: 1.2; min-width: 150px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
+                                    <option value="">All Tags / Keywords</option>
+                                </select>
+
+                                <!-- Actions Container (Right side) -->
+                                <div style="display: flex; gap: 0.45rem; align-items: center; flex-shrink: 0;">
+                                    <!-- Done Button -->
+                                    <button type="button" id="catApplyFilterBtn" class="btn-primary-action" style="padding: 0.55rem 1rem; font-size: 0.84rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Apply search and filter">
+                                        <i class="fa-solid fa-check"></i> Done
+                                    </button>
+
+                                    <!-- Reset Button -->
+                                    <button type="button" id="catClearFilterBtn" class="btn-secondary-action-sm" style="padding: 0.55rem 0.85rem; font-size: 0.84rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.35rem;" title="Reset all filters">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Professional Compact Search & Filter Bar (Full Width Stretched) -->
-                    <div class="table-card" style="margin-bottom: 1.5rem; padding: 0.85rem 1rem;">
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
-                            <!-- Search Input (Category Title / Keywords) -->
-                            <div style="position: relative; flex: 2; min-width: 190px;">
-                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.82rem;"></i>
-                                <input type="text" id="catSearchInput" placeholder="Search category title or keyword..." style="padding: 0.55rem 0.65rem 0.55rem 2rem; width: 100%; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; outline: none; box-sizing: border-box;">
-                            </div>
-
-                            <!-- Tag / Keyword Filter Dropdown -->
-                            <select id="catFilterTag" style="flex: 1.2; min-width: 150px; padding: 0.55rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; background: #fff; cursor: pointer; outline: none; box-sizing: border-box;">
-                                <option value="">All Tags / Keywords</option>
-                            </select>
-
-                            <!-- Actions Container (Right side) -->
-                            <div style="display: flex; gap: 0.45rem; align-items: center; flex-shrink: 0;">
-                                <!-- Done Button -->
-                                <button type="button" id="catApplyFilterBtn" class="btn-primary-action" style="padding: 0.55rem 1rem; font-size: 0.84rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Apply search and filter">
-                                    <i class="fa-solid fa-check"></i> Done
-                                </button>
-
-                                <!-- Reset Button -->
-                                <button type="button" id="catClearFilterBtn" class="btn-secondary-action-sm" style="padding: 0.55rem 0.85rem; font-size: 0.84rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.35rem;" title="Reset all filters">
-                                    <i class="fa-solid fa-rotate-left"></i> Reset
-                                </button>
-                            </div>
-                        </div>
+                    <div class="grid-scroll-container">
+                        <div class="grid-cards-layout" id="categoriesGridContainer"></div>
                     </div>
-
-                    <div class="grid-cards-layout" id="categoriesGridContainer"></div>
                 </div>
             </div>
 
@@ -1179,6 +1203,25 @@
         </div>
     </div>
 
+    <!-- Modal 2.2: City Requests from Users -->
+    <div class="modal-backdrop" id="adminCityRequestsModal">
+        <div class="modal-card" style="max-width:680px; width:100%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-city" style="color:#d97706;"></i> User Requested Cities</h3>
+                    <p style="font-size:0.8rem; color:#64748b; margin:2px 0 0 0;">Review, edit spelling/details, and approve city requests submitted by users.</p>
+                </div>
+                <button type="button" class="btn-modal-close" data-close-modal="adminCityRequestsModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="max-height:60vh; overflow-y:auto; padding:0.5rem 0;" id="adminCityRequestsContainer">
+                <!-- Dynamically populated in admin.js -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" data-close-modal="adminCityRequestsModal">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal 3: Add Category -->
     <div class="modal-backdrop" id="addCategoryModal">
         <div class="modal-card">
@@ -1265,6 +1308,25 @@
                     <button type="submit" class="btn-modal-submit"><i class="fa-solid fa-check"></i> Update Category</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal 3.2: Category Requests from Users -->
+    <div class="modal-backdrop" id="adminCategoryRequestsModal">
+        <div class="modal-card" style="max-width:680px; width:100%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-tags" style="color:#0284c7;"></i> User Requested Categories</h3>
+                    <p style="font-size:0.8rem; color:#64748b; margin:2px 0 0 0;">Review, edit spelling/details, and approve category requests submitted by users.</p>
+                </div>
+                <button type="button" class="btn-modal-close" data-close-modal="adminCategoryRequestsModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="max-height:60vh; overflow-y:auto; padding:0.5rem 0;" id="adminCategoryRequestsContainer">
+                <!-- Dynamically populated in admin.js -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" data-close-modal="adminCategoryRequestsModal">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1996,6 +2058,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="firebase-config.js?v=2.0.1"></script>
-    <script src="admin.js?v=2.1.0"></script>
+    <script src="admin.js?v=2.3.0"></script>
 </body>
 </html>

@@ -467,9 +467,21 @@ body.admin-body {
 /* ---------------- Stat Cards Grid ---------------- */
 .stat-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.25rem;
     margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+    .stat-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .stat-cards-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .stat-card {
@@ -646,6 +658,87 @@ body.admin-body {
     padding: 1rem;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
+}
+
+/* ================= GLOBAL ADMIN STICKY TOP CONTROLS & INDEPENDENT SCROLLING ================= */
+.admin-sticky-header {
+    position: sticky;
+    top: var(--topbar-height, 65px);
+    z-index: 35;
+    background: var(--admin-bg, #f8fafc);
+    padding-top: 0.35rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+body.admin-body.dark-theme .admin-sticky-header {
+    background: #0f172a;
+}
+
+/* Independent Scrollable Table Container for Users & Listings */
+.table-scroll-container {
+    max-height: calc(100vh - 275px);
+    min-height: 380px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border, #e2e8f0);
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+body.admin-body.dark-theme .table-scroll-container {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* Sticky Column Header inside Scrollable Table */
+.table-scroll-container .admin-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+body.admin-body.dark-theme .table-scroll-container .admin-table thead th {
+    background: #0f172a;
+    color: #cbd5e1;
+}
+
+/* Independent Scrollable Grid Container for Cities & Categories */
+.grid-scroll-container {
+    max-height: calc(100vh - 265px);
+    min-height: 380px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 1.5rem;
+}
+
+/* Modern Ultra-Slim Scrollbars for Tables and Grids */
+.table-scroll-container::-webkit-scrollbar,
+.grid-scroll-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track,
+.grid-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb,
+.grid-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover,
+.grid-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .place-cell, .user-cell {

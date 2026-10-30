@@ -795,7 +795,113 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             return null;
         },
 
-        // 19. Full Database Pull from Firestore on startup (Optimized 2-Tier Strategy)
+        // 19. Sync City Requests to Cloud Firestore
+        saveCityRequest: async function(req) {
+            if (!req || !req.id) return;
+            if (!window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                await lbFirestore.collection('city_requests').doc(String(req.id)).set(req, { merge: true });
+                console.log(`[CloudSync] City Request "${req.name || req.cityName}" synced to Firestore.`);
+            } catch (err) {
+                console.error("[CloudSync] Failed to sync city request:", err);
+            }
+        },
+
+        deleteCityRequest: async function(reqId) {
+            if (!reqId || !window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                await lbFirestore.collection('city_requests').doc(String(reqId)).delete();
+            } catch (err) {
+                console.error("[CloudSync] Failed to delete city request:", err);
+            }
+        },
+
+        pullCityRequests: async function() {
+            if (!window.isFirebaseReady() || !lbFirestore) return null;
+            try {
+                const snapshot = await lbFirestore.collection('city_requests').get();
+                const cloudReqs = [];
+                if (!snapshot.empty) {
+                    snapshot.forEach(doc => cloudReqs.push(doc.data()));
+                }
+                localStorage.setItem('lb_city_requests', JSON.stringify(cloudReqs));
+                return cloudReqs;
+            } catch (err) {
+                console.error("[CloudSync] Failed to pull city requests:", err);
+            }
+            return null;
+        },
+
+        listenCityRequests: function(callback) {
+            if (!window.isFirebaseReady() || !lbFirestore) return null;
+            try {
+                return lbFirestore.collection('city_requests').onSnapshot(snapshot => {
+                    const updated = [];
+                    snapshot.forEach(doc => updated.push(doc.data()));
+                    localStorage.setItem('lb_city_requests', JSON.stringify(updated));
+                    if (typeof callback === 'function') callback(updated);
+                }, err => {
+                    console.error("[CloudSync] City requests listener error:", err);
+                });
+            } catch (err) {
+                return null;
+            }
+        },
+
+        // 20. Sync Category Requests to Cloud Firestore
+        saveCategoryRequest: async function(req) {
+            if (!req || !req.id) return;
+            if (!window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                await lbFirestore.collection('category_requests').doc(String(req.id)).set(req, { merge: true });
+                console.log(`[CloudSync] Category Request "${req.name || req.categoryName}" synced to Firestore.`);
+            } catch (err) {
+                console.error("[CloudSync] Failed to sync category request:", err);
+            }
+        },
+
+        deleteCategoryRequest: async function(reqId) {
+            if (!reqId || !window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                await lbFirestore.collection('category_requests').doc(String(reqId)).delete();
+            } catch (err) {
+                console.error("[CloudSync] Failed to delete category request:", err);
+            }
+        },
+
+        pullCategoryRequests: async function() {
+            if (!window.isFirebaseReady() || !lbFirestore) return null;
+            try {
+                const snapshot = await lbFirestore.collection('category_requests').get();
+                const cloudReqs = [];
+                if (!snapshot.empty) {
+                    snapshot.forEach(doc => cloudReqs.push(doc.data()));
+                }
+                localStorage.setItem('lb_category_requests', JSON.stringify(cloudReqs));
+                return cloudReqs;
+            } catch (err) {
+                console.error("[CloudSync] Failed to pull category requests:", err);
+            }
+            return null;
+        },
+
+        listenCategoryRequests: function(callback) {
+            if (!window.isFirebaseReady() || !lbFirestore) return null;
+            try {
+                return lbFirestore.collection('category_requests').onSnapshot(snapshot => {
+                    const updated = [];
+                    snapshot.forEach(doc => updated.push(doc.data()));
+                    localStorage.setItem('lb_category_requests', JSON.stringify(updated));
+                    if (typeof callback === 'function') callback(updated);
+                }, err => {
+                    console.error("[CloudSync] Category requests listener error:", err);
+                });
+            } catch (err) {
+                return null;
+            }
+        },
+
+        // 21. Full Database Pull from Firestore on startup (Optimized 2-Tier Strategy)
         pullAllData: async function() {
             if (!window.isFirebaseReady() || !lbFirestore) return;
             try {
@@ -809,13 +915,15 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                     window.dispatchEvent(new CustomEvent('lb:cloud-synced'));
                 } catch (e) {}
 
-                // Tier 2: Background sync for secondary admin data (Users, News, Claims, Trust, Mail, Banners)
+                // Tier 2: Background sync for secondary admin data (Users, News, Claims, Trust, Mail, Banners, City & Cat Requests)
                 Promise.allSettled([
                     window.lbCloudSync.pullUsers(),
                     window.lbCloudSync.pullNews(),
                     window.lbCloudSync.pullClaims(),
                     window.lbCloudSync.pullTrustRequests(),
                     window.lbCloudSync.pullMail(),
+                    window.lbCloudSync.pullCityRequests(),
+                    window.lbCloudSync.pullCategoryRequests(),
                     window.lbCloudSync.pullDefaultBanners()
                 ]).then(() => {
                     console.log("[CloudSync] Complete Firestore database sync finished.");
