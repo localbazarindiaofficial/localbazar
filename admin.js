@@ -3229,6 +3229,25 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lbCloudSync.saveMail(newMailItem);
         }
 
+        // Find recipient user to get their External ID
+        const users = getDB(DB_KEYS.USERS, []);
+        const targetUser = users.find(u => 
+            (u.email && u.email.toLowerCase() === to.toLowerCase()) || 
+            String(u.id) === String(to) ||
+            (u.name && u.name.toLowerCase() === to.toLowerCase())
+        );
+        const resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
+
+        // Trigger Background Push Notification to Recipient User (even if app is closed!)
+        if (window.lbPushService && typeof window.lbPushService.notifyUserFromAdmin === 'function') {
+            window.lbPushService.notifyUserFromAdmin({
+                targetEmail: to,
+                targetUserId: resolvedUserId,
+                subject: subject,
+                messageSnippet: body
+            });
+        }
+
         document.getElementById('composeMailModal').classList.remove('active');
         document.getElementById('composeMailForm').reset();
         if (removeAttachBtn) removeAttachBtn.click();

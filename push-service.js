@@ -195,8 +195,12 @@
                     firefox_icon: icon || PUSH_CONFIG.defaultIcon
                 };
 
-                // Target by Store Owner tag
-                if (targetStoreId) {
+                // Target recipient device (Prioritize External ID verified in OneSignal)
+                if (targetUserId) {
+                    payload.include_aliases = { external_id: [String(targetUserId)] };
+                    payload.include_external_user_ids = [String(targetUserId)];
+                    payload.target_channel = 'push';
+                } else if (targetStoreId) {
                     payload.filters = [
                         { field: 'tag', key: `store_${targetStoreId}`, relation: '=', value: 'owner' }
                     ];
@@ -204,9 +208,6 @@
                     payload.filters = [
                         { field: 'tag', key: 'user_email', relation: '=', value: targetEmail.toLowerCase().trim() }
                     ];
-                } else if (targetUserId) {
-                    payload.include_aliases = { external_id: [String(targetUserId)] };
-                    payload.target_channel = 'push';
                 }
 
                 // Strategy 1: Dispatch via Vercel Serverless Function (Bypasses any browser CORS limits)
@@ -247,7 +248,7 @@
         },
 
         // Specialized Trigger: When a customer inquires in chat or sends a product inquiry
-        notifyStoreOwner: async function({ storeId, storeName, customerName, messageText, product }) {
+        notifyStoreOwner: async function({ storeId, storeName, customerName, messageText, product, ownerId }) {
             let bodyText = `${customerName}: "${messageText.slice(0, 90)}"`;
             if (product && product.name) {
                 bodyText = `Inquiry on "${product.name}": "${messageText.slice(0, 70)}"`;
@@ -258,6 +259,12 @@
 
             return await this.sendPush({
                 targetStoreId: storeId,
+                targetUserId: ownerId,
+                title: title,
+                body: bodyText,
+                url: targetUrl
+            });
+        },
                 title: title,
                 body: bodyText,
                 url: targetUrl

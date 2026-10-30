@@ -2776,7 +2776,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         storeName: item.name,
                         customerName: customerName,
                         messageText: text,
-                        product: attachedProd
+                        product: attachedProd,
+                        ownerId: item.ownerId
                     });
                 }
 
