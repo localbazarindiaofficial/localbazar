@@ -378,8 +378,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (matches.length === 0) {
-                uCatDropdownEl.classList.remove('open');
-                uCatDropdownEl.innerHTML = '';
+                uCatDropdownEl.innerHTML = `
+                    <div class="sugg-no-match-box">
+                        <div class="sugg-no-match-title">
+                            <i class="fa-solid fa-layer-group" style="color:#f59e0b;"></i>
+                            <span>No Category Available for "<strong>${escapeUserHtml(uCatInputEl.value.trim())}</strong>"</span>
+                        </div>
+                        <div class="sugg-no-match-sub">
+                            This category is not listed in directory taxonomies yet. You can submit a request to Admin!
+                        </div>
+                        <button type="button" class="sugg-no-match-btn" id="btnReqMissingCat">
+                            <i class="fa-solid fa-circle-plus"></i> Request This Category
+                        </button>
+                    </div>
+                `;
+                uCatDropdownEl.classList.add('open');
+                const reqBtn = uCatDropdownEl.querySelector('#btnReqMissingCat');
+                if (reqBtn) {
+                    reqBtn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const typed = uCatInputEl.value.trim();
+                        uCatDropdownEl.classList.remove('open');
+                        window.openUserCategoryRequestModal(typed);
+                    });
+                }
                 return;
             }
 
@@ -650,12 +673,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const to = (m.to || '').trim().toLowerCase();
             const from = (m.from || '').trim().toLowerCase();
-            const mUserId = String(m.userId || '').trim();
+            const mUserId = String(m.userId || '').trim().toLowerCase();
             const mUserEmail = String(m.userEmail || '').trim().toLowerCase();
+            const uIdLower = userId.toLowerCase();
 
             const isToMe = (userEmail && to === userEmail) ||
                            (userName && to === userName) ||
-                           (userId && mUserId === userId) ||
+                           (uIdLower && to === uIdLower) ||
+                           (uIdLower && mUserId === uIdLower) ||
                            (userEmail && mUserEmail === userEmail) ||
                            to === 'all users' ||
                            to === 'all merchants';
@@ -1236,8 +1261,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (matches.length === 0) {
-                uCityDropdownEl.classList.remove('open');
-                uCityDropdownEl.innerHTML = '';
+                uCityDropdownEl.innerHTML = `
+                    <div class="sugg-no-match-box">
+                        <div class="sugg-no-match-title">
+                            <i class="fa-solid fa-location-crosshairs" style="color:#ef4444;"></i>
+                            <span>No City Available for "<strong>${escapeUserHtml(uCityInputEl.value.trim())}</strong>"</span>
+                        </div>
+                        <div class="sugg-no-match-sub">
+                            This city has not been added by Admin yet. You can submit a request to add it!
+                        </div>
+                        <button type="button" class="sugg-no-match-btn" id="btnReqMissingCity">
+                            <i class="fa-solid fa-circle-plus"></i> Request This City
+                        </button>
+                    </div>
+                `;
+                uCityDropdownEl.classList.add('open');
+                const reqBtn = uCityDropdownEl.querySelector('#btnReqMissingCity');
+                if (reqBtn) {
+                    reqBtn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const typed = uCityInputEl.value.trim();
+                        uCityDropdownEl.classList.remove('open');
+                        window.openUserCityRequestModal(typed);
+                    });
+                }
                 return;
             }
 
@@ -1312,8 +1360,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (matches.length === 0) {
-                mCityDropdownEl.classList.remove('open');
-                mCityDropdownEl.innerHTML = '';
+                mCityDropdownEl.innerHTML = `
+                    <div class="sugg-no-match-box">
+                        <div class="sugg-no-match-title">
+                            <i class="fa-solid fa-location-crosshairs" style="color:#ef4444;"></i>
+                            <span>No City Available for "<strong>${escapeUserHtml(mCityInputEl.value.trim())}</strong>"</span>
+                        </div>
+                        <div class="sugg-no-match-sub">
+                            This city has not been added by Admin yet. You can submit a request to add it!
+                        </div>
+                        <button type="button" class="sugg-no-match-btn" id="btnPortalReqMissingCity">
+                            <i class="fa-solid fa-circle-plus"></i> Request This City
+                        </button>
+                    </div>
+                `;
+                mCityDropdownEl.classList.add('open');
+                const reqBtn = mCityDropdownEl.querySelector('#btnPortalReqMissingCity');
+                if (reqBtn) {
+                    reqBtn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const typed = mCityInputEl.value.trim();
+                        mCityDropdownEl.classList.remove('open');
+                        window.openUserCityRequestModal(typed);
+                    });
+                }
                 return;
             }
 
@@ -5538,8 +5609,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const matches = cities.filter(c => (c.name || '').toLowerCase().startsWith(val))
                     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 if (matches.length === 0) {
-                    cityDropdown.classList.remove('open');
-                    cityDropdown.innerHTML = '';
+                    cityDropdown.innerHTML = `
+                        <div class="sugg-no-match-box">
+                            <div class="sugg-no-match-title">
+                                <i class="fa-solid fa-location-crosshairs" style="color:#ef4444;"></i>
+                                <span>No City Available for "<strong>${escapeUserHtml(cityInput.value.trim())}</strong>"</span>
+                            </div>
+                        </div>
+                    `;
+                    cityDropdown.classList.add('open');
                     return;
                 }
 
@@ -5588,8 +5666,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const matches = categories.filter(c => (c.name || '').toLowerCase().startsWith(val))
                     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 if (matches.length === 0) {
-                    catDropdown.classList.remove('open');
-                    catDropdown.innerHTML = '';
+                    catDropdown.innerHTML = `
+                        <div class="sugg-no-match-box">
+                            <div class="sugg-no-match-title">
+                                <i class="fa-solid fa-layer-group" style="color:#f59e0b;"></i>
+                                <span>No Category Available for "<strong>${escapeUserHtml(catInput.value.trim())}</strong>"</span>
+                            </div>
+                        </div>
+                    `;
+                    catDropdown.classList.add('open');
                     return;
                 }
 
@@ -6982,13 +7067,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ================= USER CITY & CATEGORY REQUEST SYSTEM =================
-window.openUserCityRequestModal = function() {
+window.openUserCityRequestModal = function(prefillName) {
     const modal = document.getElementById('userCityRequestModal');
     if (modal) {
         modal.style.display = 'flex';
         const inp = document.getElementById('uReqCityName');
         if (inp) {
-            const typed = (document.getElementById('uFullListingCity')?.value || '').trim();
+            const typed = prefillName || (document.getElementById('uFullListingCity')?.value || '').trim();
             if (typed) inp.value = typed;
             setTimeout(() => inp.focus(), 100);
         }
@@ -7057,13 +7142,13 @@ window.submitUserCityRequest = async function() {
     }
 };
 
-window.openUserCategoryRequestModal = function() {
+window.openUserCategoryRequestModal = function(prefillName) {
     const modal = document.getElementById('userCategoryRequestModal');
     if (modal) {
         modal.style.display = 'flex';
         const inp = document.getElementById('uReqCatName');
         if (inp) {
-            const typed = (document.getElementById('uFullListingCategory')?.value || '').trim();
+            const typed = prefillName || (document.getElementById('uFullListingCategory')?.value || '').trim();
             if (typed) inp.value = typed;
             setTimeout(() => inp.focus(), 100);
         }

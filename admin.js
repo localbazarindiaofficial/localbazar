@@ -16,6 +16,17 @@ const DB_KEYS = {
 const DEFAULT_ADMIN_EMAIL = 'localbazar@adminmanaspan.com';
 const DEFAULT_ADMIN_PWD = 'Localbazar@Manaspan@8798';
 
+// Safe HTML sanitizer for Admin UI
+function escapeAdminHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // =========================================================
 // SUPER ADMIN AUTHENTICATION GATEWAY CONTROLLER
 // =========================================================
@@ -599,20 +610,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Prioritize matching User ID (starts with or includes), then Name, Email, Phone
             const matches = rawUsers.filter(u => {
                 if (!u) return false;
+                const id = String(u.id || '').toLowerCase();
                 const name = (u.name || '').toLowerCase();
                 const email = (u.email || '').toLowerCase();
-                const id = String(u.id || '').toLowerCase();
                 const phone = (u.phone || '').toLowerCase();
-                return name.includes(q) || email.includes(q) || id.includes(q) || phone.includes(q);
-            }).slice(0, 8); // Top 8 matches
+                return id.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
+            }).sort((a, b) => {
+                const aId = String(a.id || '').toLowerCase();
+                const bId = String(b.id || '').toLowerCase();
+                const aStarts = aId.startsWith(q);
+                const bStarts = bId.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                const aHasId = aId.includes(q);
+                const bHasId = bId.includes(q);
+                if (aHasId && !bHasId) return -1;
+                if (!aHasId && bHasId) return 1;
+                return 0;
+            }).slice(0, 10); // Top 10 matches
 
             if (matches.length === 0) {
                 popover.style.display = 'block';
                 popover.innerHTML = `
-                    <div style="padding:0.75rem 1rem; color:#94a3b8; font-size:0.82rem; font-style:italic;">
-                        <i class="fa-solid fa-user-xmark" style="margin-right:5px; color:#cbd5e1;"></i> No registered user found matching "<strong>${escapeAdminHtml(q)}</strong>". You can still send directly to this address.
+                    <div style="padding:0.85rem 1rem; color:#64748b; font-size:0.82rem; font-style:italic;">
+                        <i class="fa-solid fa-user-xmark" style="margin-right:6px; color:#ef4444;"></i> No registered user found matching "<strong>${escapeAdminHtml(query.trim())}</strong>".
                     </div>
                 `;
                 return;
@@ -628,16 +652,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     : `<div class="admin-user-sugg-avatar">${initial}</div>`;
 
                 return `
-                    <div class="admin-user-sugg-item" data-index="${idx}" data-email="${u.email || ''}" data-id="${u.id || ''}" data-name="${u.name || ''}">
+                    <div class="admin-user-sugg-item" data-index="${idx}" data-id="${escapeAdminHtml(u.id || '')}" data-email="${escapeAdminHtml(u.email || '')}" data-name="${escapeAdminHtml(u.name || '')}">
                         ${avatarHtml}
                         <div class="admin-user-sugg-info">
-                            <div class="admin-user-sugg-name">
-                                <span>${escapeAdminHtml(u.name || 'User')}</span>
-                                ${u.id ? `<span class="admin-user-sugg-id">#${u.id}</span>` : ''}
+                            <div class="admin-user-sugg-name" style="display:flex; align-items:center; gap:0.5rem; justify-content:space-between;">
+                                <div style="display:flex; align-items:center; gap:0.4rem;">
+                                    <span class="admin-user-sugg-id" style="background:#dbeafe; color:#1d4ed8; font-weight:800; font-size:0.82rem; padding:2px 8px; border-radius:6px; border:1px solid #bfdbfe;">#${escapeAdminHtml(u.id || '')}</span>
+                                    <span style="font-weight:700; color:#0f172a;">${escapeAdminHtml(u.name || 'Anonymous User')}</span>
+                                </div>
+                                <span style="font-size:0.7rem; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px;">Verified</span>
                             </div>
-                            <div class="admin-user-sugg-details">
-                                <span><i class="fa-regular fa-envelope"></i> ${escapeAdminHtml(u.email || 'No email')}</span>
-                                ${u.phone ? `<span><i class="fa-solid fa-phone"></i> ${escapeAdminHtml(u.phone)}</span>` : ''}
+                            <div class="admin-user-sugg-details" style="font-size:0.75rem; color:#64748b; display:flex; gap:0.65rem; margin-top:3px; flex-wrap:wrap;">
+                                <span><i class="fa-regular fa-envelope" style="color:#2563eb;"></i> ${escapeAdminHtml(u.email || 'No email')}</span>
+                                ${u.phone ? `<span><i class="fa-solid fa-phone" style="color:#16a34a;"></i> ${escapeAdminHtml(u.phone)}</span>` : ''}
+                                ${u.city ? `<span><i class="fa-solid fa-location-dot" style="color:#f59e0b;"></i> ${escapeAdminHtml(u.city)}</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -647,9 +675,8 @@ document.addEventListener('DOMContentLoaded', () => {
             popover.querySelectorAll('.admin-user-sugg-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const email = item.getAttribute('data-email');
                     const id = item.getAttribute('data-id');
-                    input.value = email || id;
+                    input.value = id || '';
                     popover.style.display = 'none';
                     popover.innerHTML = '';
                     document.getElementById('mailSubjectInput')?.focus();
@@ -658,6 +685,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         input.addEventListener('input', () => {
+            // Auto uppercase LB prefix if typed as lb, Lb, or lB
+            let val = input.value;
+            if (/^lb/i.test(val)) {
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                val = 'LB' + val.slice(2);
+                input.value = val;
+                if (start !== null && end !== null) {
+                    input.setSelectionRange(start, end);
+                }
+            }
             renderSuggestions(input.value);
         });
 
@@ -2271,8 +2309,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (matches.length === 0) {
-                cityDropdownEl.classList.remove('open');
-                cityDropdownEl.innerHTML = '';
+                cityDropdownEl.innerHTML = `
+                    <div style="padding:0.85rem 1rem; text-align:center; color:#64748b; font-size:0.82rem; background:#ffffff; border-radius:8px;">
+                        <i class="fa-solid fa-location-crosshairs" style="color:#ef4444; margin-right:4px;"></i>
+                        No City Available for "<strong>${escapeAdminHtml(cityInputEl.value.trim())}</strong>"
+                        <div style="margin-top:8px;">
+                            <button type="button" onclick="window.openModal('addCityModal')" style="background:#2563eb; color:#fff; border:none; padding:4px 12px; border-radius:6px; font-size:0.76rem; font-weight:700; cursor:pointer;">
+                                <i class="fa-solid fa-plus"></i> Add New City Hub
+                            </button>
+                        </div>
+                    </div>
+                `;
+                cityDropdownEl.classList.add('open');
                 return;
             }
 
@@ -3401,43 +3449,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const attachName = document.getElementById('mailAttachmentName')?.value || '';
         const attachSize = document.getElementById('attachFileSize')?.textContent || '';
 
-        // Find recipient user to get their External ID
+        // Find recipient user to get their User ID & Email
         const users = getDB(DB_KEYS.USERS, []);
+        const toClean = to.trim();
         let targetUser = users.find(u => 
-            (u.email && u.email.toLowerCase() === to.toLowerCase()) || 
-            String(u.id) === String(to) ||
-            (u.name && u.name.toLowerCase() === to.toLowerCase())
+            (u.id && String(u.id).toLowerCase() === toClean.toLowerCase()) || 
+            (u.email && u.email.toLowerCase() === toClean.toLowerCase()) || 
+            (u.name && u.name.toLowerCase() === toClean.toLowerCase())
         );
-        let resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
-        let resolvedPushToken = targetUser ? targetUser.pushToken : null;
+
+        let resolvedUserId = targetUser ? targetUser.id : (toClean.toUpperCase().startsWith('LB') ? toClean.toUpperCase() : toClean);
+        let resolvedUserEmail = targetUser ? (targetUser.email || '') : (toClean.includes('@') ? toClean : '');
+        let resolvedUserName = targetUser ? (targetUser.name || '') : '';
 
         // Async resolve from Firestore collections if not found locally
-        if (!resolvedUserId && window.lbFirestore) {
+        if ((!targetUser || !resolvedUserId) && window.lbFirestore) {
             try {
-                const searchVal = to.trim().toLowerCase();
-                const uSnap = await window.lbFirestore.collection('users').where('email', '==', searchVal).get();
+                const searchVal = toClean.toLowerCase();
+                const uSnap = await window.lbFirestore.collection('users').get();
                 if (!uSnap.empty) {
-                    const uData = uSnap.docs[0].data();
-                    resolvedUserId = uData.id || uSnap.docs[0].id;
-                    resolvedPushToken = uData.pushToken || resolvedPushToken;
-                } else {
-                    const pSnap = await window.lbFirestore.collection('push_tokens').where('userEmail', '==', searchVal).get();
-                    if (!pSnap.empty) {
-                        const pData = pSnap.docs[0].data();
-                        resolvedUserId = pData.userId || resolvedUserId;
-                        resolvedPushToken = pData.pushToken || resolvedPushToken;
-                    }
+                    uSnap.forEach(d => {
+                        const dat = d.data();
+                        const dId = String(dat.id || d.id);
+                        if (dId.toLowerCase() === searchVal || (dat.email && dat.email.toLowerCase() === searchVal)) {
+                            targetUser = dat;
+                            resolvedUserId = dat.id || d.id;
+                            resolvedUserEmail = dat.email || resolvedUserEmail;
+                            resolvedUserName = dat.name || resolvedUserName;
+                        }
+                    });
                 }
             } catch(e) {
                 console.warn('[Admin] Firestore user lookup warning:', e);
             }
         }
 
-        const mail = getDB(DB_KEYS.MAIL);
+        const mail = getDB(DB_KEYS.MAIL, []);
         const newMailItem = {
             id: 'ML-' + Date.now(),
             from: 'Super Admin',
-            to, subject, body,
+            to: resolvedUserId || toClean,
+            userId: resolvedUserId || '',
+            userEmail: resolvedUserEmail || '',
+            userName: resolvedUserName || '',
+            subject, body,
             type: 'sent',
             read: true,
             adminRead: true,
@@ -3456,10 +3511,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('composeMailForm').reset();
         const mailPop = document.getElementById('mailToSuggestionsPopover');
         if (mailPop) mailPop.style.display = 'none';
+        const removeAttachBtn = document.getElementById('mailAttachRemoveBtn');
         if (removeAttachBtn) removeAttachBtn.click();
         refreshAll();
 
-        alert(`Message sent successfully to: ${to}`);
+        alert(`Message sent successfully to User ID: ${resolvedUserId || toClean}`);
     });
 
     // ========================================================
@@ -4851,7 +4907,7 @@ window.openComposeMailForUser = function(id) {
     const user = users.find(u => String(u.id) === String(id));
     const toInput = document.getElementById('mailToInput');
     if (toInput) {
-        toInput.value = user ? (user.email || user.id) : id;
+        toInput.value = user ? user.id : id;
     }
     window.openModal('composeMailModal');
     document.getElementById('mailSubjectInput')?.focus();
@@ -5538,6 +5594,22 @@ function initAdminCloudListeners() {
             if (typeof window.refreshAll === 'function') window.refreshAll();
         });
     }
+
+    if (typeof window.lbCloudSync.listenCityRequests === 'function') {
+        window.lbCloudSync.listenCityRequests(() => {
+            console.log('[Admin] Real-time city requests update received from Firestore.');
+            if (typeof window.refreshAll === 'function') window.refreshAll();
+            if (typeof window.renderAdminCityRequests === 'function') window.renderAdminCityRequests();
+        });
+    }
+
+    if (typeof window.lbCloudSync.listenCategoryRequests === 'function') {
+        window.lbCloudSync.listenCategoryRequests(() => {
+            console.log('[Admin] Real-time category requests update received from Firestore.');
+            if (typeof window.refreshAll === 'function') window.refreshAll();
+            if (typeof window.renderAdminCategoryRequests === 'function') window.renderAdminCategoryRequests();
+        });
+    }
 }
 
 // ================= TRUST BADGE & PAID VERIFICATIONS MODULE =================
@@ -6156,16 +6228,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. City Requests Modal Controller
 window.openCityRequestsModal = function() {
     window.renderAdminCityRequests();
-    const modal = document.getElementById('adminCityRequestsModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.classList.add('open');
-    }
+    window.openModal('adminCityRequestsModal');
 };
 
 window.renderAdminCityRequests = function() {
-    const listContainer = document.getElementById('adminCityRequestsList');
+    const listContainer = document.getElementById('adminCityRequestsContainer') || document.getElementById('adminCityRequestsList');
     const badge = document.getElementById('badgeCityRequestsCount');
+    const statVal = document.getElementById('totalCityRequestsCount');
+    const statSub = document.getElementById('cityRequestsSubtext');
     if (!listContainer) return;
 
     let reqs = [];
@@ -6174,114 +6244,173 @@ window.renderAdminCityRequests = function() {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const pending = reqs.filter(r => r.status === 'Pending' || !r.status);
-    if (badge) badge.textContent = pending.length;
+    const pending = reqs.filter(r => r && (r.status === 'Pending' || !r.status));
+    const pendingCount = pending.length;
+
+    if (badge) {
+        badge.textContent = pendingCount;
+        badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+    }
+    if (statVal) statVal.textContent = pendingCount;
+    if (statSub) {
+        statSub.innerHTML = pendingCount > 0
+            ? `<span style="color:#d97706; font-weight:700;"><i class="fa-solid fa-bell"></i> ${pendingCount} pending requests</span>`
+            : '0 pending requests';
+    }
 
     if (reqs.length === 0) {
         listContainer.innerHTML = `
             <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
-                <i class="fa-solid fa-map-location-dot" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1;"></i>
-                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem;">No City Requests</h4>
-                <p style="margin:0; font-size:0.85rem;">No users have requested new cities yet.</p>
+                <i class="fa-solid fa-map-location-dot" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1; display:block;"></i>
+                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No City Requests</h4>
+                <p style="margin:0; font-size:0.85rem;">No user-submitted city requests found.</p>
             </div>
         `;
         return;
     }
 
-    listContainer.innerHTML = reqs.map(r => {
-        const isPending = (r.status === 'Pending' || !r.status);
-        const statusBadge = isPending 
-            ? '<span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Pending Review</span>'
-            : (r.status === 'Approved'
-                ? '<span style="background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Approved</span>'
-                : '<span style="background:#fee2e2; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Rejected</span>');
+    // Sort requests: Pending first, newest first
+    const sorted = [...reqs].sort((a, b) => {
+        const aPend = (a.status === 'Pending' || !a.status);
+        const bPend = (b.status === 'Pending' || !b.status);
+        if (aPend && !bPend) return -1;
+        if (!aPend && bPend) return 1;
+        const aDate = new Date(a.createdAt || a.submittedAt || 0).getTime();
+        const bDate = new Date(b.createdAt || b.submittedAt || 0).getTime();
+        return bDate - aDate;
+    });
 
-        const submittedDate = r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Recently';
+    listContainer.innerHTML = sorted.map(r => {
+        const isPending = (r.status === 'Pending' || !r.status);
+        const isApproved = r.status === 'Approved';
+        const isRejected = r.status === 'Rejected';
+
+        const statusBadge = isPending 
+            ? '<span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-clock"></i> Pending Review</span>'
+            : (isApproved
+                ? '<span style="background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-check"></i> Approved</span>'
+                : '<span style="background:#fee2e2; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-xmark"></i> Rejected</span>');
+
+        const submittedDate = r.createdAt || r.submittedAt 
+            ? new Date(r.createdAt || r.submittedAt).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) 
+            : 'Recently';
+
+        const cityName = r.cityName || r.name || 'City Request';
+        const district = r.district || 'N/A';
+        const state = r.state || 'West Bengal';
+        const pincode = r.pincode || r.pin || 'N/A';
+        const userDisplay = r.userName || r.userEmail || (r.userId ? '#' + r.userId : 'Local User');
 
         return `
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="background:#ffffff; border:1px solid ${isPending ? '#fcd34d' : '#e2e8f0'}; border-radius:12px; padding:1.1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap;">
                     <div>
                         <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                            <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:#0f172a;">${r.cityName || r.name}</h4>
+                            <h4 style="margin:0; font-size:1.1rem; font-weight:800; color:#0f172a;"><i class="fa-solid fa-city" style="color:#d97706; margin-right:4px;"></i> ${escapeAdminHtml(cityName)}</h4>
                             ${statusBadge}
                         </div>
-                        <div style="font-size:0.83rem; color:#64748b; margin-top:0.25rem;">
-                            <span><i class="fa-solid fa-location-dot" style="color:#d97706;"></i> <strong>District:</strong> ${r.district || 'N/A'}</span> &bull; 
-                            <span><strong>State:</strong> ${r.state || 'N/A'}</span> &bull; 
-                            <span><strong>PIN:</strong> ${r.pincode || r.pin || 'N/A'}</span>
+                        <div style="font-size:0.84rem; color:#475569; margin-top:0.35rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+                            <span><strong>District:</strong> ${escapeAdminHtml(district)}</span> &bull; 
+                            <span><strong>State:</strong> ${escapeAdminHtml(state)}</span> &bull; 
+                            <span><strong>PIN:</strong> ${escapeAdminHtml(pincode)}</span>
                         </div>
                     </div>
-                    <div style="font-size:0.75rem; color:#94a3b8; text-align:right;">
-                        <div>${submittedDate}</div>
-                        <div>By: ${r.userName || r.userEmail || 'Local User'}</div>
+                    <div style="font-size:0.76rem; color:#94a3b8; text-align:right;">
+                        <div style="font-weight:600;"><i class="fa-regular fa-clock"></i> ${submittedDate}</div>
+                        <div style="margin-top:2px;"><i class="fa-regular fa-user"></i> By: <strong>${escapeAdminHtml(userDisplay)}</strong></div>
                     </div>
                 </div>
 
                 ${isPending ? `
                     <div style="display:flex; justify-content:flex-end; gap:0.5rem; padding-top:0.5rem; border-top:1px dashed #e2e8f0;">
-                        <button type="button" onclick="window.adminRejectCityRequest('${r.id}')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.45rem 0.9rem; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;">
+                        <button type="button" onclick="window.adminRejectCityRequest('${escapeAdminHtml(r.id)}')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.45rem 0.95rem; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem;">
                             <i class="fa-solid fa-xmark"></i> Reject
                         </button>
-                        <button type="button" onclick="window.adminApproveCityRequest('${r.id}')" style="background:linear-gradient(135deg, #16a34a, #15803d); color:#ffffff; border:none; padding:0.45rem 1.1rem; border-radius:8px; font-weight:800; font-size:0.82rem; cursor:pointer; box-shadow:0 2px 8px rgba(22,163,74,0.3);">
-                            <i class="fa-solid fa-check"></i> Edit & Approve
+                        <button type="button" onclick="window.adminToggleCityEdit('${escapeAdminHtml(r.id)}', true)" style="background:linear-gradient(135deg, #16a34a, #15803d); color:#ffffff; border:none; padding:0.45rem 1.15rem; border-radius:8px; font-weight:800; font-size:0.84rem; cursor:pointer; box-shadow:0 2px 8px rgba(22,163,74,0.3); display:inline-flex; align-items:center; gap:0.4rem;">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit & Approve
                         </button>
                     </div>
-                ` : ''}
+
+                    <!-- Inline Edit Form -->
+                    <div id="cityEditForm_${escapeAdminHtml(r.id)}" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:1rem; margin-top:0.5rem;">
+                        <div style="font-size:0.85rem; font-weight:800; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                            <i class="fa-solid fa-sliders" style="color:#2563eb;"></i> Verify / Edit City Details Before Publishing
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem; margin-bottom:0.85rem;">
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">City Name *</label>
+                                <input type="text" id="editCityName_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(cityName)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; font-weight:700; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">District *</label>
+                                <input type="text" id="editCityDistrict_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(district)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">State *</label>
+                                <input type="text" id="editCityState_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(state)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">PIN Code (Optional)</label>
+                                <input type="text" id="editCityPin_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(pincode === 'N/A' ? '' : pincode)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                            <button type="button" onclick="window.adminToggleCityEdit('${escapeAdminHtml(r.id)}', false)" style="background:#ffffff; color:#64748b; border:1px solid #cbd5e1; padding:0.45rem 0.85rem; border-radius:6px; font-size:0.82rem; font-weight:700; cursor:pointer;">Cancel</button>
+                            <button type="button" onclick="window.adminSubmitApproveCity('${escapeAdminHtml(r.id)}')" style="background:#16a34a; color:#ffffff; border:none; padding:0.45rem 1.15rem; border-radius:6px; font-size:0.84rem; font-weight:800; cursor:pointer; box-shadow:0 2px 6px rgba(22,163,74,0.3); display:inline-flex; align-items:center; gap:0.35rem;">
+                                <i class="fa-solid fa-check"></i> Save & Publish City
+                            </button>
+                        </div>
+                    </div>
+                ` : (isApproved ? `
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.45rem 0.85rem; border-radius:8px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-check"></i> Published to All Cities as "${escapeAdminHtml(r.approvedCityName || cityName)}"
+                    </div>
+                ` : `
+                    <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:0.45rem 0.85rem; border-radius:8px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-xmark"></i> Request Rejected
+                    </div>
+                `)}
             </div>
         `;
     }).join('');
 };
 
-window.adminApproveCityRequest = async function(reqId) {
+window.adminToggleCityEdit = function(reqId, show) {
+    const form = document.getElementById('cityEditForm_' + reqId);
+    if (form) {
+        form.style.display = show ? 'block' : 'none';
+        if (show) {
+            document.getElementById('editCityName_' + reqId)?.focus();
+        }
+    }
+};
+
+window.adminSubmitApproveCity = async function(reqId) {
     let reqs = [];
     try {
         const raw = localStorage.getItem('lb_city_requests');
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const req = reqs.find(r => String(r.id) === String(reqId));
+    const req = reqs.find(r => r && String(r.id) === String(reqId));
     if (!req) return;
 
-    const modal = document.getElementById('adminCityRequestsModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('open');
-    }
+    const finalCityName = (document.getElementById('editCityName_' + reqId)?.value || '').trim();
+    const finalDistrict = (document.getElementById('editCityDistrict_' + reqId)?.value || '').trim();
+    const finalState = (document.getElementById('editCityState_' + reqId)?.value || 'West Bengal').trim();
+    const finalPin = (document.getElementById('editCityPin_' + reqId)?.value || '').trim();
 
-    const editName = prompt('Verify / Correct City Name:', req.cityName || req.name);
-    if (editName === null) return;
-    const finalCityName = editName.trim();
     if (!finalCityName) {
         alert('City name cannot be empty.');
         return;
     }
 
-    const editDistrict = prompt('Verify / Correct District:', req.district || '');
-    if (editDistrict === null) return;
-    const finalDistrict = editDistrict.trim();
-
-    const editState = prompt('Verify / Correct State:', req.state || 'West Bengal');
-    if (editState === null) return;
-    const finalState = editState.trim();
-
-    const editPin = prompt('Verify / Correct PIN Code (Optional):', req.pincode || req.pin || '');
-    if (editPin === null) return;
-    const finalPin = editPin.trim();
-
-    const ok = await window.adminSecurityConfirm({
-        title: 'Approve & Add City',
-        message: `Are you sure you want to approve and publish <strong>"${finalCityName}"</strong> (${finalDistrict}, ${finalState}) to public City Hubs?`,
-        actionType: 'primary'
-    });
-    if (!ok) return;
-
-    const cities = getDB(DB_KEYS.CITIES);
+    const cities = getDB(DB_KEYS.CITIES, []);
     const existing = cities.find(c => (c.name || '').toLowerCase() === finalCityName.toLowerCase());
-    if (existing) {
-        alert('This city already exists in All Cities!');
-    } else {
-        const newCity = {
+    let newCityObj = null;
+
+    if (!existing) {
+        newCityObj = {
             id: 'CITY-' + Date.now(),
             name: finalCityName,
             district: finalDistrict,
@@ -6292,8 +6421,12 @@ window.adminApproveCityRequest = async function(reqId) {
             isMetro: false,
             createdAt: new Date().toISOString()
         };
-        cities.push(newCity);
+        cities.push(newCityObj);
         setDB(DB_KEYS.CITIES, cities);
+
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveCity === 'function') {
+            window.lbCloudSync.saveCity(newCityObj);
+        }
     }
 
     req.status = 'Approved';
@@ -6306,10 +6439,8 @@ window.adminApproveCityRequest = async function(reqId) {
     }
 
     refreshAll();
-    window.openCityRequestsModal();
-    if (window.showAdminNotification) {
-        window.showAdminNotification(`City "${finalCityName}" approved and added to All Cities!`, 'success');
-    }
+    window.renderAdminCityRequests();
+    alert(`City "${finalCityName}" approved and added to All Cities!`);
 };
 
 window.adminRejectCityRequest = async function(reqId) {
@@ -6319,15 +6450,10 @@ window.adminRejectCityRequest = async function(reqId) {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const req = reqs.find(r => String(r.id) === String(reqId));
+    const req = reqs.find(r => r && String(r.id) === String(reqId));
     if (!req) return;
 
-    const ok = await window.adminSecurityConfirm({
-        title: 'Reject City Request',
-        message: `Are you sure you want to reject the request for city <strong>"${req.cityName || req.name}"</strong>?`,
-        actionType: 'delete'
-    });
-    if (!ok) return;
+    if (!confirm(`Are you sure you want to reject the request for city "${req.cityName || req.name}"?`)) return;
 
     req.status = 'Rejected';
     req.rejectedAt = new Date().toISOString();
@@ -6344,16 +6470,14 @@ window.adminRejectCityRequest = async function(reqId) {
 // 2. Category Requests Modal Controller
 window.openCategoryRequestsModal = function() {
     window.renderAdminCategoryRequests();
-    const modal = document.getElementById('adminCategoryRequestsModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.classList.add('open');
-    }
+    window.openModal('adminCategoryRequestsModal');
 };
 
 window.renderAdminCategoryRequests = function() {
-    const listContainer = document.getElementById('adminCategoryRequestsList');
+    const listContainer = document.getElementById('adminCategoryRequestsContainer') || document.getElementById('adminCategoryRequestsList');
     const badge = document.getElementById('badgeCatRequestsCount');
+    const statVal = document.getElementById('totalCatRequestsCount');
+    const statSub = document.getElementById('catRequestsSubtext');
     if (!listContainer) return;
 
     let reqs = [];
@@ -6362,116 +6486,175 @@ window.renderAdminCategoryRequests = function() {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const pending = reqs.filter(r => r.status === 'Pending' || !r.status);
-    if (badge) badge.textContent = pending.length;
+    const pending = reqs.filter(r => r && (r.status === 'Pending' || !r.status));
+    const pendingCount = pending.length;
+
+    if (badge) {
+        badge.textContent = pendingCount;
+        badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+    }
+    if (statVal) statVal.textContent = pendingCount;
+    if (statSub) {
+        statSub.innerHTML = pendingCount > 0
+            ? `<span style="color:#d97706; font-weight:700;"><i class="fa-solid fa-bell"></i> ${pendingCount} pending requests</span>`
+            : '0 pending requests';
+    }
 
     if (reqs.length === 0) {
         listContainer.innerHTML = `
             <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
-                <i class="fa-solid fa-layer-group" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1;"></i>
-                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem;">No Category Requests</h4>
-                <p style="margin:0; font-size:0.85rem;">No users have requested new categories yet.</p>
+                <i class="fa-solid fa-layer-group" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1; display:block;"></i>
+                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No Category Requests</h4>
+                <p style="margin:0; font-size:0.85rem;">No user-submitted category requests found.</p>
             </div>
         `;
         return;
     }
 
-    listContainer.innerHTML = reqs.map(r => {
-        const isPending = (r.status === 'Pending' || !r.status);
-        const statusBadge = isPending 
-            ? '<span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Pending Review</span>'
-            : (r.status === 'Approved'
-                ? '<span style="background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Approved</span>'
-                : '<span style="background:#fee2e2; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">Rejected</span>');
+    // Sort requests: Pending first, newest first
+    const sorted = [...reqs].sort((a, b) => {
+        const aPend = (a.status === 'Pending' || !a.status);
+        const bPend = (b.status === 'Pending' || !b.status);
+        if (aPend && !bPend) return -1;
+        if (!aPend && bPend) return 1;
+        const aDate = new Date(a.createdAt || a.submittedAt || 0).getTime();
+        const bDate = new Date(b.createdAt || b.submittedAt || 0).getTime();
+        return bDate - aDate;
+    });
 
-        const submittedDate = r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Recently';
+    listContainer.innerHTML = sorted.map(r => {
+        const isPending = (r.status === 'Pending' || !r.status);
+        const isApproved = r.status === 'Approved';
+        const isRejected = r.status === 'Rejected';
+
+        const statusBadge = isPending 
+            ? '<span style="background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-clock"></i> Pending Review</span>'
+            : (isApproved
+                ? '<span style="background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-check"></i> Approved</span>'
+                : '<span style="background:#fee2e2; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-xmark"></i> Rejected</span>');
+
+        const submittedDate = r.createdAt || r.submittedAt 
+            ? new Date(r.createdAt || r.submittedAt).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) 
+            : 'Recently';
+
+        const catName = r.categoryName || r.name || 'Category Request';
+        const tags = r.subcategories || r.keywords || r.tags || r.tag || 'General';
+        const userDisplay = r.userName || r.userEmail || (r.userId ? '#' + r.userId : 'Local User');
 
         return `
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="background:#ffffff; border:1px solid ${isPending ? '#fcd34d' : '#e2e8f0'}; border-radius:12px; padding:1.1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; flex-wrap:wrap;">
                     <div>
                         <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                            <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:#0f172a;">${r.categoryName || r.name}</h4>
+                            <h4 style="margin:0; font-size:1.1rem; font-weight:800; color:#0f172a;"><i class="fa-solid fa-layer-group" style="color:#0284c7; margin-right:4px;"></i> ${escapeAdminHtml(catName)}</h4>
                             ${statusBadge}
                         </div>
-                        <div style="font-size:0.83rem; color:#64748b; margin-top:0.25rem;">
-                            <span><i class="fa-solid fa-tags" style="color:#2563eb;"></i> <strong>Suggested Keywords:</strong> ${r.keywords || r.tags || 'General'}</span>
+                        <div style="font-size:0.84rem; color:#475569; margin-top:0.35rem;">
+                            <span><i class="fa-solid fa-tags" style="color:#2563eb;"></i> <strong>Suggested Tags / Subcategories:</strong> ${escapeAdminHtml(tags)}</span>
                         </div>
-                        ${r.note ? `<div style="font-size:0.8rem; color:#475569; margin-top:0.25rem; background:#f8fafc; padding:0.35rem 0.6rem; border-radius:6px;"><strong>Note:</strong> ${r.note}</div>` : ''}
+                        ${r.note ? `<div style="font-size:0.8rem; color:#475569; margin-top:0.35rem; background:#f8fafc; padding:0.35rem 0.6rem; border-radius:6px;"><strong>Note:</strong> ${escapeAdminHtml(r.note)}</div>` : ''}
                     </div>
-                    <div style="font-size:0.75rem; color:#94a3b8; text-align:right;">
-                        <div>${submittedDate}</div>
-                        <div>By: ${r.userName || r.userEmail || 'Local User'}</div>
+                    <div style="font-size:0.76rem; color:#94a3b8; text-align:right;">
+                        <div style="font-weight:600;"><i class="fa-regular fa-clock"></i> ${submittedDate}</div>
+                        <div style="margin-top:2px;"><i class="fa-regular fa-user"></i> By: <strong>${escapeAdminHtml(userDisplay)}</strong></div>
                     </div>
                 </div>
 
                 ${isPending ? `
                     <div style="display:flex; justify-content:flex-end; gap:0.5rem; padding-top:0.5rem; border-top:1px dashed #e2e8f0;">
-                        <button type="button" onclick="window.adminRejectCategoryRequest('${r.id}')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.45rem 0.9rem; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;">
+                        <button type="button" onclick="window.adminRejectCategoryRequest('${escapeAdminHtml(r.id)}')" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:0.45rem 0.95rem; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem;">
                             <i class="fa-solid fa-xmark"></i> Reject
                         </button>
-                        <button type="button" onclick="window.adminApproveCategoryRequest('${r.id}')" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:none; padding:0.45rem 1.1rem; border-radius:8px; font-weight:800; font-size:0.82rem; cursor:pointer; box-shadow:0 2px 8px rgba(2,132,199,0.3);">
-                            <i class="fa-solid fa-check"></i> Edit & Approve
+                        <button type="button" onclick="window.adminToggleCatEdit('${escapeAdminHtml(r.id)}', true)" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:none; padding:0.45rem 1.15rem; border-radius:8px; font-weight:800; font-size:0.84rem; cursor:pointer; box-shadow:0 2px 8px rgba(2,132,199,0.3); display:inline-flex; align-items:center; gap:0.4rem;">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit & Approve
                         </button>
                     </div>
-                ` : ''}
+
+                    <!-- Inline Edit Form -->
+                    <div id="catEditForm_${escapeAdminHtml(r.id)}" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:1rem; margin-top:0.5rem;">
+                        <div style="font-size:0.85rem; font-weight:800; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                            <i class="fa-solid fa-sliders" style="color:#0284c7;"></i> Verify / Edit Category Details Before Publishing
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:0.85rem;">
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">Category Title *</label>
+                                <input type="text" id="editCatName_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(catName)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; font-weight:700; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:3px;">Search Keywords / Tags (Comma-separated)</label>
+                                <input type="text" id="editCatTags_${escapeAdminHtml(r.id)}" value="${escapeAdminHtml(tags)}" style="width:100%; padding:0.45rem 0.65rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                            <button type="button" onclick="window.adminToggleCatEdit('${escapeAdminHtml(r.id)}', false)" style="background:#ffffff; color:#64748b; border:1px solid #cbd5e1; padding:0.45rem 0.85rem; border-radius:6px; font-size:0.82rem; font-weight:700; cursor:pointer;">Cancel</button>
+                            <button type="button" onclick="window.adminSubmitApproveCategory('${escapeAdminHtml(r.id)}')" style="background:#0284c7; color:#ffffff; border:none; padding:0.45rem 1.15rem; border-radius:6px; font-size:0.84rem; font-weight:800; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.3); display:inline-flex; align-items:center; gap:0.35rem;">
+                                <i class="fa-solid fa-check"></i> Save & Publish Category
+                            </button>
+                        </div>
+                    </div>
+                ` : (isApproved ? `
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.45rem 0.85rem; border-radius:8px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-check"></i> Published to All Categories as "${escapeAdminHtml(r.approvedCategoryName || catName)}"
+                    </div>
+                ` : `
+                    <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:0.45rem 0.85rem; border-radius:8px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-xmark"></i> Request Rejected
+                    </div>
+                `)}
             </div>
         `;
     }).join('');
 };
 
-window.adminApproveCategoryRequest = async function(reqId) {
+window.adminToggleCatEdit = function(reqId, show) {
+    const form = document.getElementById('catEditForm_' + reqId);
+    if (form) {
+        form.style.display = show ? 'block' : 'none';
+        if (show) {
+            document.getElementById('editCatName_' + reqId)?.focus();
+        }
+    }
+};
+
+window.adminSubmitApproveCategory = async function(reqId) {
     let reqs = [];
     try {
         const raw = localStorage.getItem('lb_category_requests');
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const req = reqs.find(r => String(r.id) === String(reqId));
+    const req = reqs.find(r => r && String(r.id) === String(reqId));
     if (!req) return;
 
-    const modal = document.getElementById('adminCategoryRequestsModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('open');
-    }
+    const finalCatName = (document.getElementById('editCatName_' + reqId)?.value || '').trim();
+    const finalTags = (document.getElementById('editCatTags_' + reqId)?.value || '').trim();
 
-    const editName = prompt('Verify / Correct Category Title:', req.categoryName || req.name);
-    if (editName === null) return;
-    const finalCatName = editName.trim();
     if (!finalCatName) {
-        alert('Category name cannot be empty.');
+        alert('Category title cannot be empty.');
         return;
     }
 
-    const editKeywords = prompt('Verify / Correct Search Keywords (comma-separated):', req.keywords || req.tags || finalCatName);
-    if (editKeywords === null) return;
-    const finalKeywords = editKeywords.trim();
-
-    const ok = await window.adminSecurityConfirm({
-        title: 'Approve & Add Category',
-        message: `Are you sure you want to approve and publish category <strong>"${finalCatName}"</strong> to public Directory Taxonomies?`,
-        actionType: 'primary'
-    });
-    if (!ok) return;
-
-    const categories = getDB(DB_KEYS.CATEGORIES);
+    const categories = getDB(DB_KEYS.CATEGORIES, []);
     const existing = categories.find(c => (c.name || '').toLowerCase() === finalCatName.toLowerCase());
-    if (existing) {
-        alert('This category already exists in All Categories!');
-    } else {
-        const newCat = {
+    let newCatObj = null;
+
+    if (!existing) {
+        newCatObj = {
             id: 'CAT-' + Date.now(),
             name: finalCatName,
             icon: 'fa-solid fa-store',
-            tags: finalKeywords ? finalKeywords.split(',').map(s => s.trim()).filter(Boolean) : [finalCatName],
-            subcategories: [],
+            tags: finalTags ? finalTags.split(',').map(s => s.trim()).filter(Boolean) : [finalCatName],
+            subcategories: finalTags ? finalTags.split(',').map(s => s.trim()).filter(Boolean) : [],
             placesCount: 0,
             featured: false,
             createdAt: new Date().toISOString()
         };
-        categories.push(newCat);
+        categories.push(newCatObj);
         setDB(DB_KEYS.CATEGORIES, categories);
+
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveCategory === 'function') {
+            window.lbCloudSync.saveCategory(newCatObj);
+        }
     }
 
     req.status = 'Approved';
@@ -6484,10 +6667,8 @@ window.adminApproveCategoryRequest = async function(reqId) {
     }
 
     refreshAll();
-    window.openCategoryRequestsModal();
-    if (window.showAdminNotification) {
-        window.showAdminNotification(`Category "${finalCatName}" approved and added to All Categories!`, 'success');
-    }
+    window.renderAdminCategoryRequests();
+    alert(`Category "${finalCatName}" approved and added to All Categories!`);
 };
 
 window.adminRejectCategoryRequest = async function(reqId) {
@@ -6497,15 +6678,10 @@ window.adminRejectCategoryRequest = async function(reqId) {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    const req = reqs.find(r => String(r.id) === String(reqId));
+    const req = reqs.find(r => r && String(r.id) === String(reqId));
     if (!req) return;
 
-    const ok = await window.adminSecurityConfirm({
-        title: 'Reject Category Request',
-        message: `Are you sure you want to reject the request for category <strong>"${req.categoryName || req.name}"</strong>?`,
-        actionType: 'delete'
-    });
-    if (!ok) return;
+    if (!confirm(`Are you sure you want to reject the request for category "${req.categoryName || req.name}"?`)) return;
 
     req.status = 'Rejected';
     req.rejectedAt = new Date().toISOString();
@@ -6518,4 +6694,5 @@ window.adminRejectCategoryRequest = async function(reqId) {
     refreshAll();
     window.renderAdminCategoryRequests();
 };
+
 
