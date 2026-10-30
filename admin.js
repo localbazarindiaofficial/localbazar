@@ -578,32 +578,136 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('openAddCityModalBtn')?.addEventListener('click', () => openModal('addCityModal'));
     document.getElementById('openAddCategoryModalBtn')?.addEventListener('click', () => openModal('addCategoryModal'));
-    async function populateComposeUsersDatalist() {
-        const dl = document.getElementById('adminRegisteredUsersDatalist');
-        if (!dl) return;
-        let users = getDB(DB_KEYS.USERS, []);
-        if (users.length === 0 && window.lbFirestore) {
-            try {
-                const snap = await window.lbFirestore.collection('users').limit(100).get();
-                if (!snap.empty) {
-                    users = snap.docs.map(d => ({ ...d.data(), id: d.data().id || d.id }));
-                }
-            } catch(e) {}
+
+    // ========================================================
+    // DYNAMIC USER AUTO-SUGGEST ENGINE FOR COMPOSE MAIL
+    // ========================================================
+    function setupAdminUserSuggest(inputId, popoverId) {
+        const input = document.getElementById(inputId);
+        const popover = document.getElementById(popoverId);
+        if (!input || !popover) return;
+
+        let selectedIndex = -1;
+
+        function renderSuggestions(query) {
+            const rawUsers = getDB(DB_KEYS.USERS, []);
+            const q = query.trim().toLowerCase();
+
+            if (!q) {
+                popover.style.display = 'none';
+                popover.innerHTML = '';
+                return;
+            }
+
+            const matches = rawUsers.filter(u => {
+                if (!u) return false;
+                const name = (u.name || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const id = String(u.id || '').toLowerCase();
+                const phone = (u.phone || '').toLowerCase();
+                return name.includes(q) || email.includes(q) || id.includes(q) || phone.includes(q);
+            }).slice(0, 8); // Top 8 matches
+
+            if (matches.length === 0) {
+                popover.style.display = 'block';
+                popover.innerHTML = `
+                    <div style="padding:0.75rem 1rem; color:#94a3b8; font-size:0.82rem; font-style:italic;">
+                        <i class="fa-solid fa-user-xmark" style="margin-right:5px; color:#cbd5e1;"></i> No registered user found matching "<strong>${escapeAdminHtml(q)}</strong>". You can still send directly to this address.
+                    </div>
+                `;
+                return;
+            }
+
+            selectedIndex = -1;
+            popover.style.display = 'block';
+            popover.innerHTML = matches.map((u, idx) => {
+                const initial = u.name ? u.name.charAt(0).toUpperCase() : 'U';
+                const avatar = u.avatar || u.picture;
+                const avatarHtml = avatar 
+                    ? `<div class="admin-user-sugg-avatar"><img src="${avatar}" alt="${escapeAdminHtml(u.name || '')}"></div>`
+                    : `<div class="admin-user-sugg-avatar">${initial}</div>`;
+
+                return `
+                    <div class="admin-user-sugg-item" data-index="${idx}" data-email="${u.email || ''}" data-id="${u.id || ''}" data-name="${u.name || ''}">
+                        ${avatarHtml}
+                        <div class="admin-user-sugg-info">
+                            <div class="admin-user-sugg-name">
+                                <span>${escapeAdminHtml(u.name || 'User')}</span>
+                                ${u.id ? `<span class="admin-user-sugg-id">#${u.id}</span>` : ''}
+                            </div>
+                            <div class="admin-user-sugg-details">
+                                <span><i class="fa-regular fa-envelope"></i> ${escapeAdminHtml(u.email || 'No email')}</span>
+                                ${u.phone ? `<span><i class="fa-solid fa-phone"></i> ${escapeAdminHtml(u.phone)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            popover.querySelectorAll('.admin-user-sugg-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const email = item.getAttribute('data-email');
+                    const id = item.getAttribute('data-id');
+                    input.value = email || id;
+                    popover.style.display = 'none';
+                    popover.innerHTML = '';
+                    document.getElementById('mailSubjectInput')?.focus();
+                });
+            });
         }
-        const options = [];
-        users.forEach(u => {
-            if (u.id) options.push(`<option value="${u.id}">${u.name || 'User'} (${u.email || u.id})</option>`);
-            if (u.email) options.push(`<option value="${u.email}">${u.name || 'User'} [${u.id}]</option>`);
+
+        input.addEventListener('input', () => {
+            renderSuggestions(input.value);
         });
-        if (!options.some(o => o.includes('USR-hHidcJjPLFex'))) {
-            options.push('<option value="USR-hHidcJjPLFex">Manas Pan (manaspanofficial@gmail.com)</option>');
-            options.push('<option value="manaspanofficial@gmail.com">Manas Pan [USR-hHidcJjPLFex]</option>');
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim()) {
+                renderSuggestions(input.value);
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            const items = popover.querySelectorAll('.admin-user-sugg-item');
+            if (popover.style.display !== 'block' || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                updateSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                updateSelection(items);
+            } else if (e.key === 'Enter') {
+                if (selectedIndex >= 0 && items[selectedIndex]) {
+                    e.preventDefault();
+                    items[selectedIndex].click();
+                }
+            } else if (e.key === 'Escape') {
+                popover.style.display = 'none';
+            }
+        });
+
+        function updateSelection(items) {
+            items.forEach((it, idx) => {
+                if (idx === selectedIndex) {
+                    it.classList.add('selected');
+                    it.scrollIntoView({ block: 'nearest' });
+                } else {
+                    it.classList.remove('selected');
+                }
+            });
         }
-        dl.innerHTML = options.join('');
+
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !popover.contains(e.target)) {
+                popover.style.display = 'none';
+            }
+        });
     }
 
     document.getElementById('openComposeMailModalBtn')?.addEventListener('click', () => {
-        populateComposeUsersDatalist();
         openModal('composeMailModal');
     });
     document.getElementById('btnOpenTextAdModal')?.addEventListener('click', () => openModal('createTextAdModal'));
@@ -818,7 +922,63 @@ document.addEventListener('DOMContentLoaded', () => {
             dedupedUsers.push(u);
         }
 
-        if (dedupedUsers.length !== users.length) {
+        // Auto-upgrade legacy USR- IDs to clean LB + 6-digit format (supports 10 Lakh+ users)
+        let idMigrated = false;
+        dedupedUsers.forEach(u => {
+            if (u && (!u.id || u.id.startsWith('USR-') || !u.id.startsWith('LB'))) {
+                const oldId = u.id;
+                let newLBId;
+                let attempts = 0;
+                do {
+                    newLBId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                    attempts++;
+                } while (dedupedUsers.some(other => other && other.id === newLBId) && attempts < 100);
+
+                u.id = newLBId;
+                idMigrated = true;
+
+                // Sync with Firestore
+                if (window.lbCloudSync && typeof window.lbCloudSync.saveUser === 'function') {
+                    window.lbCloudSync.saveUser(u);
+                    if (oldId) {
+                        window.lbCloudSync.deleteUser(oldId);
+                    }
+                }
+
+                // If current logged-in user in localStorage matches, update it
+                try {
+                    const rawCurr = localStorage.getItem('lb_current_user');
+                    if (rawCurr) {
+                        const curr = JSON.parse(rawCurr);
+                        if (curr && (curr.id === oldId || (curr.email && u.email && curr.email.toLowerCase() === u.email.toLowerCase()))) {
+                            curr.id = newLBId;
+                            localStorage.setItem('lb_current_user', JSON.stringify(curr));
+                        }
+                    }
+                } catch(e) {}
+
+                // Also update any listings owned by oldId
+                try {
+                    const rawL = localStorage.getItem('lb_listings');
+                    if (rawL) {
+                        const listings = JSON.parse(rawL);
+                        let lChanged = false;
+                        listings.forEach(l => {
+                            if (l && (l.ownerId === oldId || (u.email && l.ownerId && l.ownerId.toLowerCase() === u.email.toLowerCase()))) {
+                                l.ownerId = newLBId;
+                                lChanged = true;
+                                if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+                                    window.lbCloudSync.saveListing(l);
+                                }
+                            }
+                        });
+                        if (lChanged) localStorage.setItem('lb_listings', JSON.stringify(listings));
+                    }
+                } catch(e) {}
+            }
+        });
+
+        if (idMigrated || dedupedUsers.length !== users.length) {
             users = dedupedUsers;
             setDB(DB_KEYS.USERS, users);
         }
@@ -904,11 +1064,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
                 <tr>
                     <td>
-                        <div class="user-cell">
+                        <div class="user-cell" style="cursor:pointer;" onclick="window.openViewUserDetailsModal('${u.id}')" title="Click to view full user profile">
                             ${avatarHtml}
                             <div class="user-info-col">
                                 <div class="user-name-row">
-                                    <span class="user-name">${u.name || 'Anonymous User'}</span>
+                                    <span class="user-name" style="color:var(--primary); font-weight:700;">${u.name || 'Anonymous User'}</span>
                                     <span class="user-role-pill ${roleClass}">${role}</span>
                                 </div>
                                 <div class="user-sub-details">
@@ -933,7 +1093,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="text-right">
                         <div class="action-buttons">
-                            <button type="button" class="btn-action edit" onclick="openEditUserModal('${u.id}')" title="Edit User Profile"><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button type="button" class="btn-action view" onclick="window.openViewUserDetailsModal('${u.id}')" title="View Full Profile Details" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;"><i class="fa-regular fa-eye"></i></button>
+                            <button type="button" class="btn-action message" onclick="window.openComposeMailForUser('${u.id}')" title="Send Direct Message" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;"><i class="fa-regular fa-envelope"></i></button>
                             <button type="button" class="btn-action delete" onclick="deleteUser('${u.id}')" title="Delete User"><i class="fa-regular fa-trash-can"></i></button>
                         </div>
                     </td>
@@ -3230,7 +3391,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Compose Mail Form
     document.getElementById('composeMailForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const to = document.getElementById('mailToInput').value.trim();
+        const toRaw = document.getElementById('mailToInput').value.trim();
+        let to = toRaw;
+        const emailMatch = toRaw.match(/<([^>]+)>/);
+        if (emailMatch) to = emailMatch[1].trim();
         const subject = document.getElementById('mailSubjectInput').value.trim();
         const body = document.getElementById('mailBodyInput').value.trim();
         const attachData = document.getElementById('mailAttachmentData')?.value || '';
@@ -3269,11 +3433,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Guaranteed alias mapping for Manas Pan / verified mobile device
-        if (!resolvedUserId && (to.toLowerCase().includes('manaspan') || to.toLowerCase().includes('manaspanofficial@gmail.com'))) {
-            resolvedUserId = 'USR-hHidcJjPLFex';
-        }
-
         const mail = getDB(DB_KEYS.MAIL);
         const newMailItem = {
             id: 'ML-' + Date.now(),
@@ -3295,6 +3454,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('composeMailModal').classList.remove('active');
         document.getElementById('composeMailForm').reset();
+        const mailPop = document.getElementById('mailToSuggestionsPopover');
+        if (mailPop) mailPop.style.display = 'none';
         if (removeAttachBtn) removeAttachBtn.click();
         refreshAll();
 
@@ -3499,6 +3660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAdminCategorySuggest('textAdCategoryInput', 'textAdCategorySuggestions');
     setupAdminCategorySuggest('bannerAdCategoryInput', 'bannerAdCategorySuggestions');
     setupAdminCategorySuggest('prodAdCategoryInput', 'prodAdCategorySuggestions');
+    setupAdminUserSuggest('mailToInput', 'mailToSuggestionsPopover');
 
     // ========================================================
     // 1. TEXT AD SYSTEM & PREVIEW CONTROLLER
@@ -4574,93 +4736,126 @@ window.deleteUser = async function(id) {
     refreshAll();
 };
 
-window.openEditUserModal = function(id) {
-    const users = getDB(DB_KEYS.USERS);
+window.openViewUserDetailsModal = function(id) {
+    const users = getDB(DB_KEYS.USERS, []);
     const user = users.find(u => String(u.id) === String(id));
     if (!user) {
         alert('User profile not found.');
         return;
     }
 
-    const editId = document.getElementById('editUserId');
-    const editIdDisplay = document.getElementById('editUserIdDisplay');
-    const editName = document.getElementById('editUserName');
-    const editEmail = document.getElementById('editUserEmail');
-    const editPhone = document.getElementById('editUserPhone');
-    const editMethod = document.getElementById('editUserMethod');
-    const editRole = document.getElementById('editUserRole');
-    const avatarPreview = document.getElementById('editUserAvatarPreview');
+    // 1. Hero Info
+    const avatarSlot = document.getElementById('viewUserAvatarSlot');
+    const nameEl = document.getElementById('viewUserNameDisplay');
+    const rolePill = document.getElementById('viewUserRolePill');
+    const idChip = document.getElementById('viewUserIdChip');
+    const methodBadge = document.getElementById('viewUserMethodBadge');
 
-    if (editId) editId.value = user.id;
-    if (editIdDisplay) editIdDisplay.textContent = '#' + user.id;
-    if (editName) editName.value = user.name || '';
-    if (editEmail) editEmail.value = user.email || '';
-    if (editPhone) editPhone.value = user.phone || '';
-    if (editMethod) editMethod.value = user.method || 'Google';
-    if (editRole) editRole.value = user.role || 'Member';
-
-    if (avatarPreview) {
+    const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+    if (avatarSlot) {
         if (user.avatar || user.picture) {
-            avatarPreview.innerHTML = `<img src="${user.avatar || user.picture}" alt="${user.name}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            avatarSlot.innerHTML = `<img src="${user.avatar || user.picture}" alt="${escapeAdminHtml(user.name || '')}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
         } else {
-            avatarPreview.textContent = (user.name ? user.name.charAt(0).toUpperCase() : 'U');
+            avatarSlot.textContent = initial;
         }
     }
 
-    window.openModal('editUserModal');
+    if (nameEl) nameEl.textContent = user.name || 'Anonymous User';
+    if (rolePill) {
+        const role = user.role || 'Member';
+        rolePill.textContent = role;
+        rolePill.className = 'user-role-pill ' + (role.toLowerCase().includes('merchant') ? 'merchant' : (role.toLowerCase().includes('admin') ? 'admin' : 'member'));
+    }
+    if (idChip) idChip.textContent = '#' + user.id;
+    if (methodBadge) {
+        const m = user.method || 'Google';
+        methodBadge.innerHTML = `<i class="fa-brands fa-google"></i> ${m} Verified`;
+    }
+
+    // 2. Personal & Contact
+    const emailEl = document.getElementById('viewUserEmail');
+    const phoneEl = document.getElementById('viewUserPhone');
+    const genderEl = document.getElementById('viewUserGender');
+    const dobEl = document.getElementById('viewUserDOB');
+
+    if (emailEl) emailEl.textContent = user.email || 'No email registered';
+    if (phoneEl) phoneEl.textContent = user.phone || 'Not provided';
+    if (genderEl) genderEl.textContent = user.gender || 'Not specified';
+    if (dobEl) dobEl.textContent = user.dob || 'Not provided';
+
+    // 3. Location & Membership
+    const cityEl = document.getElementById('viewUserCity');
+    const stateEl = document.getElementById('viewUserState');
+    const pinEl = document.getElementById('viewUserPincode');
+    const memberEl = document.getElementById('viewUserMemberSince');
+
+    if (cityEl) cityEl.textContent = user.city || 'Not specified';
+    if (stateEl) stateEl.textContent = user.state || 'Not specified';
+    if (pinEl) pinEl.textContent = user.pincode || 'Not specified';
+    if (memberEl) memberEl.textContent = user.memberSince || user.date || 'Oct 2026';
+
+    // 4. Platform Activity: Stores & Badges
+    const listings = getDB(DB_KEYS.LISTINGS, []);
+    const userStores = listings.filter(l => 
+        (user.id && String(l.ownerId) === String(user.id)) ||
+        (user.email && l.ownerId && l.ownerId.toLowerCase() === user.email.toLowerCase())
+    );
+
+    const listCountEl = document.getElementById('viewUserListingsCount');
+    const badgeCountEl = document.getElementById('viewUserTrustBadgeCount');
+    const storesContainer = document.getElementById('viewUserStoresContainer');
+
+    if (listCountEl) listCountEl.textContent = userStores.length;
+    
+    // Count verified trust badges
+    const trustBadgesCount = userStores.filter(l => l.isTrustBadge || l.trustBadge || l.verifiedBadge || l.claimed).length;
+    if (badgeCountEl) badgeCountEl.textContent = trustBadgesCount;
+
+    if (storesContainer) {
+        if (userStores.length === 0) {
+            storesContainer.innerHTML = `
+                <div style="font-size:0.8rem; color:#94a3b8; font-style:italic; padding:0.5rem 0.25rem;">
+                    <i class="fa-solid fa-store-slash" style="margin-right:5px; color:#cbd5e1;"></i> This user has not registered or claimed any store listings yet.
+                </div>
+            `;
+        } else {
+            storesContainer.innerHTML = userStores.map(store => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.5rem 0.75rem;">
+                    <div>
+                        <strong style="font-size:0.85rem; color:#0f172a;"><i class="fa-solid fa-store" style="color:#d97706; margin-right:4px;"></i> ${escapeAdminHtml(store.name || 'Store')}</strong>
+                        <span style="font-size:0.75rem; color:#64748b; margin-left:8px;">${escapeAdminHtml(store.city || '')} • ${escapeAdminHtml(store.category || '')}</span>
+                    </div>
+                    <span style="font-size:0.72rem; padding:2px 8px; border-radius:12px; font-weight:700; ${store.status === 'Verified' ? 'background:#dcfce7; color:#15803d;' : 'background:#fef3c7; color:#92400e;'}">
+                        ${store.status || 'Active'}
+                    </span>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Direct Mail button inside modal
+    const directMailBtn = document.getElementById('viewUserDirectMailBtn');
+    if (directMailBtn) {
+        directMailBtn.onclick = () => {
+            const modal = document.getElementById('viewUserDetailsModal');
+            if (modal) modal.classList.remove('active');
+            window.openComposeMailForUser(user.id);
+        };
+    }
+
+    window.openModal('viewUserDetailsModal');
 };
 
-document.getElementById('editUserForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editUserId')?.value;
-    const name = document.getElementById('editUserName')?.value.trim();
-    const email = document.getElementById('editUserEmail')?.value.trim();
-    const phone = document.getElementById('editUserPhone')?.value.trim();
-    const method = document.getElementById('editUserMethod')?.value;
-    const role = document.getElementById('editUserRole')?.value;
-
-    if (!name || !email) {
-        alert('Please fill out Name and Email.');
-        return;
+window.openComposeMailForUser = function(id) {
+    const users = getDB(DB_KEYS.USERS, []);
+    const user = users.find(u => String(u.id) === String(id));
+    const toInput = document.getElementById('mailToInput');
+    if (toInput) {
+        toInput.value = user ? (user.email || user.id) : id;
     }
-
-    const ok = await window.adminSecurityConfirm({
-        title: 'Update User Profile',
-        message: `Are you sure you want to save profile changes for user <strong>"${name}"</strong>?`,
-        actionType: 'edit'
-    });
-    if (!ok) return;
-
-    let users = getDB(DB_KEYS.USERS);
-    const idx = users.findIndex(u => String(u.id) === String(id));
-    if (idx !== -1) {
-        users[idx].name = name;
-        users[idx].email = email;
-        users[idx].phone = phone;
-        users[idx].method = method;
-        users[idx].role = role;
-        setDB(DB_KEYS.USERS, users);
-
-        // Sync with current logged-in user in localStorage if matching
-        try {
-            const rawCurrent = localStorage.getItem('lb_current_user');
-            if (rawCurrent) {
-                const current = JSON.parse(rawCurrent);
-                if (String(current.id) === String(id) || (current.email && current.email.toLowerCase() === email.toLowerCase())) {
-                    current.name = name;
-                    current.email = email;
-                    current.phone = phone;
-                    current.role = role;
-                    localStorage.setItem('lb_current_user', JSON.stringify(current));
-                }
-            }
-        } catch {}
-
-        document.getElementById('editUserModal')?.classList.remove('active');
-        refreshAll();
-        alert(`User profile "${name}" successfully updated.`);
-    }
-});
+    window.openModal('composeMailModal');
+    document.getElementById('mailSubjectInput')?.focus();
+};
 
 window.openEditCityModal = function(encodedName) {
     const name = decodeURIComponent(encodedName);

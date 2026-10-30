@@ -15,11 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
             // Find if this user already exists in DB strictly by normalized email or Firebase UID
             let existing = users.find(u => 
                 (normEmail && u.email && u.email.trim().toLowerCase() === normEmail) || 
-                (userUid && (u.uid === userUid || u.id === ('USR-' + userUid.substring(0, 12))))
+                (userUid && u.uid === userUid) ||
+                (u.id && u.id === ('USR-' + userUid.substring(0, 12)))
             );
 
+            // Helper to generate unique LB + 6-digit User ID (Supports 10 Lakh users without conflict)
+            const generateLBUserId = () => {
+                let newId;
+                let attempts = 0;
+                do {
+                    newId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                    attempts++;
+                } while (users.some(u => u && u.id === newId) && attempts < 100);
+                return newId;
+            };
+
             if (!existing) {
-                const uniqueUserId = 'USR-' + (userUid ? userUid.substring(0, 12) : Math.floor(100000 + Math.random() * 900000));
+                const uniqueUserId = generateLBUserId();
                 existing = {
                     id: uniqueUserId,
                     uid: userUid,
@@ -38,12 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 users.unshift(existing);
                 localStorage.setItem('lb_users', JSON.stringify(users));
             } else {
+                // Auto-upgrade legacy USR- ID to clean LB + 6-digit format
+                if (existing.id && (existing.id.startsWith('USR-') || !existing.id.startsWith('LB'))) {
+                    existing.id = generateLBUserId();
+                }
                 // Update profile info for returning user without altering unique ID
                 existing.name = defaultName || existing.name;
                 existing.avatar = defaultAvatar || existing.avatar;
                 if (userUid) existing.uid = userUid;
                 if (defaultPhone && !existing.phone) existing.phone = defaultPhone;
-                const idx = users.findIndex(u => u.id === existing.id);
+                const idx = users.findIndex(u => u.uid === existing.uid || (existing.email && u.email === existing.email));
                 if (idx !== -1) {
                     users[idx] = existing;
                     localStorage.setItem('lb_users', JSON.stringify(users));
@@ -68,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Error syncing user:', e);
             return {
-                id: 'USR-' + (defaultUid ? defaultUid.substring(0, 12) : Math.floor(100000 + Math.random() * 900000)),
+                id: 'LB' + Math.floor(100000 + Math.random() * 900000),
                 name: defaultName,
                 email: defaultEmail,
                 avatar: defaultAvatar,

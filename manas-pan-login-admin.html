@@ -1079,58 +1079,119 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Modal 1: Edit User Profile -->
-    <div class="modal-backdrop" id="editUserModal">
-        <div class="modal-card">
+    <!-- Modal 1: View Registered User Profile Details -->
+    <div class="modal-backdrop" id="viewUserDetailsModal">
+        <div class="modal-card user-profile-view-card" style="max-width: 680px;">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-user-pen" style="color:var(--primary); margin-right: 0.4rem;"></i> Edit User Profile</h3>
-                <button type="button" class="btn-modal-close" data-close-modal="editUserModal"><i class="fa-solid fa-xmark"></i></button>
+                <h3><i class="fa-solid fa-id-badge" style="color:var(--primary); margin-right: 0.4rem;"></i> User Profile Overview</h3>
+                <button type="button" class="btn-modal-close" data-close-modal="viewUserDetailsModal"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="editUserForm" onsubmit="event.preventDefault();">
-                <input type="hidden" id="editUserId">
-                <div class="form-grid">
-                    <div class="form-field full" style="display:flex; align-items:center; gap:1rem; padding-bottom:0.75rem; border-bottom:1px solid #e2e8f0;">
-                        <div class="edit-user-avatar-preview" id="editUserAvatarPreview">U</div>
-                        <div style="flex:1;">
-                            <label style="margin-bottom:0.25rem;">Account Identifier</label>
-                            <span class="user-id-badge-text" id="editUserIdDisplay">#USR-0000</span>
+            
+            <div class="user-detail-modal-body" style="padding: 1.25rem 1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
+                <!-- User Profile Hero Banner -->
+                <div class="user-profile-hero" style="display:flex; align-items:center; gap:1.25rem; background:#f8fafc; padding:1.25rem; border-radius:14px; border:1px solid #e2e8f0;">
+                    <div class="user-profile-hero-avatar" id="viewUserAvatarSlot" style="width:68px; height:68px; border-radius:50%; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.75rem; font-weight:800; flex-shrink:0; overflow:hidden; box-shadow:0 4px 10px rgba(37,99,235,0.25);">U</div>
+                    <div class="user-profile-hero-info" style="flex:1; min-width:0;">
+                        <div class="user-profile-hero-name-row" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                            <h3 id="viewUserNameDisplay" style="margin:0; font-size:1.3rem; font-weight:800; color:#0f172a;">User Name</h3>
+                            <span class="user-role-pill member" id="viewUserRolePill">Member</span>
+                        </div>
+                        <div class="user-profile-hero-meta" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                            <span class="user-id-chip" id="viewUserIdChip" style="font-family:monospace; font-size:0.85rem; font-weight:800; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:6px;">#LB000000</span>
+                            <span class="user-google-badge" id="viewUserMethodBadge" style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:6px;"><i class="fa-brands fa-google"></i> Google Verified</span>
                         </div>
                     </div>
-                    <div class="form-field full">
-                        <label for="editUserName">Full Name *</label>
-                        <input type="text" id="editUserName" placeholder="Full legal or display name" required>
+                </div>
+
+                <!-- Info Cards Grid -->
+                <div class="user-profile-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;">
+                    <!-- Section A: Personal & Contact -->
+                    <div class="user-profile-section-card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+                        <div class="user-section-title" style="font-size:0.88rem; font-weight:800; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.4rem;">
+                            <i class="fa-solid fa-user-circle" style="color:#2563eb;"></i> Personal & Contact
+                        </div>
+                        <div class="user-info-dl" style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-regular fa-envelope" style="width:16px;"></i> Email:</span>
+                                <strong id="viewUserEmail" style="color:#0f172a; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">user@example.com</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-solid fa-phone" style="width:16px;"></i> Phone:</span>
+                                <strong id="viewUserPhone" style="color:#0f172a;">Not provided</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-solid fa-venus-mars" style="width:16px;"></i> Gender:</span>
+                                <strong id="viewUserGender" style="color:#0f172a;">Not specified</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-regular fa-calendar" style="width:16px;"></i> Birth Date:</span>
+                                <strong id="viewUserDOB" style="color:#0f172a;">Not provided</strong>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-field">
-                        <label for="editUserEmail">Email Address *</label>
-                        <input type="email" id="editUserEmail" placeholder="user@example.com" required>
-                    </div>
-                    <div class="form-field">
-                        <label for="editUserPhone">Phone Number</label>
-                        <input type="text" id="editUserPhone" placeholder="+91 98300 12345">
-                    </div>
-                    <div class="form-field">
-                        <label for="editUserMethod">Login Method</label>
-                        <select id="editUserMethod">
-                            <option value="Google">Google</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Phone">Phone OTP</option>
-                            <option value="Email">Email & Password</option>
-                        </select>
-                    </div>
-                    <div class="form-field">
-                        <label for="editUserRole">Account Role</label>
-                        <select id="editUserRole">
-                            <option value="Member">Member</option>
-                            <option value="Merchant">Merchant / Business</option>
-                            <option value="Admin">Administrator</option>
-                        </select>
+
+                    <!-- Section B: Location & Account Details -->
+                    <div class="user-profile-section-card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+                        <div class="user-section-title" style="font-size:0.88rem; font-weight:800; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.4rem;">
+                            <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i> Location & Member
+                        </div>
+                        <div class="user-info-dl" style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.84rem;">
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-solid fa-city" style="width:16px;"></i> City / Hub:</span>
+                                <strong id="viewUserCity" style="color:#0f172a;">Not specified</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-solid fa-map" style="width:16px;"></i> State:</span>
+                                <strong id="viewUserState" style="color:#0f172a;">Not specified</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-solid fa-map-pin" style="width:16px;"></i> Pin Code:</span>
+                                <strong id="viewUserPincode" style="color:#0f172a;">Not specified</strong>
+                            </div>
+                            <div class="user-info-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:#64748b;"><i class="fa-regular fa-calendar-check" style="width:16px;"></i> Joined:</span>
+                                <strong id="viewUserMemberSince" style="color:#0f172a;">Oct 2026</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-modal-cancel" data-close-modal="editUserModal">Cancel</button>
-                    <button type="submit" class="btn-modal-submit"><i class="fa-solid fa-check"></i> Save Changes</button>
+
+                <!-- Section C: Platform Activity (Stores & Trust Badges) -->
+                <div class="user-activity-section-card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+                    <div class="user-section-title" style="font-size:0.88rem; font-weight:800; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.4rem;">
+                        <i class="fa-solid fa-chart-line" style="color:#10b981;"></i> Platform Activity & Businesses
+                    </div>
+                    <div class="user-activity-summary-badges" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                        <div class="user-activity-stat-box" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:0.75rem 1rem; display:flex; align-items:center; gap:0.75rem;">
+                            <i class="fa-solid fa-store" style="color:#2563eb; font-size:1.4rem;"></i>
+                            <div>
+                                <span class="stat-num" id="viewUserListingsCount" style="display:block; font-size:1.2rem; font-weight:800; color:#0f172a; line-height:1.2;">0</span>
+                                <span class="stat-lbl" style="font-size:0.75rem; color:#64748b; font-weight:600;">Stores / Listings</span>
+                            </div>
+                        </div>
+                        <div class="user-activity-stat-box" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:0.75rem 1rem; display:flex; align-items:center; gap:0.75rem;">
+                            <i class="fa-solid fa-shield-halved" style="color:#10b981; font-size:1.4rem;"></i>
+                            <div>
+                                <span class="stat-num" id="viewUserTrustBadgeCount" style="display:block; font-size:1.2rem; font-weight:800; color:#0f172a; line-height:1.2;">0</span>
+                                <span class="stat-lbl" style="font-size:0.75rem; color:#64748b; font-weight:600;">Trust Badges</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Detailed List of Stores -->
+                    <div class="user-stores-sublist" id="viewUserStoresContainer" style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <!-- Populated dynamically in admin.js -->
+                    </div>
                 </div>
-            </form>
+            </div>
+
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                <button type="button" class="btn-modal-cancel" data-close-modal="viewUserDetailsModal">Close</button>
+                <div style="display:flex; gap:0.5rem;">
+                    <button type="button" class="btn-modal-submit" id="viewUserDirectMailBtn" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:none; padding:0.55rem 1.15rem; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer; box-shadow:0 2px 8px rgba(37,99,235,0.3);">
+                        <i class="fa-solid fa-paper-plane"></i> Send Direct Mail
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1339,10 +1400,12 @@
             </div>
             <form id="composeMailForm" onsubmit="event.preventDefault();">
                 <div class="form-grid">
-                    <div class="form-field full">
+                    <div class="form-field full" style="position: relative;">
                         <label for="mailToInput">Recipient User / Email / User ID *</label>
-                        <input type="text" id="mailToInput" list="adminRegisteredUsersDatalist" placeholder="Select user, enter email, or User ID (e.g. USR-...)" required autocomplete="off">
-                        <datalist id="adminRegisteredUsersDatalist"></datalist>
+                        <div style="position: relative;">
+                            <input type="text" id="mailToInput" placeholder="Type user name, email, or LB ID to search..." required autocomplete="off">
+                            <div id="mailToSuggestionsPopover" class="admin-user-suggestions-popover" style="display:none;"></div>
+                        </div>
                     </div>
                     <div class="form-field full">
                         <label for="mailSubjectInput">Subject *</label>
@@ -2117,6 +2180,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="firebase-config.js?v=2.0.1"></script>
-    <script src="admin.js?v=3.3.0"></script>
+    <script src="admin.js?v=3.5.0"></script>
 </body>
 </html>

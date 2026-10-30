@@ -695,8 +695,13 @@ window.handleModalGoogleSignIn = async function() {
                     existingUser = users.find(u => (user.email && u.email && u.email.toLowerCase() === user.email.toLowerCase()) || (user.uid && u.uid === user.uid));
                 } catch(e) {}
 
+                let uniqueId = existingUser ? existingUser.id : ('LB' + Math.floor(100000 + Math.random() * 900000));
+                if (uniqueId && (uniqueId.startsWith('USR-') || !uniqueId.startsWith('LB'))) {
+                    uniqueId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                }
+
                 activeUser = {
-                    id: existingUser ? existingUser.id : ('USR-' + Math.floor(100000 + Math.random() * 900000)),
+                    id: uniqueId,
                     uid: user.uid,
                     name: user.displayName || (existingUser ? existingUser.name : 'Google User'),
                     email: user.email || (existingUser ? existingUser.email : ''),

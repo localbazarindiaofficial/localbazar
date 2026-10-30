@@ -339,10 +339,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let existingUser = users.find(u => 
                     (userEmail && u.email && u.email.trim().toLowerCase() === userEmail) ||
-                    (userUid && (u.uid === userUid || u.id === ('USR-' + userUid.substring(0, 12))))
+                    (userUid && u.uid === userUid)
                 );
 
-                const deterministicId = existingUser ? existingUser.id : ('USR-' + (userUid ? userUid.substring(0, 12) : Math.floor(100000 + Math.random() * 900000)));
+                let deterministicId = existingUser ? existingUser.id : ('LB' + Math.floor(100000 + Math.random() * 900000));
+                if (deterministicId && (deterministicId.startsWith('USR-') || !deterministicId.startsWith('LB'))) {
+                    deterministicId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                }
 
                 const activeUser = {
                     id: deterministicId,
