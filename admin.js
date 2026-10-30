@@ -4007,22 +4007,27 @@ window.adminSecurityConfirm = function({ title = 'Confirm Action', message = 'Ar
             }
         }
 
+        function getTyped() {
+            return (input && input.value ? input.value : '')
+                .trim()
+                .toUpperCase()
+                .replace(/[\u200B-\u200D\uFEFF]/g, '');
+        }
+
         if (confirmBtn) {
-            confirmBtn.style.opacity = '0.5';
-            confirmBtn.style.pointerEvents = 'none';
+            confirmBtn.style.opacity = '0.7';
+            confirmBtn.style.pointerEvents = 'auto';
         }
         if (input) input.style.borderColor = '#cbd5e1';
 
         function validateInput() {
             if (!input || !confirmBtn) return;
-            if (input.value.trim() === 'CONFIRM') {
+            if (getTyped() === 'CONFIRM') {
                 confirmBtn.style.opacity = '1';
-                confirmBtn.style.pointerEvents = 'auto';
                 input.style.borderColor = '#16a34a';
                 if (errorEl) errorEl.style.display = 'none';
             } else {
-                confirmBtn.style.opacity = '0.5';
-                confirmBtn.style.pointerEvents = 'none';
+                confirmBtn.style.opacity = '0.7';
                 input.style.borderColor = '#cbd5e1';
             }
         }
@@ -4041,13 +4046,12 @@ window.adminSecurityConfirm = function({ title = 'Confirm Action', message = 'Ar
 
         if (input) {
             input.oninput = () => {
-                input.value = input.value.toUpperCase();
                 validateInput();
             };
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (input.value.trim() === 'CONFIRM') {
+                    if (getTyped() === 'CONFIRM') {
                         cleanup();
                         resolve(true);
                     } else if (errorEl) {
@@ -4059,11 +4063,12 @@ window.adminSecurityConfirm = function({ title = 'Confirm Action', message = 'Ar
 
         if (confirmBtn) {
             confirmBtn.onclick = () => {
-                if (input && input.value.trim() === 'CONFIRM') {
+                if (getTyped() === 'CONFIRM') {
                     cleanup();
                     resolve(true);
                 } else if (errorEl) {
                     errorEl.style.display = 'block';
+                    if (input) input.focus();
                 }
             };
         }

@@ -9,13 +9,13 @@
  */
 
 window.firebaseConfig = {
-    apiKey: "AIzaSyCs06VcvFeLRaBlfLtNRmA3xfU5OKsXBPo",
-    authDomain: "localbazar-merket.firebaseapp.com",
-    projectId: "localbazar-merket",
-    storageBucket: "localbazar-merket.firebasestorage.app",
-    messagingSenderId: "920011389158",
-    appId: "1:920011389158:web:af48545ea872c8ed1de327",
-    measurementId: "G-G22F59SF15"
+    apiKey: "AIzaSyB8TjyRJ7uCx-YaaxPFYanv6nEWFowt4Vo",
+    authDomain: "localbazar-india.firebaseapp.com",
+    projectId: "localbazar-india",
+    storageBucket: "localbazar-india.firebasestorage.app",
+    messagingSenderId: "993047939009",
+    appId: "1:993047939009:web:265f275db6785f7a561140",
+    measurementId: "G-G8DHT8ZDE6"
 };
 
 // ========================================================
@@ -23,7 +23,7 @@ window.firebaseConfig = {
 // ========================================================
 window.imageHostConfig = {
     provider: "imgbb",
-    apiKey: "419bd18e7032f93308bed18afa9d29e9",
+    apiKey: "b8773b33f1f4eac08fdc8056c9daf1dd",
     endpoint: "https://api.imgbb.com/1/upload"
 };
 
@@ -88,7 +88,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
     if (!fileOrDataUrl) return '';
 
     // 1. Resolve active ImgBB API key
-    let apiKey = (window.imageHostConfig && window.imageHostConfig.apiKey) || '419bd18e7032f93308bed18afa9d29e9';
+    let apiKey = (window.imageHostConfig && window.imageHostConfig.apiKey) || 'b8773b33f1f4eac08fdc8056c9daf1dd';
     try {
         const storedKey = localStorage.getItem('lb_imgbb_api_key');
         if (storedKey && storedKey.trim()) apiKey = storedKey.trim();

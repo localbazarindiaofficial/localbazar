@@ -1,7 +1,7 @@
 {
   "name": "LocalBazar - Explore Your City",
   "short_name": "LocalBazar",
-  "id": "/?app=localbazar-v3",
+  "id": "/?app=localbazar-v4",
   "description": "Discover local shops, clinics, doctors, products, deals, and services in your city.",
   "start_url": "/",
   "scope": "/",
@@ -14,37 +14,25 @@
       "src": "app-logo-hd-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "app-logo-hd-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "icons/app-logo-hd-512.png",
+      "src": "app-logo-hd-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
-      "src": "icons/app-logo-hd-192.png",
+      "src": "app-logo-hd-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "categories": ["shopping", "business", "lifestyle"],
