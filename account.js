@@ -212,6 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.warn('renderUserHelpInbox error:', err);
         }
+
+        // Auto-sync OneSignal Device Push Token with User & Store Profile
+        try {
+            if (window.lbPushService && typeof window.lbPushService.syncDeviceToken === 'function') {
+                window.lbPushService.syncDeviceToken();
+            }
+        } catch (err) {}
     }
 
     populateMainHeader();

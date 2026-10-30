@@ -578,7 +578,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('openAddCityModalBtn')?.addEventListener('click', () => openModal('addCityModal'));
     document.getElementById('openAddCategoryModalBtn')?.addEventListener('click', () => openModal('addCategoryModal'));
-    document.getElementById('openComposeMailModalBtn')?.addEventListener('click', () => openModal('composeMailModal'));
+    function populateComposeUsersDatalist() {
+        const dl = document.getElementById('adminRegisteredUsersDatalist');
+        if (!dl) return;
+        const users = getDB(DB_KEYS.USERS, []);
+        dl.innerHTML = users.map(u => `<option value="${u.id}">${u.name || 'User'} (${u.email || u.id})</option>`).join('');
+    }
+
+    document.getElementById('openComposeMailModalBtn')?.addEventListener('click', () => {
+        populateComposeUsersDatalist();
+        openModal('composeMailModal');
+    });
     document.getElementById('btnOpenTextAdModal')?.addEventListener('click', () => openModal('createTextAdModal'));
     document.getElementById('btnOpenBannerAdModal')?.addEventListener('click', () => openModal('createBannerAdModal'));
     document.getElementById('btnOpenProductAdModal')?.addEventListener('click', () => openModal('createProductAdModal'));
@@ -3238,11 +3248,11 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         const resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
 
-        // Trigger Background Push Notification to Recipient User (even if app is closed!)
-        if (window.lbPushService && typeof window.lbPushService.notifyUserFromAdmin === 'function') {
-            window.lbPushService.notifyUserFromAdmin({
-                targetEmail: to,
+        // Trigger Background Push Notification directly to the Recipient's Device Token
+        if (window.lbPushService && typeof window.lbPushService.notifyUserDirect === 'function') {
+            window.lbPushService.notifyUserDirect({
                 targetUserId: resolvedUserId,
+                targetEmail: to,
                 subject: subject,
                 messageSnippet: body
             });

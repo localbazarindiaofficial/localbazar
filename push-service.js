@@ -2,15 +2,13 @@
  * =========================================================================
  * LocalBazar Background Web Push Notification Engine
  * Powered by OneSignal Web SDK v16 (100% Free for up to 10,000 devices)
- * Works even when the app / browser is COMPLETELY CLOSED on mobile & desktop!
+ * Direct Device Token & Background Push for Android, iOS & Desktop
  * =========================================================================
  */
 
 (function() {
     'use strict';
 
-    // Global Configuration
-    // Users can paste their OneSignal App ID & REST API Key into localStorage or configure directly here
     const PUSH_CONFIG = {
         appId: localStorage.getItem('lb_onesignal_app_id') || 'cc4cd04b-4cc6-4fcd-ab85-6fee13841b1e',
         restApiKey: localStorage.getItem('lb_onesignal_rest_key') || (typeof atob === 'function' ? atob('b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2QzNjJxaml2ZzZ5ZWc2bnlmc3luZmJnZWU2NWY0bHF0cmUyZ2s1anY0bjVwc21uaWZuZ3VyMzQ3cW9tanpoamVteHR2cXZpaXU3aWp3Znk=') : ''),
@@ -20,7 +18,6 @@
 
     window.lbPushConfig = PUSH_CONFIG;
 
-    // Helper: Safely retrieve current user
     function getCurrentUser() {
         try {
             const raw = localStorage.getItem('lb_current_user');
@@ -30,74 +27,57 @@
         }
     }
 
-    // Helper: Safely retrieve all listings
-    function getAllListings() {
-        try {
-            const raw = localStorage.getItem('lb_listings');
-            return raw ? JSON.parse(raw) : [];
-        } catch {
-            return [];
-        }
-    }
-
-    // Initialize OneSignal Deferred Queue
     window.OneSignalDeferred = window.OneSignalDeferred || [];
 
     window.lbPushService = {
         isInitialized: false,
 
-        // Initialize OneSignal
         init: function() {
             if (this.isInitialized) return;
 
             window.OneSignalDeferred.push(async function(OneSignal) {
                 try {
                     const appId = PUSH_CONFIG.appId;
-                    if (!appId || appId === 'ONESIGNAL_APP_ID_PLACEHOLDER') {
-                        console.log('[PushService] OneSignal is ready. Provide your OneSignal App ID to activate background push.');
-                        return;
-                    }
+                    if (!appId || appId === 'ONESIGNAL_APP_ID_PLACEHOLDER') return;
 
-                    // Ensure OneSignal is initialized safely
                     try {
                         await OneSignal.init({
                             appId: appId,
                             allowLocalhostAsSecureOrigin: true,
-                            notifyButton: {
-                                enable: false
-                            }
+                            notifyButton: { enable: false }
                         });
                     } catch (initErr) {
-                        // Safe to continue if already initialized by head snippet
+                        // Already initialized by head script
                     }
 
                     window.lbPushService.isInitialized = true;
-                    console.log('[PushService] OneSignal Web Push Engine active.');
+                    console.log('[PushService] OneSignal Engine Active.');
 
-                    // If browser already has notification permission granted, ensure OneSignal is subscribed
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        try {
-                            await OneSignal.Notifications.requestPermission();
-                        } catch (permErr) {}
-                    }
+                    // Auto-sync device token
+                    window.lbPushService.syncDeviceToken();
 
-                    // Sync user tags and store ownership
-                    window.lbPushService.syncUserTags();
+                    // Listen to subscription token changes
+                    try {
+                        OneSignal.User.PushSubscription.addEventListener("change", function() {
+                            window.lbPushService.syncDeviceToken();
+                        });
+                    } catch(e) {}
 
-                    // Listen to permission changes
-                    OneSignal.Notifications.addEventListener('permissionChange', function(permission) {
-                        console.log('[PushService] Notification permission changed to:', permission);
-                        if (permission) {
-                            window.lbPushService.syncUserTags();
-                        }
-                    });
+                    // Permission change listener
+                    try {
+                        OneSignal.Notifications.addEventListener('permissionChange', function(permission) {
+                            if (permission) {
+                                window.lbPushService.syncDeviceToken();
+                            }
+                        });
+                    } catch(e) {}
                 } catch (err) {
-                    console.warn('[PushService] OneSignal init warning:', err);
+                    console.warn('[PushService] Init warning:', err);
                 }
             });
         },
 
-        // Request Push Notification Permission
+        // Request Push Permission from Browser
         requestPermission: async function() {
             return new Promise((resolve) => {
                 window.OneSignalDeferred.push(async function(OneSignal) {
@@ -105,189 +85,214 @@
                         const canRequest = await OneSignal.Notifications.canRequest();
                         if (canRequest) {
                             const result = await OneSignal.Notifications.requestPermission();
-                            window.lbPushService.syncUserTags();
+                            window.lbPushService.syncDeviceToken();
                             resolve(result);
                         } else {
                             resolve(OneSignal.Notifications.permission);
                         }
                     } catch (err) {
-                        console.warn('[PushService] Permission request failed:', err);
                         resolve(false);
                     }
                 });
             });
         },
 
-        // Sync Current User Identity & Owned Store Tags with OneSignal
-        syncUserTags: function() {
+        // Capture Device Token & Associate with User & Store in Firestore
+        syncDeviceToken: function() {
             window.OneSignalDeferred.push(async function(OneSignal) {
                 try {
+                    const subId = OneSignal.User.PushSubscription.id;
+                    if (!subId) return;
+
+                    console.log('[PushService] Active Device Push Token:', subId);
+                    localStorage.setItem('lb_device_push_token', subId);
+
                     const user = getCurrentUser();
-                    if (!user) return;
+                    if (user && user.id) {
+                        user.pushToken = subId;
+                        localStorage.setItem('lb_current_user', JSON.stringify(user));
 
-                    const userId = String(user.id || '').trim();
-                    const userEmail = (user.email || '').trim().toLowerCase();
+                        // Sync with Firestore user record
+                        if (window.lbCloudSync && typeof window.lbCloudSync.saveUser === 'function') {
+                            window.lbCloudSync.saveUser(user);
+                        }
 
-                    // Login external user ID for targeted messaging
-                    if (userId) {
-                        await OneSignal.login(userId);
+                        // Central token collection for instant lookup
+                        if (window.lbFirestore) {
+                            try {
+                                await window.lbFirestore.collection('push_tokens').doc(String(user.id)).set({
+                                    pushToken: subId,
+                                    userId: String(user.id),
+                                    userEmail: (user.email || '').toLowerCase().trim(),
+                                    userName: user.name || '',
+                                    updatedAt: Date.now()
+                                }, { merge: true });
+                            } catch(e) {}
+                        }
+
+                        // Also associate with all listings owned by this user
+                        try {
+                            const rawListings = localStorage.getItem('lb_listings');
+                            const listings = rawListings ? JSON.parse(rawListings) : [];
+                            const userStores = listings.filter(l => 
+                                (user.id && String(l.ownerId) === String(user.id)) ||
+                                (user.email && l.ownerId && l.ownerId.toLowerCase() === user.email.toLowerCase())
+                            );
+
+                            userStores.forEach(async (store) => {
+                                store.pushToken = subId;
+                                if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+                                    window.lbCloudSync.saveListing(store);
+                                }
+                                if (window.lbFirestore) {
+                                    try {
+                                        await window.lbFirestore.collection('push_tokens').doc('store_' + store.id).set({
+                                            pushToken: subId,
+                                            storeId: String(store.id),
+                                            storeName: store.name || '',
+                                            ownerId: String(user.id),
+                                            updatedAt: Date.now()
+                                        }, { merge: true });
+                                    } catch(e) {}
+                                }
+                            });
+                            localStorage.setItem('lb_listings', JSON.stringify(listings));
+                        } catch(e) {}
                     }
-
-                    // Build user tags
-                    const tags = {
-                        user_id: userId,
-                        user_name: user.name || 'Citizen'
-                    };
-                    if (userEmail) {
-                        tags.user_email = userEmail;
-                    }
-
-                    // Find all listings owned by this user and tag their device
-                    const listings = getAllListings();
-                    const myListings = listings.filter(l => 
-                        (userId && String(l.ownerId) === userId) ||
-                        (userEmail && l.ownerId && l.ownerId.toLowerCase() === userEmail) ||
-                        (user.phone && l.phone && l.phone === user.phone)
-                    );
-
-                    if (myListings.length > 0) {
-                        tags.is_merchant = 'true';
-                        myListings.forEach(store => {
-                            tags[`store_${store.id}`] = 'owner';
-                        });
-                    }
-
-                    await OneSignal.User.addTags(tags);
-                    console.log('[PushService] User and store tags synced with OneSignal:', tags);
                 } catch (err) {
-                    console.warn('[PushService] Tag sync warning:', err);
+                    console.warn('[PushService] Token sync warning:', err);
                 }
             });
         },
 
-        // Dispatch a Background Push Notification via OneSignal REST API
-        // This delivers to the user's mobile device even when the app is completely CLOSED!
-        sendPush: async function({ targetStoreId, targetUserId, targetEmail, title, body, url, icon }) {
-            const appId = PUSH_CONFIG.appId;
-            const restKey = PUSH_CONFIG.restApiKey;
-
-            if (!appId || appId === 'ONESIGNAL_APP_ID_PLACEHOLDER' || !restKey) {
-                // If REST credentials not provided, log and trigger local fallback notification if open
-                console.log(`[PushService Simulation] Push dispatched: "${title}" -> ${body}`);
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    try {
-                        new Notification(title, {
-                            body: body,
-                            icon: icon || PUSH_CONFIG.defaultIcon
-                        });
-                    } catch {}
-                }
-                return { success: false, reason: 'REST API Key or App ID not configured' };
+        // DIRECT PUSH: Sends directly to a specific device subscription token
+        sendDirectPush: async function(token, { title, body, url, icon }) {
+            if (!token) {
+                console.warn('[PushService] No device token provided for direct push');
+                return { success: false, reason: 'No token' };
             }
 
+            const payload = {
+                app_id: PUSH_CONFIG.appId,
+                include_subscription_ids: [ String(token) ],
+                headings: { en: title },
+                contents: { en: body },
+                url: url || window.location.href,
+                chrome_web_icon: icon || PUSH_CONFIG.defaultIcon
+            };
+
+            const apiUrl = (window.location.origin && window.location.origin.includes('localbazarindia.vercel.app')) 
+                ? '/api/send-push' 
+                : 'https://localbazarindia.vercel.app/api/send-push';
+
+            // Strategy 1: Dispatch via Serverless Function
             try {
-                const payload = {
-                    app_id: appId,
-                    headings: { en: title },
-                    contents: { en: body },
-                    url: url || window.location.href,
-                    chrome_web_icon: icon || PUSH_CONFIG.defaultIcon,
-                    firefox_icon: icon || PUSH_CONFIG.defaultIcon
-                };
-
-                // Target recipient device (Prioritize External ID verified in OneSignal)
-                if (targetUserId) {
-                    payload.include_aliases = { external_id: [String(targetUserId)] };
-                    payload.include_external_user_ids = [String(targetUserId)];
-                    payload.target_channel = 'push';
-                } else if (targetStoreId) {
-                    payload.filters = [
-                        { field: 'tag', key: `store_${targetStoreId}`, relation: '=', value: 'owner' }
-                    ];
-                } else if (targetEmail) {
-                    payload.filters = [
-                        { field: 'tag', key: 'user_email', relation: '=', value: targetEmail.toLowerCase().trim() }
-                    ];
-                }
-
-                // Strategy 1: Dispatch via Vercel Serverless Function (Bypasses any browser CORS limits)
-                try {
-                    const apiRes = await fetch('/api/send-push', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (apiRes.ok) {
-                        const result = await apiRes.json();
-                        console.log('[PushService] Background Push dispatched via /api/send-push:', result);
-                        return { success: true, result };
-                    }
-                } catch (apiErr) {
-                    console.warn('[PushService] /api/send-push not reachable, trying direct fallback...', apiErr);
-                }
-
-                // Strategy 2: Direct OneSignal REST API call
-                const authHeader = restKey.startsWith('os_v2_') ? `Key ${restKey}` : `Basic ${restKey}`;
-
-                const response = await fetch('https://onesignal.com/api/v1/notifications', {
+                const apiRes = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json; charset=utf-8',
-                        'Authorization': authHeader
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (apiRes.ok) {
+                    const result = await apiRes.json();
+                    console.log('[PushService] Direct Push dispatched successfully:', result);
+                    return { success: true, result };
+                }
+            } catch(e) {}
 
-                const result = await response.json();
-                console.log('[PushService] Direct OneSignal response:', result);
-                return { success: true, result };
-            } catch (err) {
-                console.error('[PushService] Failed to send push notification:', err);
-                return { success: false, error: err };
+            // Strategy 2: Direct OneSignal REST API call
+            const restKey = PUSH_CONFIG.restApiKey;
+            if (restKey) {
+                try {
+                    const authHeader = restKey.startsWith('os_v2_') ? `Key ${restKey}` : `Basic ${restKey}`;
+                    const res = await fetch('https://onesignal.com/api/v1/notifications', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Authorization': authHeader
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await res.json();
+                    console.log('[PushService] Direct OneSignal response:', result);
+                    return { success: true, result };
+                } catch(e) {}
             }
+
+            return { success: false };
         },
 
-        // Specialized Trigger: When a customer inquires in chat or sends a product inquiry
-        notifyStoreOwner: async function({ storeId, storeName, customerName, messageText, product, ownerId }) {
+        // Trigger Direct Push to Store Owner when a Customer Inquires
+        notifyStoreOwnerDirect: async function({ store, customerName, messageText, product }) {
+            if (!store) return;
+            let token = store.pushToken;
+
+            // If token not on store, look up in Firestore push_tokens
+            if (!token && window.lbFirestore) {
+                try {
+                    const sDoc = await window.lbFirestore.collection('push_tokens').doc('store_' + store.id).get();
+                    if (sDoc.exists && sDoc.data().pushToken) {
+                        token = sDoc.data().pushToken;
+                    } else if (store.ownerId) {
+                        const uDoc = await window.lbFirestore.collection('push_tokens').doc(String(store.ownerId)).get();
+                        if (uDoc.exists && uDoc.data().pushToken) {
+                            token = uDoc.data().pushToken;
+                        }
+                    }
+                } catch(e) {}
+            }
+
             let bodyText = `${customerName}: "${messageText.slice(0, 90)}"`;
             if (product && product.name) {
                 bodyText = `Inquiry on "${product.name}": "${messageText.slice(0, 70)}"`;
             }
 
-            const title = `💬 New Customer Inquiry • ${storeName}`;
+            const title = `💬 New Inquiry • ${store.name}`;
             const targetUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/account.html#inbox`;
 
-            return await this.sendPush({
-                targetStoreId: storeId,
-                targetUserId: ownerId,
-                title: title,
-                body: bodyText,
-                url: targetUrl
-            });
-        },
-                title: title,
-                body: bodyText,
-                url: targetUrl
-            });
+            if (token) {
+                return await this.sendDirectPush(token, { title, body: bodyText, url: targetUrl });
+            } else {
+                console.warn(`[PushService] Store "${store.name}" owner has no device token registered yet.`);
+            }
         },
 
-        // Specialized Trigger: When Admin sends or replies to a user
-        notifyUserFromAdmin: async function({ targetEmail, targetUserId, subject, messageSnippet }) {
+        // Trigger Direct Push to Specific User when Admin Sends a Message / Reply
+        notifyUserDirect: async function({ targetUserId, targetEmail, subject, messageSnippet }) {
+            let token = null;
+
+            // Check local users list
+            try {
+                const rawUsers = localStorage.getItem('lb_users');
+                const users = rawUsers ? JSON.parse(rawUsers) : [];
+                const u = users.find(x => 
+                    (targetUserId && String(x.id) === String(targetUserId)) || 
+                    (targetEmail && x.email && x.email.toLowerCase() === targetEmail.toLowerCase())
+                );
+                if (u && u.pushToken) token = u.pushToken;
+            } catch(e) {}
+
+            // Check Firestore
+            if (!token && window.lbFirestore && targetUserId) {
+                try {
+                    const uDoc = await window.lbFirestore.collection('push_tokens').doc(String(targetUserId)).get();
+                    if (uDoc.exists && uDoc.data().pushToken) {
+                        token = uDoc.data().pushToken;
+                    }
+                } catch(e) {}
+            }
+
             const title = `🛡️ Admin Reply: ${subject}`;
             const body = messageSnippet ? messageSnippet.slice(0, 100) : 'You have received a new reply from Super Admin.';
             const targetUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/account.html#help`;
 
-            return await this.sendPush({
-                targetEmail: targetEmail,
-                targetUserId: targetUserId,
-                title: title,
-                body: body,
-                url: targetUrl
-            });
+            if (token) {
+                return await this.sendDirectPush(token, { title, body: body, url: targetUrl });
+            } else {
+                console.warn('[PushService] Target user has no device token saved in database yet.');
+            }
         }
     };
 
-    // Auto-start push service on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => window.lbPushService.init());
     } else {
