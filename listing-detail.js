@@ -2767,18 +2767,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // Trigger Real-time Merchant Push Notification & In-app Alert
+            // Trigger In-app Alert
             try {
-                // Direct Background Push Notification to Store Owner's Device Token (even if app is closed!)
-                if (window.lbPushService && typeof window.lbPushService.notifyStoreOwnerDirect === 'function') {
-                    window.lbPushService.notifyStoreOwnerDirect({
-                        store: item,
-                        customerName: customerName,
-                        messageText: text,
-                        product: attachedProd
-                    });
-                }
-
                 const notifTitle = `New Customer Inquiry: ${item.name}`;
                 const notifBody = `${customerName}: "${text.slice(0, 80)}"`;
                 if ('Notification' in window && Notification.permission === 'granted') {

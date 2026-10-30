@@ -3293,25 +3293,12 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lbCloudSync.saveMail(newMailItem);
         }
 
-        // Trigger Background Push Notification directly to the Recipient's Device Token
-        let pushRes = null;
-        if (window.lbPushService && typeof window.lbPushService.notifyUserDirect === 'function') {
-            pushRes = await window.lbPushService.notifyUserDirect({
-                targetUserId: resolvedUserId,
-                targetSubscriptionId: resolvedPushToken,
-                targetEmail: to,
-                subject: subject,
-                messageSnippet: body
-            });
-        }
-
         document.getElementById('composeMailModal').classList.remove('active');
         document.getElementById('composeMailForm').reset();
         if (removeAttachBtn) removeAttachBtn.click();
         refreshAll();
 
-        const recipientsCount = (pushRes?.result?.id || (pushRes?.result?.recipients !== undefined && pushRes.result.recipients > 0) || pushRes?.success) ? (pushRes?.result?.recipients || 1) : 0;
-        alert(`Message sent successfully to: ${to}\n[Push Alert: Sent to ${recipientsCount} device(s)]`);
+        alert(`Message sent successfully to: ${to}`);
     });
 
     // ========================================================

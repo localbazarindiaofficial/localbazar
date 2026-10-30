@@ -213,12 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('renderUserHelpInbox error:', err);
         }
 
-        // Auto-sync OneSignal Device Push Token with User & Store Profile
-        try {
-            if (window.lbPushService && typeof window.lbPushService.syncDeviceToken === 'function') {
-                window.lbPushService.syncDeviceToken();
-            }
-        } catch (err) {}
     }
 
     populateMainHeader();
@@ -1000,9 +994,6 @@ document.addEventListener('DOMContentLoaded', () => {
         Notification.requestPermission().then(permission => {
             updateUserNotifPermStatusDisplay();
             if (permission === 'granted') {
-                if (window.lbPushService && typeof window.lbPushService.syncUserTags === 'function') {
-                    window.lbPushService.syncUserTags();
-                }
                 window.sendUserPushNotification(
                     'Push Notifications Enabled!',
                     'You will now receive instant push alerts for store inquiries, business claim updates, and local offers.',
@@ -4919,20 +4910,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('[Merchant Portal] Failed to send reply to Firestore:', err);
             }
         }
-
-        // Trigger real-time background Push Notification to customer
-        if (window.lbPushService && typeof window.lbPushService.notifyCustomerReply === 'function') {
-            const rawListings = localStorage.getItem('lb_listings');
-            const listings = rawListings ? JSON.parse(rawListings) : [];
-            const currentStore = listings.find(l => String(l.id) === String(currentPortalListingId));
-            window.lbPushService.notifyCustomerReply({
-                storeName: currentStore ? currentStore.name : 'Store Merchant',
-                replyText: replyText,
-                customerEmail: thread.userEmail,
-                customerPhone: thread.userPhone,
-                customerUserId: thread.userId
-            }).catch(() => {});
-        }
     };
 
     window.deleteActiveConversation = function() {
@@ -6939,17 +6916,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.warn('[Unified Inbox] Failed to send reply to Firestore:', err);
             }
-        }
-
-        // Trigger real-time background Push Notification to customer
-        if (window.lbPushService && typeof window.lbPushService.notifyCustomerReply === 'function') {
-            window.lbPushService.notifyCustomerReply({
-                storeName: storeInfo ? storeInfo.name : 'Store Merchant',
-                replyText: replyText,
-                customerEmail: thread.userEmail,
-                customerPhone: thread.userPhone,
-                customerUserId: thread.userId
-            }).catch(() => {});
         }
     };
 
