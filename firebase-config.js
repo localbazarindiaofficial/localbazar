@@ -109,17 +109,22 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
     // 3. If no key, fallback to local base64
     if (!apiKey) return base64Data;
 
-    // 4. Send to ImgBB Free CDN
+    // 4. Send to ImgBB Free CDN with 6s Safety Timeout
     try {
         const cleanBase64 = base64Data.replace(/^data:image\/[a-zA-Z0-9.+]+;base64,/, '');
         const formData = new FormData();
         formData.append('key', apiKey);
         formData.append('image', cleanBase64);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
         const response = await fetch('https://api.imgbb.com/1/upload', {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
             const json = await response.json();

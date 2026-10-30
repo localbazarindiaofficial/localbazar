@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="listing-detail.css">
-    <link rel="stylesheet" href="account.css?v=2.4.0">
+    <link rel="stylesheet" href="account.css?v=2.6.0">
     <link rel="stylesheet" href="pwa.css?v=7">
 
     <!-- PWA & Mobile Web App Meta -->
@@ -407,18 +407,19 @@
                                         <div class="compact-photo-icon-badge" id="uPhotoIconBadge">
                                             <i class="fa-solid fa-camera"></i>
                                         </div>
-                                        <div>
-                                            <div class="compact-photo-title-row">
-                                                <h4 class="compact-photo-title">Add Listing Image</h4>
-                                                <span class="compact-photo-count-pill" id="uPhotoCountPill">0 Selected</span>
-                                            </div>
+                                        <div class="compact-photo-meta-info">
+                                            <h4 class="compact-photo-title">Add Listing Image</h4>
                                             <p class="compact-photo-sub" id="uPhotoStatusSubText">Select single or multiple photos for your business</p>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-compact-view-photos" id="uBtnTogglePreviewDrawer" style="display:none;" title="View or remove selected photos">
-                                        <i class="fa-regular fa-images"></i> <span>View Photos</span>
-                                        <i class="fa-solid fa-chevron-down drawer-arrow" id="uDrawerChevron"></i>
-                                    </button>
+                                    <div class="compact-photo-actions-wrap">
+                                        <span class="compact-photo-count-pill" id="uPhotoCountPill">0 Selected</span>
+                                        <button type="button" class="btn-compact-view-photos" id="uBtnTogglePreviewDrawer" style="display:none;" title="View or remove selected photos">
+                                            <i class="fa-regular fa-images"></i>
+                                            <span>View Photos</span>
+                                            <i class="fa-solid fa-chevron-down drawer-arrow" id="uDrawerChevron"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Action Trigger Bar -->
@@ -1891,7 +1892,7 @@
     <script src="firebase-config.js"></script>
     <!-- QRCode.js Library for Client-side Vector QR Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="account.js?v=2.4.0"></script>
+    <script src="account.js?v=2.6.0"></script>
     <script src="app-nav.js"></script>
     <script src="pwa.js"></script>
 </body>
