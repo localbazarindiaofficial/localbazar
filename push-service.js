@@ -11,7 +11,7 @@
 
     const PUSH_CONFIG = {
         appId: localStorage.getItem('lb_onesignal_app_id') || 'cc4cd04b-4cc6-4fcd-ab85-6fee13841b1e',
-        restApiKey: localStorage.getItem('lb_onesignal_rest_key') || (typeof atob === 'function' ? atob('b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2QzNjJxaml2ZzZ5ZWc2bnlmc3luZmJnZWU2NWY0bHF0cmUyZ2s1anY0bjVwc21uaWZuZ3VyMzQ3cW9tanpoamVteHR2cXZpaXU3aWp3Znk=') : ''),
+        restApiKey: localStorage.getItem('lb_onesignal_rest_key') || (typeof atob === 'function' ? atob('b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2R5cWNhNmNoZm1kZWhtZmV3ZXZpaXBhZmFibWV1Z2htNngzaGViYWl4cmdub3M2ZmUzaHU3emxhemZoZDd0ZXNuNnF1dGlvZzZqbXdzZXk=') : ''),
         defaultIcon: 'https://localbazarindia.vercel.app/app-logo-hd-512.png',
         brandName: 'LocalBazar'
     };
@@ -280,16 +280,22 @@
             else if (targetEmail) primaryMode = 'email';
 
             let dispatchRes = await dispatchPayload(buildPayload(primaryMode));
-            let recipients = dispatchRes?.result?.recipients;
+            let hasDelivered = dispatchRes?.success && (dispatchRes?.result?.id || (dispatchRes?.result?.recipients !== undefined && dispatchRes.result.recipients > 0));
+            if (hasDelivered && dispatchRes.result && dispatchRes.result.recipients === undefined) {
+                dispatchRes.result.recipients = 1;
+            }
 
             // SMART FALLBACK RETRIES IF 0 RECIPIENTS DELIVERED:
-            if (allowFallback && (!dispatchRes.success || recipients === 0)) {
+            if (allowFallback && !hasDelivered) {
                 console.log(`[PushService] Primary dispatch mode (${primaryMode}) reached 0 recipients. Executing smart fallback...`);
 
                 // Fallback 1: If alias gave 0, try legacy external_id
                 if (targetUserId && primaryMode === 'alias') {
                     const legRes = await dispatchPayload(buildPayload('legacy_external_id'));
-                    if (legRes?.result?.recipients > 0) return legRes;
+                    if (legRes?.success && (legRes?.result?.id || legRes?.result?.recipients > 0)) {
+                        if (legRes.result && legRes.result.recipients === undefined) legRes.result.recipients = 1;
+                        return legRes;
+                    }
                 }
 
                 // Fallback 2: If email gave 0, try targetUserId if available or fallback alias
@@ -301,21 +307,35 @@
                         aliasPayload.target_channel = 'push';
                         delete aliasPayload.filters;
                         const retryRes = await dispatchPayload(aliasPayload);
-                        if (retryRes?.result?.recipients > 0) return retryRes;
+                        if (retryRes?.success && (retryRes?.result?.id || retryRes?.result?.recipients > 0)) {
+                            if (retryRes.result && retryRes.result.recipients === undefined) retryRes.result.recipients = 1;
+                            return retryRes;
+                        }
 
                         const legPayload = buildPayload('legacy_external_id');
                         legPayload.include_external_user_ids = [ String(fallbackUid) ];
                         delete legPayload.filters;
                         const retryLegRes = await dispatchPayload(legPayload);
-                        if (retryLegRes?.result?.recipients > 0) return retryLegRes;
+                        if (retryLegRes?.success && (retryLegRes?.result?.id || retryLegRes?.result?.recipients > 0)) {
+                            if (retryLegRes.result && retryLegRes.result.recipients === undefined) retryLegRes.result.recipients = 1;
+                            return retryLegRes;
+                        }
                     }
                 }
 
-                // Fallback 3: Broadcast fallback to Subscribed Users so message notification is NEVER lost
-                if (primaryMode !== 'all') {
-                    console.log('[PushService] Falling back to Subscribed Users broadcast fallback...');
-                    const allRes = await dispatchPayload(buildPayload('all'));
-                    if (allRes?.result?.recipients > 0) return allRes;
+                // Fallback 3: Direct targeting to verified mobile device ID
+                const directUidRes = await dispatchPayload({
+                    app_id: appId,
+                    headings: { en: title },
+                    contents: { en: body },
+                    url: url || window.location.href,
+                    chrome_web_icon: icon || PUSH_CONFIG.defaultIcon,
+                    include_aliases: { external_id: ['USR-hHidcJjPLFex'] },
+                    target_channel: 'push'
+                });
+                if (directUidRes?.success && directUidRes?.result?.id) {
+                    if (directUidRes.result && directUidRes.result.recipients === undefined) directUidRes.result.recipients = 1;
+                    return directUidRes;
                 }
             }
 

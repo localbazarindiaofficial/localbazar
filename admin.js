@@ -3310,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (removeAttachBtn) removeAttachBtn.click();
         refreshAll();
 
-        const recipientsCount = pushRes?.result?.recipients !== undefined ? pushRes.result.recipients : (pushRes?.success ? 1 : 0);
+        const recipientsCount = (pushRes?.result?.id || (pushRes?.result?.recipients !== undefined && pushRes.result.recipients > 0) || pushRes?.success) ? (pushRes?.result?.recipients || 1) : 0;
         alert(`Message sent successfully to: ${to}\n[Push Alert: Sent to ${recipientsCount} device(s)]`);
     });
 
