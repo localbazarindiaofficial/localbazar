@@ -9,9 +9,19 @@
 (function() {
     'use strict';
 
+    const DEFAULT_REST_KEY = (typeof atob === 'function' ? atob('b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2R5cWNhNmNoZm1kZWhtZmV3ZXZpaXBhZmFibWV1Z2htNngzaGViYWl4cmdub3M2ZmUzaHU3emxhemZoZDd0ZXNuNnF1dGlvZzZqbXdzZXk=') : '');
+    
+    // Purge any stale invalid key from localStorage
+    try {
+        const storedKey = localStorage.getItem('lb_onesignal_rest_key');
+        if (!storedKey || !storedKey.includes('dyqca6chfm')) {
+            localStorage.setItem('lb_onesignal_rest_key', DEFAULT_REST_KEY);
+        }
+    } catch(e) {}
+
     const PUSH_CONFIG = {
-        appId: localStorage.getItem('lb_onesignal_app_id') || 'cc4cd04b-4cc6-4fcd-ab85-6fee13841b1e',
-        restApiKey: localStorage.getItem('lb_onesignal_rest_key') || (typeof atob === 'function' ? atob('b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2R5cWNhNmNoZm1kZWhtZmV3ZXZpaXBhZmFibWV1Z2htNngzaGViYWl4cmdub3M2ZmUzaHU3emxhemZoZDd0ZXNuNnF1dGlvZzZqbXdzZXk=') : ''),
+        appId: 'cc4cd04b-4cc6-4fcd-ab85-6fee13841b1e',
+        restApiKey: DEFAULT_REST_KEY,
         defaultIcon: 'https://localbazarindia.vercel.app/app-logo-hd-512.png',
         brandName: 'LocalBazar'
     };
@@ -233,25 +243,7 @@
             };
 
             const dispatchPayload = async (payload) => {
-                const apiUrl = (window.location.origin && window.location.origin.includes('localbazarindia.vercel.app')) 
-                    ? '/api/send-push' 
-                    : 'https://localbazarindia.vercel.app/api/send-push';
-
-                // Strategy 1: Dispatch via Serverless Function
-                try {
-                    const apiRes = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (apiRes.ok) {
-                        const result = await apiRes.json();
-                        console.log('[PushService] Serverless Push response:', result);
-                        return { success: true, result };
-                    }
-                } catch(e) {}
-
-                // Strategy 2: Direct OneSignal REST API call
+                // Strategy 1: Direct OneSignal REST API call (Supported with CORS origin)
                 if (restKey) {
                     try {
                         const authHeader = restKey.startsWith('os_v2_') ? `Key ${restKey}` : `Basic ${restKey}`;
@@ -264,10 +256,30 @@
                             body: JSON.stringify(payload)
                         });
                         const result = await res.json();
-                        console.log('[PushService] Direct OneSignal response:', result);
-                        return { success: true, result };
-                    } catch(e) {}
+                        console.log('[PushService] Direct OneSignal response:', res.status, result);
+                        if (res.ok && (result.id || result.recipients !== undefined)) {
+                            return { success: true, result };
+                        }
+                    } catch(e) {
+                        console.warn('[PushService] Direct OneSignal fetch error:', e);
+                    }
                 }
+
+                // Strategy 2: Serverless Function proxy fallback
+                try {
+                    const apiUrl = (window.location.origin && window.location.origin.includes('localbazarindia.vercel.app')) 
+                        ? '/api/send-push' 
+                        : 'https://localbazarindia.vercel.app/api/send-push';
+                    const apiRes = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (apiRes.ok) {
+                        const result = await apiRes.json();
+                        return { success: true, result };
+                    }
+                } catch(e) {}
 
                 return { success: false, result: null };
             };
