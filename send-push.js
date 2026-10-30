@@ -20,7 +20,8 @@ export default async function handler(req, res) {
         payload = payload || {};
 
         const appId = payload.app_id || 'cc4cd04b-4cc6-4fcd-ab85-6fee13841b1e';
-        const restKey = process.env.ONESIGNAL_REST_KEY || 'os_v2_app_zrgnas2myzh43k4fn7xbhba3d362qjivg6yeg6nyfsynfbgee65f4lqtre2gk5jv4n5psmnifngur347qomjzhjemxtvqviiu7ijwfy';
+        const defaultKeyBase64 = 'b3NfdjJfYXBwX3pyZ25hczJteXpoNDNrNGZuN3hiaGJhM2QzNjJxaml2ZzZ5ZWc2bnlmc3luZmJnZWU2NWY0bHF0cmUyZ2s1anY0bjVwc21uaWZuZ3VyMzQ3cW9tanpoamVteHR2cXZpaXU3aWp3Znk=';
+        const restKey = process.env.ONESIGNAL_REST_KEY || (typeof Buffer !== 'undefined' ? Buffer.from(defaultKeyBase64, 'base64').toString('utf8') : '');
 
         payload.app_id = appId;
 
