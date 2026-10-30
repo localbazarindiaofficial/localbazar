@@ -26,6 +26,32 @@
     <link rel="icon" type="image/svg+xml" href="icon.svg">
 </head>
 <body>
+    <!-- Native App-Grade Smooth Splash Screen (Zero Cutout, Zero Jump) -->
+    <div id="app-launch-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#ffffff; z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s; pointer-events:all;">
+        <div style="width:105px; height:105px; display:flex; align-items:center; justify-content:center;">
+            <img src="app-logo-hd-192.png" alt="LocalBazar" style="width:100%; height:100%; object-fit:contain; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+        </div>
+        <div style="margin-top:16px; font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.15rem; color:#1e293b; letter-spacing:-0.3px;">
+            Local<span style="color:#2563eb;">Bazar</span>
+        </div>
+    </div>
+    <script>
+        (function() {
+            function dismissSplash() {
+                var el = document.getElementById('app-launch-splash');
+                if (!el) return;
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                setTimeout(function() { if (el && el.parentNode) el.parentNode.removeChild(el); }, 350);
+            }
+            if (document.readyState === 'complete') {
+                setTimeout(dismissSplash, 180);
+            } else {
+                window.addEventListener('load', function() { setTimeout(dismissSplash, 180); });
+                setTimeout(dismissSplash, 800);
+            }
+        })();
+    </script>
 
     <!-- Minimal Header -->
     <header class="app-header">

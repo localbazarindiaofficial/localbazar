@@ -4011,7 +4011,7 @@ window.adminSecurityConfirm = function({ title = 'Confirm Action', message = 'Ar
             return (input && input.value ? input.value : '')
                 .trim()
                 .toUpperCase()
-                .replace(/[\u200B-\u200D\uFEFF]/g, '');
+                .replace(/[^A-Z]/g, '');
         }
 
         if (confirmBtn) {

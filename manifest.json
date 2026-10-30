@@ -1,7 +1,7 @@
 {
   "name": "LocalBazar - Explore Your City",
   "short_name": "LocalBazar",
-  "id": "/?app=localbazar-v4",
+  "id": "/?app=localbazar-v5",
   "description": "Discover local shops, clinics, doctors, products, deals, and services in your city.",
   "start_url": "/",
   "scope": "/",
