@@ -1340,8 +1340,9 @@
             <form id="composeMailForm" onsubmit="event.preventDefault();">
                 <div class="form-grid">
                     <div class="form-field full">
-                        <label for="mailToInput">Recipient Email / User *</label>
-                        <input type="email" id="mailToInput" placeholder="user@domain.com" required>
+                        <label for="mailToInput">Recipient User / Email / User ID *</label>
+                        <input type="text" id="mailToInput" list="adminRegisteredUsersDatalist" placeholder="Select user, enter email, or User ID (e.g. USR-...)" required autocomplete="off">
+                        <datalist id="adminRegisteredUsersDatalist"></datalist>
                     </div>
                     <div class="form-field full">
                         <label for="mailSubjectInput">Subject *</label>
@@ -2118,7 +2119,7 @@
     <script src="firebase-config.js?v=2.0.1"></script>
     <!-- Background Web Push Notification Engine (OneSignal) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script src="push-service.js" defer></script>
-    <script src="admin.js?v=2.6.0"></script>
+    <script src="push-service.js?v=3.1.0" defer></script>
+    <script src="admin.js?v=3.1.0"></script>
 </body>
 </html>
