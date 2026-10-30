@@ -487,10 +487,22 @@
                     </div>
 
                     <div class="mailbox-layout">
-                        <!-- Mailbox Tabs -->
-                        <div class="mailbox-nav">
-                            <button type="button" class="mail-tab-btn active" data-mail-tab="inbox"><i class="fa-solid fa-inbox"></i> Inbox <span class="badge-count" id="inboxBadgeCount">0</span></button>
-                            <button type="button" class="mail-tab-btn" data-mail-tab="sent"><i class="fa-solid fa-paper-plane"></i> Sent Messages <span class="badge-count" id="sentBadgeCount">0</span></button>
+                        <!-- Mailbox Tabs & Bulk Actions Bar -->
+                        <div class="mailbox-nav" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <button type="button" class="mail-tab-btn active" data-mail-tab="inbox"><i class="fa-solid fa-inbox"></i> Inbox <span class="badge-count" id="inboxBadgeCount">0</span></button>
+                                <button type="button" class="mail-tab-btn" data-mail-tab="sent"><i class="fa-solid fa-paper-plane"></i> Sent Messages <span class="badge-count" id="sentBadgeCount">0</span></button>
+                            </div>
+                            <!-- Bulk Actions Toolbar (Shown when 1 or more emails are checked) -->
+                            <div id="mailBulkActionBar" style="display:none; align-items:center; gap:0.75rem; background:#fee2e2; border:1px solid #fca5a5; padding:0.4rem 0.95rem; border-radius:10px; box-shadow:0 2px 6px rgba(239,68,68,0.15);">
+                                <span id="mailSelectedCountText" style="font-size:0.84rem; font-weight:800; color:#b91c1c;">0 selected</span>
+                                <button type="button" id="btnDeleteSelectedMails" onclick="window.deleteSelectedMails()" style="background:#dc2626; color:#ffffff; border:none; padding:0.4rem 0.95rem; border-radius:7px; font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; box-shadow:0 2px 6px rgba(220,38,38,0.3); transition:all 0.15s ease;">
+                                    <i class="fa-regular fa-trash-can"></i> Delete Selected
+                                </button>
+                                <button type="button" onclick="window.clearSelectedMails()" style="background:transparent; border:none; color:#64748b; font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline;">
+                                    Deselect All
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Mailbox Feed -->
@@ -1400,9 +1412,9 @@
             </div>
             <form id="composeMailForm" onsubmit="event.preventDefault();">
                 <div class="form-grid">
-                    <div class="form-field full" style="position: relative;">
+                    <div class="form-field full" style="position: relative; z-index: 100;">
                         <label for="mailToInput"><i class="fa-solid fa-id-badge" style="color:var(--primary); margin-right:4px;"></i> Recipient User ID *</label>
-                        <div style="position: relative;">
+                        <div style="position: relative; z-index: 101;">
                             <input type="text" id="mailToInput" data-no-capitalize="true" placeholder="Enter or search User ID (e.g. LB482915)..." required autocomplete="off" style="font-family: monospace; font-weight: 700; letter-spacing: 0.5px;">
                             <div id="mailToSuggestionsPopover" class="admin-user-suggestions-popover" style="display:none;"></div>
                         </div>

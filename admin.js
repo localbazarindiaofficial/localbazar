@@ -27,6 +27,21 @@ function escapeAdminHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+// Consistent Deterministic LB User ID Formatter (LB + 6 digits)
+function getCleanLBUserId(u) {
+    if (!u) return 'LB100001';
+    if (u.id && typeof u.id === 'string' && /^LB\d{6}$/i.test(u.id)) {
+        return u.id.toUpperCase();
+    }
+    const seed = String(u.email || u.uid || u.id || 'lb_user');
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'LB' + (100000 + Math.abs(hash % 900000));
+}
+
 // =========================================================
 // SUPER ADMIN AUTHENTICATION GATEWAY CONTROLLER
 // =========================================================
@@ -601,42 +616,109 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedIndex = -1;
 
         function renderSuggestions(query) {
-            const rawUsers = getDB(DB_KEYS.USERS, []);
-            const q = query.trim().toLowerCase();
+            let rawUsers = getDB(DB_KEYS.USERS, []);
 
-            if (!q) {
+            // Also check lb_current_user if local test session has a user not yet in rawUsers
+            try {
+                const rawCur = localStorage.getItem('lb_current_user');
+                if (rawCur) {
+                    const cur = JSON.parse(rawCur);
+                    if (cur && cur.email && !rawUsers.some(u => u && u.email && u.email.toLowerCase() === cur.email.toLowerCase())) {
+                        rawUsers.unshift(cur);
+                    }
+                }
+            } catch(e) {}
+
+            // Clean users (filter mocks and ensure consistent LB IDs)
+            rawUsers = rawUsers.filter(u => u && u.name !== 'Sourav Das' && u.name !== 'Anirban Mukherjee' && u.name !== 'Priya Sharma' && u.name !== 'Rahul Sen' && u.name !== 'Sunita Roy' && (!u.email || (!u.email.includes('@example.com') && !u.email.includes('sourav.das'))));
+
+            let usersMigrated = false;
+            rawUsers.forEach(u => {
+                if (u && (!u.id || !String(u.id).startsWith('LB'))) {
+                    u.id = getCleanLBUserId(u);
+                    usersMigrated = true;
+                }
+            });
+            if (usersMigrated) {
+                setDB(DB_KEYS.USERS, rawUsers);
+            }
+
+            const qRaw = (query || '').trim();
+            if (!qRaw) {
                 popover.style.display = 'none';
                 popover.innerHTML = '';
                 return;
             }
 
-            // Prioritize matching User ID (starts with or includes), then Name, Email, Phone
-            const matches = rawUsers.filter(u => {
-                if (!u) return false;
-                const id = String(u.id || '').toLowerCase();
-                const name = (u.name || '').toLowerCase();
-                const email = (u.email || '').toLowerCase();
-                const phone = (u.phone || '').toLowerCase();
-                return id.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
-            }).sort((a, b) => {
+            // Normalize search query
+            const qClean = qRaw.toLowerCase().replace(/^[#\s-]+/, ''); // remove leading #, space, dash
+            const numOnly = qClean.replace(/^lb/i, '').replace(/\D+/g, ''); // get numbers e.g. "4" from "lb4"
+            const isJustLB = qClean === 'lb' || qClean === 'l';
+
+            let matches = [];
+
+            if (isJustLB) {
+                // When typing "LB" or "L", immediately suggest all registered users!
+                matches = [...rawUsers];
+            } else {
+                matches = rawUsers.filter(u => {
+                    if (!u) return false;
+                    const id = String(u.id || '').toLowerCase();
+                    const idNum = id.replace(/^lb/i, '');
+                    const name = (u.name || '').toLowerCase();
+                    const email = (u.email || '').toLowerCase();
+                    const phone = (u.phone || '').toLowerCase();
+
+                    // 1. Direct match on ID (e.g. "lb482915" includes "lb4")
+                    if (id.includes(qClean)) return true;
+                    // 2. Numeric match (e.g. user typed "LB4" or "4", idNum includes "4")
+                    if (numOnly && idNum.includes(numOnly)) return true;
+                    // 3. Name, email, phone match
+                    if (name.includes(qClean) || email.includes(qClean) || phone.includes(qClean)) return true;
+
+                    return false;
+                });
+            }
+
+            // Priority sorting:
+            matches.sort((a, b) => {
                 const aId = String(a.id || '').toLowerCase();
                 const bId = String(b.id || '').toLowerCase();
-                const aStarts = aId.startsWith(q);
-                const bStarts = bId.startsWith(q);
+                const aNum = aId.replace(/^lb/i, '');
+                const bNum = bId.replace(/^lb/i, '');
+
+                // Matches where ID starts with query come first
+                const aStarts = aId.startsWith(qClean);
+                const bStarts = bId.startsWith(qClean);
                 if (aStarts && !bStarts) return -1;
                 if (!aStarts && bStarts) return 1;
-                const aHasId = aId.includes(q);
-                const bHasId = bId.includes(q);
-                if (aHasId && !bHasId) return -1;
-                if (!aHasId && bHasId) return 1;
+
+                // If typing numbers, matches where ID number starts with typed number come first
+                if (numOnly) {
+                    const aNumStarts = aNum.startsWith(numOnly);
+                    const bNumStarts = bNum.startsWith(numOnly);
+                    if (aNumStarts && !bNumStarts) return -1;
+                    if (!aNumStarts && bNumStarts) return 1;
+                }
+
+                // Next, name starts with query
+                const aName = (a.name || '').toLowerCase();
+                const bName = (b.name || '').toLowerCase();
+                const aNameStarts = aName.startsWith(qClean);
+                const bNameStarts = bName.startsWith(qClean);
+                if (aNameStarts && !bNameStarts) return -1;
+                if (!aNameStarts && bNameStarts) return 1;
+
                 return 0;
-            }).slice(0, 10); // Top 10 matches
+            });
+
+            matches = matches.slice(0, 12);
 
             if (matches.length === 0) {
                 popover.style.display = 'block';
                 popover.innerHTML = `
                     <div style="padding:0.85rem 1rem; color:#64748b; font-size:0.82rem; font-style:italic;">
-                        <i class="fa-solid fa-user-xmark" style="margin-right:6px; color:#ef4444;"></i> No registered user found matching "<strong>${escapeAdminHtml(query.trim())}</strong>".
+                        <i class="fa-solid fa-user-xmark" style="margin-right:6px; color:#ef4444;"></i> No registered user found matching "<strong>${escapeAdminHtml(qRaw)}</strong>".
                     </div>
                 `;
                 return;
@@ -654,13 +736,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                     <div class="admin-user-sugg-item" data-index="${idx}" data-id="${escapeAdminHtml(u.id || '')}" data-email="${escapeAdminHtml(u.email || '')}" data-name="${escapeAdminHtml(u.name || '')}">
                         ${avatarHtml}
-                        <div class="admin-user-sugg-info">
+                        <div class="admin-user-sugg-info" style="flex:1; min-width:0;">
                             <div class="admin-user-sugg-name" style="display:flex; align-items:center; gap:0.5rem; justify-content:space-between;">
-                                <div style="display:flex; align-items:center; gap:0.4rem;">
-                                    <span class="admin-user-sugg-id" style="background:#dbeafe; color:#1d4ed8; font-weight:800; font-size:0.82rem; padding:2px 8px; border-radius:6px; border:1px solid #bfdbfe;">#${escapeAdminHtml(u.id || '')}</span>
-                                    <span style="font-weight:700; color:#0f172a;">${escapeAdminHtml(u.name || 'Anonymous User')}</span>
+                                <div style="display:flex; align-items:center; gap:0.45rem;">
+                                    <span class="admin-user-sugg-id" style="background:#dbeafe; color:#1d4ed8; font-weight:800; font-family:monospace; font-size:0.85rem; padding:2px 8px; border-radius:6px; border:1px solid #bfdbfe;">#${escapeAdminHtml(u.id || '')}</span>
+                                    <span style="font-weight:700; color:#0f172a; font-size:0.88rem;">${escapeAdminHtml(u.name || 'User')}</span>
                                 </div>
-                                <span style="font-size:0.7rem; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px;">Verified</span>
+                                <span style="font-size:0.7rem; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px; flex-shrink:0;">Verified</span>
                             </div>
                             <div class="admin-user-sugg-details" style="font-size:0.75rem; color:#64748b; display:flex; gap:0.65rem; margin-top:3px; flex-wrap:wrap;">
                                 <span><i class="fa-regular fa-envelope" style="color:#2563eb;"></i> ${escapeAdminHtml(u.email || 'No email')}</span>
@@ -700,9 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         input.addEventListener('focus', () => {
-            if (input.value.trim()) {
-                renderSuggestions(input.value);
-            }
+            renderSuggestions(input.value || 'LB');
         });
 
         input.addEventListener('keydown', (e) => {
@@ -1524,6 +1604,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawMail = getDB(DB_KEYS.MAIL);
         if (!container) return;
 
+        // Reset bulk selection bar whenever switching tabs or re-rendering
+        if (typeof window.clearSelectedMails === 'function') {
+            window.clearSelectedMails();
+        }
+
         // Strictly show support tickets/mail between User & Admin; filter out any legacy store chat inquiries
         const mail = (rawMail || []).filter(m => {
             const subj = (m.subject || '').trim();
@@ -1540,29 +1625,46 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        container.innerHTML = filtered.map(m => {
+        const headerHtml = `
+            <div class="mail-list-header-row" style="display:flex; align-items:center; justify-content:space-between; padding:0.65rem 1.15rem; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-size:0.82rem; font-weight:700; color:#475569;">
+                <label style="display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer; margin:0; user-select:none;">
+                    <input type="checkbox" id="masterMailCheckbox" onchange="window.toggleSelectAllMails(this)" style="width:16px; height:16px; cursor:pointer; accent-color:#2563eb;">
+                    <span>Select All</span>
+                </label>
+                <span style="font-weight:600; font-size:0.78rem; color:#94a3b8;">${filtered.length} total messages</span>
+            </div>
+        `;
+
+        const itemsHtml = filtered.map(m => {
             const attachBadge = m.attachment && m.attachment.data ? `
                 <a href="${m.attachment.data}" download="${m.attachment.name || 'attachment'}" onclick="event.stopPropagation();" class="mail-item-attachment-badge" title="Click to download attachment (${m.attachment.size || ''})">
                     <i class="fa-solid fa-paperclip"></i>
-                    <span>${m.attachment.name || 'File'} (${m.attachment.size || 'KB'})</span>
+                    <span>${escapeMailHtml(m.attachment.name || 'File')} (${m.attachment.size || 'KB'})</span>
                 </a>
             ` : '';
 
+            const senderOrRecip = m.from || m.to || 'User';
+
             return `
             <div class="mail-item ${!m.read && m.type === 'inbox' ? 'unread' : ''}" onclick="openAdminMailViewer('${m.id}')" style="cursor:pointer;" title="Click to view message & reply">
+                <div style="display:flex; align-items:center; padding-right:0.65rem;" onclick="event.stopPropagation();">
+                    <input type="checkbox" class="mail-item-checkbox" data-mail-id="${m.id}" onchange="window.handleMailCheckboxChange()" style="width:16px; height:16px; cursor:pointer; accent-color:#2563eb;">
+                </div>
                 <div class="mail-item-left">
                     <i class="fa-regular fa-envelope${m.read ? '-open' : ''}" style="color:${m.read ? '#94a3b8' : '#2563eb'}; font-size:1.05rem;"></i>
-                    <div class="mail-item-sender" title="${m.from || m.to}">${m.from || m.to}</div>
-                    <div class="mail-item-snippet"><strong>${m.subject}</strong> — ${m.body}</div>
+                    <div class="mail-item-sender" title="${escapeMailHtml(senderOrRecip)}">${escapeMailHtml(senderOrRecip)}</div>
+                    <div class="mail-item-snippet"><strong>${escapeMailHtml(m.subject || 'No Subject')}</strong> — ${escapeMailHtml(m.body || '')}</div>
                     ${attachBadge}
                 </div>
                 <div style="display:flex; align-items:center; gap:0.75rem;" onclick="event.stopPropagation();">
-                    <span style="font-size:0.78rem; color:#94a3b8; white-space:nowrap;">${m.date}</span>
+                    <span style="font-size:0.78rem; color:#94a3b8; white-space:nowrap;">${m.date || ''}</span>
                     <button type="button" class="btn-action delete" onclick="deleteMail('${m.id}')" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
                 </div>
             </div>
             `;
         }).join('');
+
+        container.innerHTML = headerHtml + itemsHtml;
     }
 
     // Helper for HTML escaping
@@ -1724,6 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMailbox(btn.getAttribute('data-mail-tab'));
         });
     });
+    window.renderMailbox = renderMailbox;
 
     // 8. NEWS & ADS MODULE
     function renderNews() {
@@ -5048,18 +5151,104 @@ window.clearAllCategoriesPrompt = async function() {
     }
 };
 
+window.handleMailCheckboxChange = function() {
+    const checkboxes = document.querySelectorAll('.mail-item-checkbox');
+    const checked = document.querySelectorAll('.mail-item-checkbox:checked');
+    const master = document.getElementById('masterMailCheckbox');
+    const bulkBar = document.getElementById('mailBulkActionBar');
+    const countText = document.getElementById('mailSelectedCountText');
+
+    if (master && checkboxes.length > 0) {
+        master.checked = checkboxes.length === checked.length;
+        master.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+    }
+
+    if (bulkBar && countText) {
+        if (checked.length > 0) {
+            bulkBar.style.display = 'inline-flex';
+            countText.textContent = `${checked.length} selected`;
+        } else {
+            bulkBar.style.display = 'none';
+        }
+    }
+};
+
+window.toggleSelectAllMails = function(masterCheckbox) {
+    const isChecked = masterCheckbox ? masterCheckbox.checked : false;
+    document.querySelectorAll('.mail-item-checkbox').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    window.handleMailCheckboxChange();
+};
+
+window.clearSelectedMails = function() {
+    const master = document.getElementById('masterMailCheckbox');
+    if (master) {
+        master.checked = false;
+        master.indeterminate = false;
+    }
+    document.querySelectorAll('.mail-item-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    const bulkBar = document.getElementById('mailBulkActionBar');
+    if (bulkBar) bulkBar.style.display = 'none';
+};
+
 window.deleteMail = async function(id) {
     const ok = await window.adminSecurityConfirm({
         title: 'Delete Message',
-        message: 'Are you sure you want to delete this message?',
+        message: 'Are you sure you want to permanently delete this message?',
         actionType: 'delete'
     });
     if (!ok) return;
 
     let mail = getDB(DB_KEYS.MAIL);
-    mail = mail.filter(m => m.id !== id);
+    mail = mail.filter(m => String(m.id) !== String(id));
     setDB(DB_KEYS.MAIL, mail);
+
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteMail === 'function') {
+        await window.lbCloudSync.deleteMail(id);
+    }
+
     if (typeof window.refreshAll === 'function') window.refreshAll();
+    const currentTab = document.querySelector('.mail-tab-btn.active')?.getAttribute('data-mail-tab') || 'inbox';
+    if (typeof renderMailbox === 'function') renderMailbox(currentTab);
+};
+
+window.deleteSelectedMails = async function() {
+    const checked = document.querySelectorAll('.mail-item-checkbox:checked');
+    const selectedIds = Array.from(checked).map(cb => cb.getAttribute('data-mail-id')).filter(Boolean);
+
+    if (selectedIds.length === 0) {
+        alert('Please select at least one message to delete.');
+        return;
+    }
+
+    const ok = await window.adminSecurityConfirm({
+        title: `Delete ${selectedIds.length} Messages`,
+        message: `Are you sure you want to permanently delete these <strong>${selectedIds.length}</strong> selected messages from the database and cloud?`,
+        actionType: 'delete'
+    });
+    if (!ok) return;
+
+    let mail = getDB(DB_KEYS.MAIL);
+    const idSet = new Set(selectedIds.map(String));
+    mail = mail.filter(m => !idSet.has(String(m.id)));
+    setDB(DB_KEYS.MAIL, mail);
+
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteMultipleMails === 'function') {
+        await window.lbCloudSync.deleteMultipleMails(selectedIds);
+    } else if (window.lbCloudSync && typeof window.lbCloudSync.deleteMail === 'function') {
+        for (const id of selectedIds) {
+            await window.lbCloudSync.deleteMail(id);
+        }
+    }
+
+    window.clearSelectedMails();
+    if (typeof window.refreshAll === 'function') window.refreshAll();
+    const currentTab = document.querySelector('.mail-tab-btn.active')?.getAttribute('data-mail-tab') || 'inbox';
+    if (typeof renderMailbox === 'function') renderMailbox(currentTab);
+    alert(`${selectedIds.length} messages permanently deleted.`);
 };
 
 window.deleteNews = async function(id) {

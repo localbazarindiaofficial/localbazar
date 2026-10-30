@@ -304,10 +304,26 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             if (!window.isFirebaseReady() || !lbFirestore) return null;
 
             try {
+                function formatToCleanLBId(u, fallbackId) {
+                    if (u && u.id && typeof u.id === 'string' && /^LB\d{6}$/i.test(u.id)) {
+                        return u.id.toUpperCase();
+                    }
+                    const seed = String((u && u.email) || (u && u.uid) || fallbackId || 'lb_user');
+                    let hash = 0;
+                    for (let i = 0; i < seed.length; i++) {
+                        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                        hash |= 0;
+                    }
+                    return 'LB' + (100000 + Math.abs(hash % 900000));
+                }
+
                 const snapshot = await lbFirestore.collection('users').get();
                 if (!snapshot.empty) {
                     const rawUsers = [];
-                    snapshot.forEach(doc => rawUsers.push({ ...doc.data(), id: doc.data().id || doc.id }));
+                    snapshot.forEach(doc => {
+                        const data = doc.data() || {};
+                        rawUsers.push({ ...data, id: formatToCleanLBId(data, data.id || doc.id) });
+                    });
 
                     const emailMap = new Map();
                     const cloudUsers = [];
@@ -346,7 +362,20 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             try {
                 return lbFirestore.collection('users').onSnapshot(snapshot => {
                     const rawUsers = [];
-                    snapshot.forEach(doc => rawUsers.push({ ...doc.data(), id: doc.data().id || doc.id }));
+                    snapshot.forEach(doc => {
+                        const data = doc.data() || {};
+                        let cleanId = data.id || doc.id;
+                        if (!cleanId || !String(cleanId).startsWith('LB')) {
+                            const seed = String(data.email || data.uid || doc.id || 'lb_user');
+                            let hash = 0;
+                            for (let i = 0; i < seed.length; i++) {
+                                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                                hash |= 0;
+                            }
+                            cleanId = 'LB' + (100000 + Math.abs(hash % 900000));
+                        }
+                        rawUsers.push({ ...data, id: cleanId.toUpperCase() });
+                    });
 
                     const emailMap = new Map();
                     const updated = [];
@@ -726,6 +755,32 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                 console.log(`[CloudSync] Mail item "${mailItem.id}" synced to Firestore.`);
             } catch (err) {
                 console.error("[CloudSync] Failed to sync mail to Firestore:", err);
+            }
+        },
+
+        // 14b. Delete Single Mail from Cloud Firestore
+        deleteMail: async function(mailId) {
+            if (!mailId || !window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                await lbFirestore.collection('mail').doc(String(mailId)).delete();
+                console.log(`[CloudSync] Mail (${mailId}) permanently deleted from Firestore.`);
+            } catch (err) {
+                console.error("[CloudSync] Failed to delete mail from Firestore:", err);
+            }
+        },
+
+        // 14c. Batch Delete Multiple Mails from Cloud Firestore
+        deleteMultipleMails: async function(mailIds) {
+            if (!Array.isArray(mailIds) || mailIds.length === 0 || !window.isFirebaseReady() || !lbFirestore) return;
+            try {
+                const batch = lbFirestore.batch();
+                mailIds.forEach(id => {
+                    batch.delete(lbFirestore.collection('mail').doc(String(id)));
+                });
+                await batch.commit();
+                console.log(`[CloudSync] ${mailIds.length} mail items permanently deleted from Firestore.`);
+            } catch (err) {
+                console.error("[CloudSync] Failed batch delete mails from Firestore:", err);
             }
         },
 
