@@ -165,21 +165,44 @@
             });
         },
 
-        // DIRECT PUSH: Sends directly to a specific device subscription token
-        sendDirectPush: async function(token, { title, body, url, icon }) {
-            if (!token) {
-                console.warn('[PushService] No device token provided for direct push');
-                return { success: false, reason: 'No token' };
-            }
+        // Universal Push Dispatcher: handles Subscription ID, External User ID, or Email
+        sendPush: async function({ targetUserId, targetSubscriptionId, targetStoreId, targetEmail, title, body, url, icon }) {
+            const appId = PUSH_CONFIG.appId;
+            const restKey = PUSH_CONFIG.restApiKey;
 
             const payload = {
-                app_id: PUSH_CONFIG.appId,
-                include_subscription_ids: [ String(token) ],
+                app_id: appId,
                 headings: { en: title },
                 contents: { en: body },
                 url: url || window.location.href,
                 chrome_web_icon: icon || PUSH_CONFIG.defaultIcon
             };
+
+            // 1. Direct Subscription ID
+            if (targetSubscriptionId) {
+                payload.include_subscription_ids = [ String(targetSubscriptionId) ];
+            }
+            // 2. External User ID (e.g. USR-hHidcJjPLFex)
+            else if (targetUserId) {
+                payload.include_aliases = { external_id: [ String(targetUserId) ] };
+                payload.target_channel = 'push';
+            }
+            // 3. Store Owner tag
+            else if (targetStoreId) {
+                payload.filters = [
+                    { field: 'tag', key: `store_${targetStoreId}`, relation: '=', value: 'owner' }
+                ];
+            }
+            // 4. Email tag
+            else if (targetEmail) {
+                payload.filters = [
+                    { field: 'tag', key: 'user_email', relation: '=', value: targetEmail.toLowerCase().trim() }
+                ];
+            }
+            // 5. Fallback for tests: Send to all subscribed devices
+            else {
+                payload.included_segments = [ 'Subscribed Users' ];
+            }
 
             const apiUrl = (window.location.origin && window.location.origin.includes('localbazarindia.vercel.app')) 
                 ? '/api/send-push' 
@@ -194,13 +217,12 @@
                 });
                 if (apiRes.ok) {
                     const result = await apiRes.json();
-                    console.log('[PushService] Direct Push dispatched successfully:', result);
+                    console.log('[PushService] Push dispatched successfully:', result);
                     return { success: true, result };
                 }
             } catch(e) {}
 
             // Strategy 2: Direct OneSignal REST API call
-            const restKey = PUSH_CONFIG.restApiKey;
             if (restKey) {
                 try {
                     const authHeader = restKey.startsWith('os_v2_') ? `Key ${restKey}` : `Basic ${restKey}`;
@@ -219,6 +241,10 @@
             }
 
             return { success: false };
+        },
+
+        sendDirectPush: async function(token, opts) {
+            return await this.sendPush({ ...opts, targetSubscriptionId: token });
         },
 
         // Trigger Direct Push to Store Owner when a Customer Inquires
@@ -249,11 +275,14 @@
             const title = `💬 New Inquiry • ${store.name}`;
             const targetUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/account.html#inbox`;
 
-            if (token) {
-                return await this.sendDirectPush(token, { title, body: bodyText, url: targetUrl });
-            } else {
-                console.warn(`[PushService] Store "${store.name}" owner has no device token registered yet.`);
-            }
+            return await this.sendPush({
+                targetSubscriptionId: token,
+                targetUserId: store.ownerId,
+                targetStoreId: store.id,
+                title: title,
+                body: bodyText,
+                url: targetUrl
+            });
         },
 
         // Trigger Direct Push to Specific User when Admin Sends a Message / Reply
@@ -285,11 +314,14 @@
             const body = messageSnippet ? messageSnippet.slice(0, 100) : 'You have received a new reply from Super Admin.';
             const targetUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/account.html#help`;
 
-            if (token) {
-                return await this.sendDirectPush(token, { title, body: body, url: targetUrl });
-            } else {
-                console.warn('[PushService] Target user has no device token saved in database yet.');
-            }
+            return await this.sendPush({
+                targetSubscriptionId: token,
+                targetUserId: targetUserId,
+                targetEmail: targetEmail,
+                title: title,
+                body: body,
+                url: targetUrl
+            });
         }
     };
 

@@ -3211,7 +3211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Compose Mail Form
-    document.getElementById('composeMailForm')?.addEventListener('submit', (e) => {
+    document.getElementById('composeMailForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const to = document.getElementById('mailToInput').value.trim();
         const subject = document.getElementById('mailSubjectInput').value.trim();
@@ -3219,6 +3219,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const attachData = document.getElementById('mailAttachmentData')?.value || '';
         const attachName = document.getElementById('mailAttachmentName')?.value || '';
         const attachSize = document.getElementById('attachFileSize')?.textContent || '';
+
+        // Find recipient user to get their External ID
+        const users = getDB(DB_KEYS.USERS, []);
+        const targetUser = users.find(u => 
+            (u.email && u.email.toLowerCase() === to.toLowerCase()) || 
+            String(u.id) === String(to) ||
+            (u.name && u.name.toLowerCase() === to.toLowerCase())
+        );
+        const resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
 
         const mail = getDB(DB_KEYS.MAIL);
         const newMailItem = {
@@ -3239,18 +3248,10 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lbCloudSync.saveMail(newMailItem);
         }
 
-        // Find recipient user to get their External ID
-        const users = getDB(DB_KEYS.USERS, []);
-        const targetUser = users.find(u => 
-            (u.email && u.email.toLowerCase() === to.toLowerCase()) || 
-            String(u.id) === String(to) ||
-            (u.name && u.name.toLowerCase() === to.toLowerCase())
-        );
-        const resolvedUserId = targetUser ? targetUser.id : (to.startsWith('USR') || /^\d+$/.test(to) ? to : null);
-
         // Trigger Background Push Notification directly to the Recipient's Device Token
+        let pushRes = null;
         if (window.lbPushService && typeof window.lbPushService.notifyUserDirect === 'function') {
-            window.lbPushService.notifyUserDirect({
+            pushRes = await window.lbPushService.notifyUserDirect({
                 targetUserId: resolvedUserId,
                 targetEmail: to,
                 subject: subject,
@@ -3262,7 +3263,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('composeMailForm').reset();
         if (removeAttachBtn) removeAttachBtn.click();
         refreshAll();
-        alert(`Message sent successfully to: ${to}`);
+
+        const recipientsCount = pushRes?.result?.recipients !== undefined ? pushRes.result.recipients : (pushRes?.success ? 1 : 0);
+        alert(`Message sent successfully to: ${to}\n[Push Alert: Sent to ${recipientsCount} device(s)]`);
     });
 
     // ========================================================
