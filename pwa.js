@@ -19,45 +19,68 @@
     let deferredInstallPrompt = null;
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-    function isAppAlreadyInstalled() {
-        // A. Already running as installed standalone PWA app
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            return true;
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    // Clean up any stale localStorage lock so re-installation works after uninstall
+    try {
+        if (!isStandalone()) {
+            localStorage.removeItem('lb_pwa_installed');
         }
-        // B. Recorded in local storage that this device/browser already completed installation
-        if (localStorage.getItem('lb_pwa_installed') === 'true') {
-            return true;
+    } catch(e) {}
+
+    async function isAppCurrentlyInstalled() {
+        if (isStandalone()) return true;
+        if ('getInstalledRelatedApps' in navigator) {
+            try {
+                const related = await navigator.getInstalledRelatedApps();
+                if (related && related.length > 0) return true;
+            } catch(e) {}
         }
         return false;
     }
 
-    // If currently running in standalone mode, permanently remember install state & sync UI
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-        try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
-    }
-
     // A. Android & Desktop Chrome/Edge Native Prompt Listener
     window.addEventListener('beforeinstallprompt', (e) => {
-        if (isAppAlreadyInstalled()) return;
+        // Chrome only fires this when the app is NOT installed!
         e.preventDefault();
         deferredInstallPrompt = e;
+        try { localStorage.removeItem('lb_pwa_installed'); } catch(e) {}
+
+        const hubRow = document.getElementById('hubInstallAppRow');
+        if (hubRow && !isStandalone()) {
+            hubRow.style.display = 'flex';
+        }
+
         showPwaInstallBanner();
     });
 
     // B. Auto-Discovery on page load for visitors without the app
-    window.addEventListener('load', () => {
-        // Sync account hub row if already installed
-        if (isAppAlreadyInstalled()) {
+    window.addEventListener('load', async () => {
+        if (isStandalone()) {
+            removePwaInstallBanner();
             const hubRow = document.getElementById('hubInstallAppRow');
             if (hubRow) hubRow.style.display = 'none';
             return;
         }
+
+        const installed = await isAppCurrentlyInstalled();
+        if (installed) {
+            removePwaInstallBanner();
+            const hubRow = document.getElementById('hubInstallAppRow');
+            if (hubRow) hubRow.style.display = 'none';
+            return;
+        }
+
+        const hubRow = document.getElementById('hubInstallAppRow');
+        if (hubRow) hubRow.style.display = 'flex';
+
         setTimeout(showPwaInstallBanner, 1500);
     });
 
     window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
-        try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
         removePwaInstallBanner();
         const hubRow = document.getElementById('hubInstallAppRow');
         if (hubRow) hubRow.style.display = 'none';
@@ -69,19 +92,10 @@
 
     async function showPwaInstallBanner() {
         if (document.getElementById('lbPwaInstallBar')) return;
-        if (isAppAlreadyInstalled()) return;
+        if (isStandalone()) return;
         if (sessionStorage.getItem('lb_pwa_install_dismissed') === 'true') return;
 
-        // Check Chrome's getInstalledRelatedApps API if supported
-        if ('getInstalledRelatedApps' in navigator) {
-            try {
-                const related = await navigator.getInstalledRelatedApps();
-                if (related && related.length > 0) {
-                    try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
-                    return;
-                }
-            } catch (e) {}
-        }
+        if (await isAppCurrentlyInstalled()) return;
 
         const banner = document.createElement('div');
         banner.id = 'lbPwaInstallBar';
@@ -200,12 +214,12 @@
 
     // Global Universal Install Trigger (Used across all pages & Account Hub)
     window.installPwaApp = async function() {
-        // 1. Already running as standalone app or previously installed
-        if (isAppAlreadyInstalled()) {
+        // 1. Already running inside standalone installed app
+        if (isStandalone()) {
             if (typeof showLbToast === 'function') {
-                showLbToast('LocalBazar is already installed on your device!', 'info');
+                showLbToast('LocalBazar is already running as an App on your device!', 'info');
             } else {
-                alert('LocalBazar is already installed and running as an App on your device!');
+                alert('LocalBazar is already running as an App on your device!');
             }
             removePwaInstallBanner();
             return;
@@ -223,7 +237,6 @@
                 const { outcome } = await deferredInstallPrompt.userChoice;
                 if (outcome === 'accepted') {
                     console.log('User accepted LocalBazar PWA installation');
-                    try { localStorage.setItem('lb_pwa_installed', 'true'); } catch (e) {}
                     const hubRow = document.getElementById('hubInstallAppRow');
                     if (hubRow) hubRow.style.display = 'none';
                 }
