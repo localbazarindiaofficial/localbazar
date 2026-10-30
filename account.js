@@ -993,6 +993,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Notification.requestPermission().then(permission => {
             updateUserNotifPermStatusDisplay();
             if (permission === 'granted') {
+                if (window.lbPushService && typeof window.lbPushService.syncUserTags === 'function') {
+                    window.lbPushService.syncUserTags();
+                }
                 window.sendUserPushNotification(
                     'Push Notifications Enabled!',
                     'You will now receive instant push alerts for store inquiries, business claim updates, and local offers.',

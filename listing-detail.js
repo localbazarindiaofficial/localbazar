@@ -2769,6 +2769,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Trigger Real-time Merchant Push Notification & In-app Alert
             try {
+                // Background Push Notification via OneSignal (Delivered even if merchant app is completely closed!)
+                if (window.lbPushService && typeof window.lbPushService.notifyStoreOwner === 'function') {
+                    window.lbPushService.notifyStoreOwner({
+                        storeId: item.id,
+                        storeName: item.name,
+                        customerName: customerName,
+                        messageText: text,
+                        product: attachedProd
+                    });
+                }
+
                 const notifTitle = `New Customer Inquiry: ${item.name}`;
                 const notifBody = `${customerName}: "${text.slice(0, 80)}"`;
                 if ('Notification' in window && Notification.permission === 'granted') {
