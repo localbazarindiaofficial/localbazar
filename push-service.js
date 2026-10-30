@@ -74,6 +74,13 @@
                     window.lbPushService.isInitialized = true;
                     console.log('[PushService] OneSignal Web Push Engine active.');
 
+                    // If browser already has notification permission granted, ensure OneSignal is subscribed
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        try {
+                            await OneSignal.Notifications.requestPermission();
+                        } catch (permErr) {}
+                    }
+
                     // Sync user tags and store ownership
                     window.lbPushService.syncUserTags();
 
@@ -195,13 +202,30 @@
                     ];
                 } else if (targetEmail) {
                     payload.filters = [
-                        { field: 'tag', key: 'user_email', relation: '=', value: targetEmail.toLowerCase() }
+                        { field: 'tag', key: 'user_email', relation: '=', value: targetEmail.toLowerCase().trim() }
                     ];
                 } else if (targetUserId) {
                     payload.include_aliases = { external_id: [String(targetUserId)] };
                     payload.target_channel = 'push';
                 }
 
+                // Strategy 1: Dispatch via Vercel Serverless Function (Bypasses any browser CORS limits)
+                try {
+                    const apiRes = await fetch('/api/send-push', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (apiRes.ok) {
+                        const result = await apiRes.json();
+                        console.log('[PushService] Background Push dispatched via /api/send-push:', result);
+                        return { success: true, result };
+                    }
+                } catch (apiErr) {
+                    console.warn('[PushService] /api/send-push not reachable, trying direct fallback...', apiErr);
+                }
+
+                // Strategy 2: Direct OneSignal REST API call
                 const authHeader = restKey.startsWith('os_v2_') ? `Key ${restKey}` : `Basic ${restKey}`;
 
                 const response = await fetch('https://onesignal.com/api/v1/notifications', {
@@ -214,7 +238,7 @@
                 });
 
                 const result = await response.json();
-                console.log('[PushService] Background Push sent successfully:', result);
+                console.log('[PushService] Direct OneSignal response:', result);
                 return { success: true, result };
             } catch (err) {
                 console.error('[PushService] Failed to send push notification:', err);
