@@ -103,7 +103,7 @@
         banner.innerHTML = `
             <div class="lb-pwa-install-content">
                 <div class="lb-pwa-icon-box">
-                    <img src="icon-512.png" onerror="this.onerror=null; this.src='icons/icon-512.png';" alt="LocalBazar App" class="lb-pwa-thumb">
+                    <img src="app-logo-hd-512.png" onerror="this.onerror=null; this.src='icons/app-logo-hd-512.png';" alt="LocalBazar App" class="lb-pwa-thumb">
                 </div>
                 <div class="lb-pwa-text-group">
                     <strong class="lb-pwa-app-title">Install LocalBazar App</strong>
@@ -151,7 +151,7 @@
             <div class="lb-ios-install-card" onclick="event.stopPropagation()">
                 <button type="button" class="lb-ios-close-btn" onclick="document.getElementById('lbIosInstallModal')?.remove()">&times;</button>
                 <div class="lb-ios-icon-box">
-                    <img src="icon-512.png" onerror="this.onerror=null; this.src='icons/icon-512.png';" alt="LocalBazar App">
+                    <img src="app-logo-hd-512.png" onerror="this.onerror=null; this.src='icons/app-logo-hd-512.png';" alt="LocalBazar App">
                 </div>
                 <h3>Install on iPhone / iPad</h3>
                 <p>Install LocalBazar on your home screen for instant access to local shops and deals:</p>
@@ -190,7 +190,7 @@
             <div class="lb-ios-install-card" onclick="event.stopPropagation()">
                 <button type="button" class="lb-ios-close-btn" onclick="document.getElementById('lbAndroidInstallModal')?.remove()">&times;</button>
                 <div class="lb-ios-icon-box">
-                    <img src="icon-512.png" onerror="this.onerror=null; this.src='icons/icon-512.png';" alt="LocalBazar App">
+                    <img src="app-logo-hd-512.png" onerror="this.onerror=null; this.src='icons/app-logo-hd-512.png';" alt="LocalBazar App">
                 </div>
                 <h3>Install LocalBazar App</h3>
                 <p>Add LocalBazar to your mobile home screen in 2 quick steps:</p>
