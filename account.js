@@ -203,9 +203,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.warn('checkMerchantUnreadInquiries error:', err);
         }
+
+        // Check & Update User Help & Support Messages from Super Admin
+        try {
+            if (typeof renderUserHelpInbox === 'function') {
+                renderUserHelpInbox();
+            }
+        } catch (err) {
+            console.warn('renderUserHelpInbox error:', err);
+        }
     }
 
     populateMainHeader();
+
+    // Real-time listener for incoming mail from Super Admin
+    if (window.lbCloudSync && typeof window.lbCloudSync.listenMail === 'function') {
+        window.lbCloudSync.listenMail(() => {
+            if (typeof renderUserHelpInbox === 'function') {
+                renderUserHelpInbox();
+            }
+        });
+    }
 
     // ================= SCREEN SWITCHER WITH PERSISTENCE =================
     window.switchAccountScreen = function(screenId, updateHistory = true) {
@@ -264,6 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
             resolvedTarget.classList.add('active');
             resolvedTarget.style.display = (screenId === 'viewBusinessDashboard' && window.innerWidth >= 769) ? 'flex' : 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        if (screenId === 'viewHelp' && typeof window.renderUserHelpInbox === 'function') {
+            window.renderUserHelpInbox();
         }
 
         // State & Hash Persistence: Never lose position on page refresh
@@ -558,6 +580,244 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Helper for HTML escaping
+    function escapeUserHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Tab switching for Help & Support: 'inbox' vs 'compose'
+    window.switchUserHelpTab = function(tab = 'inbox') {
+        const btnInbox = document.getElementById('btnHelpTabInbox');
+        const btnCompose = document.getElementById('btnHelpTabCompose');
+        const paneInbox = document.getElementById('helpTabInboxContent');
+        const paneCompose = document.getElementById('helpTabComposeContent');
+
+        if (tab === 'compose') {
+            btnInbox?.classList.remove('active');
+            btnCompose?.classList.add('active');
+            if (paneInbox) paneInbox.style.display = 'none';
+            if (paneCompose) paneCompose.style.display = 'block';
+        } else {
+            btnCompose?.classList.remove('active');
+            btnInbox?.classList.add('active');
+            if (paneCompose) paneCompose.style.display = 'none';
+            if (paneInbox) paneInbox.style.display = 'block';
+            renderUserHelpInbox();
+        }
+    };
+
+    // Render User's Help & Support Inbox (Messages received from Super Admin)
+    window.renderUserHelpInbox = function() {
+        const listContainer = document.getElementById('userHelpInboxList');
+        const inboxBadge = document.getElementById('userHelpInboxBadge');
+        const menuBadge = document.getElementById('menuHelpUnreadBadge');
+        if (!listContainer) return;
+
+        let curUser = currentUser;
+        if (!curUser || !curUser.id) {
+            try {
+                const raw = localStorage.getItem('lb_current_user');
+                if (raw) curUser = JSON.parse(raw);
+            } catch (e) {}
+        }
+
+        if (!curUser) {
+            listContainer.innerHTML = `<div style="text-align:center; padding:2.5rem 1rem; color:#94a3b8;"><i class="fa-solid fa-lock" style="font-size:1.8rem; margin-bottom:0.5rem; display:block; color:#cbd5e1;"></i>Please log in to view your support inbox.</div>`;
+            return;
+        }
+
+        const userEmail = (curUser.email || '').trim().toLowerCase();
+        const userName = (curUser.name || '').trim().toLowerCase();
+        const userId = String(curUser.id || '').trim();
+
+        let rawMail = [];
+        try {
+            const m = localStorage.getItem('lb_mail');
+            if (m) rawMail = JSON.parse(m);
+        } catch (e) {}
+
+        // Filter messages addressed to this user or replies from Super Admin
+        const userMails = (rawMail || []).filter(m => {
+            if (!m) return false;
+            if ((m.subject || '').startsWith('[Chat Inquiry]')) return false;
+
+            const to = (m.to || '').trim().toLowerCase();
+            const from = (m.from || '').trim().toLowerCase();
+            const mUserId = String(m.userId || '').trim();
+            const mUserEmail = String(m.userEmail || '').trim().toLowerCase();
+
+            const isToMe = (userEmail && to === userEmail) ||
+                           (userName && to === userName) ||
+                           (userId && mUserId === userId) ||
+                           (userEmail && mUserEmail === userEmail) ||
+                           to === 'all users' ||
+                           to === 'all merchants';
+
+            const isFromAdminToMe = (from.includes('admin') || m.type === 'sent') && isToMe;
+
+            return isToMe || isFromAdminToMe;
+        });
+
+        // Calculate unread count (userRead === false or (!m.read && m.type === 'sent'))
+        const unreadList = userMails.filter(m => m.userRead === false || (m.userRead === undefined && !m.read && m.type === 'sent'));
+        const unreadCount = unreadList.length;
+
+        if (inboxBadge) {
+            if (unreadCount > 0) {
+                inboxBadge.textContent = unreadCount;
+                inboxBadge.style.display = 'inline-block';
+            } else {
+                inboxBadge.style.display = 'none';
+            }
+        }
+        if (menuBadge) {
+            if (unreadCount > 0) {
+                menuBadge.textContent = unreadCount;
+                menuBadge.style.display = 'inline-block';
+            } else {
+                menuBadge.style.display = 'none';
+            }
+        }
+
+        if (userMails.length === 0) {
+            listContainer.innerHTML = `
+                <div style="text-align:center; padding:2.5rem 1.25rem; background:#ffffff; border:1px dashed #cbd5e1; border-radius:14px;">
+                    <i class="fa-regular fa-envelope-open" style="font-size:2rem; color:#94a3b8; display:block; margin-bottom:0.5rem;"></i>
+                    <h4 style="margin:0 0 0.35rem 0; color:#334155; font-size:0.95rem; font-weight:700;">No Messages in Inbox Yet</h4>
+                    <p style="margin:0 0 0.85rem 0; font-size:0.82rem; color:#64748b;">Have a question, feedback, or need help? Send a message directly to Admin.</p>
+                    <button type="button" onclick="switchUserHelpTab('compose')" style="padding:0.5rem 1.15rem; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-pen-to-square"></i> Compose Mail
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        listContainer.innerHTML = userMails.map(m => {
+            const isUnread = m.userRead === false || (m.userRead === undefined && !m.read && m.type === 'sent');
+            const hasAttach = m.attachment && m.attachment.data;
+            return `
+                <div class="user-mail-card ${isUnread ? 'unread' : ''}" onclick="openUserMailView('${m.id}')" title="Click to view message & reply">
+                    <div class="user-mail-top">
+                        <div class="user-mail-sender-wrap">
+                            ${isUnread ? '<span class="user-mail-unread-dot"></span>' : ''}
+                            <i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i>
+                            <span>${escapeUserHtml(m.from || 'Super Admin')}</span>
+                        </div>
+                        <span class="user-mail-date">${m.date || ''}</span>
+                    </div>
+                    <h4 class="user-mail-subject">${escapeUserHtml(m.subject || 'No Subject')}</h4>
+                    <p class="user-mail-snippet">${escapeUserHtml(m.body || '')}</p>
+                    ${hasAttach ? `
+                        <div class="user-mail-footer-meta">
+                            <span class="user-mail-attach-pill">
+                                <i class="fa-solid fa-paperclip"></i>
+                                <span>${escapeUserHtml(m.attachment.name || 'Attachment')} (${m.attachment.size || ''})</span>
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    };
+
+    // Open User Mail Details Modal
+    window.openUserMailView = function(id) {
+        let rawMail = [];
+        try {
+            const m = localStorage.getItem('lb_mail');
+            if (m) rawMail = JSON.parse(m);
+        } catch (e) {}
+
+        const item = rawMail.find(m => String(m.id) === String(id));
+        if (!item) return;
+
+        // Mark as read for this user
+        if (item.userRead === false || (item.userRead === undefined && !item.read)) {
+            item.userRead = true;
+            localStorage.setItem('lb_mail', JSON.stringify(rawMail));
+            if (window.lbCloudSync && typeof window.lbCloudSync.saveMail === 'function') {
+                window.lbCloudSync.saveMail(item);
+            }
+            renderUserHelpInbox();
+        }
+
+        const subjEl = document.getElementById('uMailViewSubject');
+        if (subjEl) subjEl.innerHTML = `<i class="fa-regular fa-envelope-open" style="color:#2563eb;"></i> <span>${escapeUserHtml(item.subject || 'No Subject')}</span>`;
+
+        const senderEl = document.getElementById('uMailViewSender');
+        if (senderEl) senderEl.textContent = item.from || 'Super Admin';
+
+        const dateEl = document.getElementById('uMailViewDate');
+        if (dateEl) dateEl.innerHTML = `<i class="fa-regular fa-clock"></i> ${item.date || ''}`;
+
+        const bodyEl = document.getElementById('uMailViewBody');
+        if (bodyEl) bodyEl.textContent = item.body || '';
+
+        // Attachment handling
+        const attachSec = document.getElementById('uMailViewAttachSection');
+        const attachContent = document.getElementById('uMailViewAttachContent');
+        if (attachSec && attachContent) {
+            if (item.attachment && item.attachment.data) {
+                attachSec.style.display = 'block';
+                const isImg = item.attachment.data.startsWith('data:image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(item.attachment.name || '');
+                attachContent.innerHTML = `
+                    <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:0.65rem 0.85rem; display:inline-flex; align-items:center; gap:0.65rem; max-width:100%; box-sizing:border-box;">
+                        <i class="fa-solid ${isImg ? 'fa-file-image' : 'fa-file-lines'}" style="font-size:1.3rem; color:#2563eb;"></i>
+                        <span style="font-size:0.82rem; font-weight:700; color:#1e293b; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:220px;">${escapeUserHtml(item.attachment.name || 'Attachment')}</span>
+                        <a href="${item.attachment.data}" download="${item.attachment.name || 'attachment'}" style="margin-left:auto; background:#2563eb; color:#ffffff; padding:0.35rem 0.75rem; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+                            <i class="fa-solid fa-download"></i> Download
+                        </a>
+                    </div>
+                    ${isImg ? `
+                        <div style="margin-top:0.65rem; width:100%; text-align:center;">
+                            <a href="${item.attachment.data}" target="_blank" title="Click to view full image">
+                                <img src="${item.attachment.data}" alt="Attachment preview" style="max-height:160px; max-width:100%; border-radius:8px; border:1px solid #e2e8f0; object-fit:contain;">
+                            </a>
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                attachSec.style.display = 'none';
+                attachContent.innerHTML = '';
+            }
+        }
+
+        // Reply button
+        const replyBtn = document.getElementById('btnUserReplyToAdmin');
+        if (replyBtn) {
+            replyBtn.onclick = function() {
+                window.closeUserMailViewModal();
+                switchUserHelpTab('compose');
+                const subjInput = document.getElementById('helpSubject');
+                const msgInput = document.getElementById('helpMessage');
+                if (subjInput) {
+                    const cleanSubj = (item.subject || '').replace(/^Re:\s*/i, '');
+                    subjInput.value = `Re: ${cleanSubj}`;
+                }
+                if (msgInput) {
+                    msgInput.value = '';
+                    setTimeout(() => msgInput.focus(), 250);
+                }
+            };
+        }
+
+        const modal = document.getElementById('userMailViewModal');
+        if (modal) modal.style.display = 'flex';
+    };
+
+    window.closeUserMailViewModal = function() {
+        const modal = document.getElementById('userMailViewModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    // User Compose Mail Form Submit
     document.getElementById('userMailToAdminForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const subject = document.getElementById('helpSubject').value.trim();
@@ -573,12 +833,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mailItem = {
                 id: 'ML-' + Date.now(),
-                from: currentUser.email || currentUser.name || 'Platform User',
+                userId: currentUser?.id || null,
+                userEmail: currentUser?.email || null,
+                userName: currentUser?.name || null,
+                from: currentUser?.name ? `${currentUser.name} (${currentUser.email || 'User'})` : (currentUser?.email || 'Platform User'),
                 to: 'Super Admin',
                 subject: subject,
                 body: message,
                 type: 'inbox',
                 read: false,
+                adminRead: false,
+                userRead: true,
                 attachment: attachData ? { data: attachData, name: attachName, size: attachSize } : null,
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             };
@@ -596,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('userMailToAdminForm').reset();
         removeAttachBtn?.click();
         alert('Thank you! Your message with attachments has been sent directly to the Super Admin Mailbox.');
-        switchAccountScreen('viewMainMenu');
+        switchUserHelpTab('inbox');
     });
 
     // ================= 3. SETTINGS MODULE (THEME & NOTIFICATIONS) =================

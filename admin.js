@@ -562,6 +562,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openModal = function(id) {
         const modal = document.getElementById(id);
+        if (id === 'addCategoryModal' && window.addStoreCatBuilder) {
+            window.addStoreCatBuilder.clear();
+        }
         if (modal) modal.classList.add('active');
     };
     function openModal(id) {
@@ -1246,11 +1249,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<p style="margin-top:0.3rem; font-size:0.8rem; color:#64748b;"><i class="fa-solid fa-tags" style="color:#2563eb; font-size:0.75rem; margin-right:0.3rem;"></i>Total <strong>${tagCount}</strong> Search Tags Added</p>`
                 : `<p style="margin-top:0.3rem; font-size:0.8rem; color:#94a3b8;"><i class="fa-regular fa-circle" style="font-size:0.7rem; margin-right:0.3rem;"></i>No extra tags added</p>`;
 
+            const storeCats = Array.isArray(cat.storeCategories) ? cat.storeCategories : (Array.isArray(cat.subcategories) ? cat.subcategories : []);
+            const storeCatCount = storeCats.length;
+            const storeCatHtml = storeCatCount > 0
+                ? `<p style="margin-top:0.25rem; font-size:0.8rem; color:#059669;"><i class="fa-solid fa-store" style="font-size:0.73rem; margin-right:0.3rem;"></i><strong>${storeCatCount}</strong> Sliding Categories: ${storeCats.slice(0, 4).map(s => {
+                    const lbl = typeof s === 'string' ? s : (s.label || s.name || '');
+                    const ic = typeof s === 'object' && s ? (s.icon || '') : '';
+                    return `<span style="background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:20px;font-size:0.73rem;margin-left:2px;">${ic ? ic + ' ' : ''}${lbl}</span>`;
+                }).join('')}${storeCatCount > 4 ? ` <span style="color:#94a3b8;font-size:0.73rem;">+${storeCatCount - 4} more</span>` : ''}</p>`
+                : `<p style="margin-top:0.25rem; font-size:0.8rem; color:#94a3b8;"><i class="fa-solid fa-store" style="font-size:0.73rem; margin-right:0.3rem;"></i>No sliding categories set</p>`;
+
             return `
             <div class="meta-box-card">
                 <div class="meta-box-info" style="flex:1; padding-right:0.75rem;">
                     <h3><i class="fa-solid fa-layer-group" style="color:#2563eb; margin-right:0.35rem;"></i> ${cat.name}</h3>
                     ${tagSummaryHtml}
+                    ${storeCatHtml}
                 </div>
                 <div class="actions-cell" style="display:flex; gap:0.4rem;">
                     <button type="button" class="btn-action edit" onclick="openEditCategoryModal('${encodeURIComponent(cat.name)}')" title="Edit Category"><i class="fa-regular fa-pen-to-square"></i></button>
@@ -1302,28 +1316,180 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = filtered.map(m => {
             const attachBadge = m.attachment && m.attachment.data ? `
-                <a href="${m.attachment.data}" download="${m.attachment.name || 'attachment'}" class="mail-item-attachment-badge" title="Click to download attachment (${m.attachment.size || ''})">
+                <a href="${m.attachment.data}" download="${m.attachment.name || 'attachment'}" onclick="event.stopPropagation();" class="mail-item-attachment-badge" title="Click to download attachment (${m.attachment.size || ''})">
                     <i class="fa-solid fa-paperclip"></i>
                     <span>${m.attachment.name || 'File'} (${m.attachment.size || 'KB'})</span>
                 </a>
             ` : '';
 
             return `
-            <div class="mail-item ${!m.read && m.type === 'inbox' ? 'unread' : ''}">
+            <div class="mail-item ${!m.read && m.type === 'inbox' ? 'unread' : ''}" onclick="openAdminMailViewer('${m.id}')" style="cursor:pointer;" title="Click to view message & reply">
                 <div class="mail-item-left">
-                    <i class="fa-regular fa-envelope${m.read ? '-open' : ''}" style="color:${m.read ? '#94a3b8' : '#2563eb'};"></i>
-                    <div class="mail-item-sender">${m.from || m.to}</div>
+                    <i class="fa-regular fa-envelope${m.read ? '-open' : ''}" style="color:${m.read ? '#94a3b8' : '#2563eb'}; font-size:1.05rem;"></i>
+                    <div class="mail-item-sender" title="${m.from || m.to}">${m.from || m.to}</div>
                     <div class="mail-item-snippet"><strong>${m.subject}</strong> — ${m.body}</div>
                     ${attachBadge}
                 </div>
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                    <span style="font-size:0.78rem; color:#94a3b8;">${m.date}</span>
+                <div style="display:flex; align-items:center; gap:0.75rem;" onclick="event.stopPropagation();">
+                    <span style="font-size:0.78rem; color:#94a3b8; white-space:nowrap;">${m.date}</span>
                     <button type="button" class="btn-action delete" onclick="deleteMail('${m.id}')" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
                 </div>
             </div>
             `;
         }).join('');
     }
+
+    // Helper for HTML escaping
+    function escapeMailHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Professional Admin Mail Viewer & Quick Reply
+    window.openAdminMailViewer = function(id) {
+        const mail = getDB(DB_KEYS.MAIL);
+        const item = mail.find(m => String(m.id) === String(id));
+        if (!item) return;
+
+        // Mark as read by Admin if unread
+        if (!item.read || !item.adminRead) {
+            item.read = true;
+            item.adminRead = true;
+            setDB(DB_KEYS.MAIL, mail);
+            if (window.lbCloudSync && typeof window.lbCloudSync.saveMail === 'function') {
+                window.lbCloudSync.saveMail(item);
+            }
+            const unreadCount = mail.filter(m => !m.read && m.type === 'inbox').length;
+            if (document.getElementById('unreadMailCount')) document.getElementById('unreadMailCount').textContent = unreadCount;
+            if (document.getElementById('sidebarMailBadge')) document.getElementById('sidebarMailBadge').textContent = unreadCount;
+            const currentTab = document.querySelector('.mail-tab-btn.active')?.getAttribute('data-mail-tab') || 'inbox';
+            renderMailbox(currentTab);
+        }
+
+        const subjEl = document.getElementById('viewMailSubject');
+        if (subjEl) {
+            subjEl.innerHTML = `<i class="fa-regular fa-envelope-open" style="color:#2563eb;"></i> <span>${escapeMailHtml(item.subject || 'No Subject')}</span>`;
+        }
+
+        const typeBadge = document.getElementById('viewMailTypeBadge');
+        if (typeBadge) {
+            if (item.type === 'sent') {
+                typeBadge.textContent = 'Sent Message';
+                typeBadge.style.background = '#e0f2fe';
+                typeBadge.style.color = '#0369a1';
+            } else {
+                typeBadge.textContent = 'Inbox / Received';
+                typeBadge.style.background = '#dcfce7';
+                typeBadge.style.color = '#15803d';
+            }
+        }
+
+        const dateEl = document.getElementById('viewMailDate');
+        if (dateEl) dateEl.innerHTML = `<i class="fa-regular fa-clock"></i> ${item.date || ''}`;
+
+        const senderEl = document.getElementById('viewMailSender');
+        if (senderEl) {
+            const senderText = item.from || (item.type === 'sent' ? 'Super Admin' : 'User');
+            const senderEmail = item.userEmail || (item.from && item.from.includes('@') ? item.from : '');
+            senderEl.textContent = (senderEmail && senderText !== senderEmail) ? `${senderText} (${senderEmail})` : senderText;
+        }
+
+        const recEl = document.getElementById('viewMailRecipient');
+        if (recEl) {
+            recEl.textContent = item.to || (item.type === 'inbox' ? 'Super Admin' : 'User');
+        }
+
+        const bodyEl = document.getElementById('viewMailBody');
+        if (bodyEl) bodyEl.textContent = item.body || '';
+
+        // Attachment handling
+        const attachSec = document.getElementById('viewMailAttachSection');
+        const attachContent = document.getElementById('viewMailAttachContent');
+        if (attachSec && attachContent) {
+            if (item.attachment && item.attachment.data) {
+                attachSec.style.display = 'block';
+                const isImg = item.attachment.data.startsWith('data:image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(item.attachment.name || '');
+                attachContent.innerHTML = `
+                    <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:0.75rem 1rem; display:inline-flex; align-items:center; gap:0.85rem; max-width:100%; box-sizing:border-box;">
+                        <i class="fa-solid ${isImg ? 'fa-file-image' : 'fa-file-lines'}" style="font-size:1.5rem; color:#2563eb;"></i>
+                        <div style="display:flex; flex-direction:column; overflow:hidden;">
+                            <strong style="font-size:0.86rem; color:#1e293b; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:260px;">${escapeMailHtml(item.attachment.name || 'attachment')}</strong>
+                            <span style="font-size:0.75rem; color:#64748b;">${item.attachment.size || 'Attached file'}</span>
+                        </div>
+                        <a href="${item.attachment.data}" download="${item.attachment.name || 'attachment'}" style="margin-left:auto; background:#2563eb; color:#ffffff; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.8rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+                            <i class="fa-solid fa-download"></i> Download
+                        </a>
+                    </div>
+                    ${isImg ? `
+                        <div style="margin-top:0.75rem; width:100%; text-align:center;">
+                            <a href="${item.attachment.data}" target="_blank" title="Click to view full image">
+                                <img src="${item.attachment.data}" alt="Attachment preview" style="max-height:180px; max-width:100%; border-radius:8px; border:1px solid #e2e8f0; object-fit:contain; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                            </a>
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                attachSec.style.display = 'none';
+                attachContent.innerHTML = '';
+            }
+        }
+
+        // Delete button inside modal
+        const delBtn = document.getElementById('viewMailDeleteBtn');
+        if (delBtn) {
+            delBtn.onclick = function() {
+                if (confirm('Are you sure you want to delete this message?')) {
+                    const modal = document.getElementById('viewMailModal');
+                    if (modal) modal.classList.remove('active');
+                    deleteMail(id);
+                }
+            };
+        }
+
+        // Reply button
+        const replyBtn = document.getElementById('viewMailReplyBtn');
+        if (replyBtn) {
+            replyBtn.onclick = function() {
+                const modal = document.getElementById('viewMailModal');
+                if (modal) modal.classList.remove('active');
+                openComposeWithReply(item);
+            };
+        }
+
+        openModal('viewMailModal');
+    };
+
+    window.openComposeWithReply = function(item) {
+        if (!item) return;
+        let targetRecipient = item.from;
+        if (item.type === 'sent') {
+            targetRecipient = item.to;
+        }
+        if (item.userEmail) {
+            targetRecipient = item.userEmail;
+        }
+
+        const mailToInput = document.getElementById('mailToInput');
+        const mailSubjInput = document.getElementById('mailSubjectInput');
+        const mailBodyInput = document.getElementById('mailBodyInput');
+
+        if (mailToInput) mailToInput.value = targetRecipient || '';
+        if (mailSubjInput) {
+            const rawSubj = (item.subject || '').replace(/^Re:\s*/i, '');
+            mailSubjInput.value = `Re: ${rawSubj}`;
+        }
+        if (mailBodyInput) {
+            mailBodyInput.value = '';
+            setTimeout(() => mailBodyInput.focus(), 250);
+        }
+
+        openModal('composeMailModal');
+    };
 
     document.querySelectorAll('.mail-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2682,12 +2848,188 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`City "${newName}" updated successfully!`);
     });
 
+    // ===== STORE SLIDING CATEGORIES CHIP BUILDER =====
+    function resolveCategoryEmoji(label = '') {
+        const l = (label || '').toLowerCase();
+        if (/biryani|food|roll|thali|lunch|dinner|restaurant|hotel|dhabha|fast food|snack|cook|kitchen/.test(l)) return '🍲';
+        if (/pizza/.test(l)) return '🍕';
+        if (/burger/.test(l)) return '🍔';
+        if (/sweet|mithai|laddu|rasgulla|dessert|ice cream/.test(l)) return '🍧';
+        if (/cake|pastry|bakery/.test(l)) return '🎂';
+        if (/tea|coffee|chai|cafe/.test(l)) return '☕';
+        if (/saree|kurti|dress|gown|boutique|lehenga|women|ladies/.test(l)) return '👗';
+        if (/shirt|pant|tshirt|jeans|cloth|garment|men|tailor|suit/.test(l)) return '👕';
+        if (/shoe|boot|sneaker|sandal|footwear/.test(l)) return '👟';
+        if (/doctor|consult|chamber|clinic|hospital/.test(l)) return '🩺';
+        if (/medicine|pharmacy|chemist|tablet|capsule|syrup|drug/.test(l)) return '💊';
+        if (/diagnostic|lab|test|blood|xray|pathology|scan/.test(l)) return '🔬';
+        if (/mobile|phone|smartphone|iphone|android|screen/.test(l)) return '📱';
+        if (/laptop|computer|pc|it |software|tech|printer/.test(l)) return '💻';
+        if (/electric|wiring|fan|light|ac |ac repair|cooler|fridge|refrigerator/.test(l)) return '⚡';
+        if (/plumber|pipe|water|sanitary|tap/.test(l)) return '🔧';
+        if (/salon|parlor|beauty|hair|cut|spa|facial|makeup/.test(l)) return '💇';
+        if (/jewelry|jeweller|gold|silver|diamond|ring|necklace/.test(l)) return '💍';
+        if (/car|auto|vehicle|drive|motor|four wheeler/.test(l)) return '🚗';
+        if (/bike|cycle|two wheeler|scooter/.test(l)) return '🏍️';
+        if (/book|stationary|copy|pen|xerox|print|school|study/.test(l)) return '📚';
+        if (/grocery|ration|kirana|supermarket|bazar|oil|rice|flour|atta/.test(l)) return '🛒';
+        if (/fruit|apple|banana|mango/.test(l)) return '🍎';
+        if (/veg|vegetable|sabzi/.test(l)) return '🥦';
+        if (/meat|chicken|mutton|fish|mach/.test(l)) return '🍗';
+        if (/flower|puja|temple|mandir/.test(l)) return '🌸';
+        if (/gift|toy|game/.test(l)) return '🎁';
+        if (/gym|fitness|workout|body/.test(l)) return '💪';
+        if (/service|repair|clean|home/.test(l)) return '🛠️';
+        return '🏷️';
+    }
+
+    function renderStoreIconHtml(icon) {
+        if (!icon) return '<span class="cat-emoji">🏷️</span>';
+        const isEmoji = /\p{Extended_Pictographic}/u.test(icon) || !icon.includes('fa-');
+        if (isEmoji) {
+            return `<span class="cat-emoji">${icon}</span>`;
+        }
+        let faClass = icon.trim();
+        if (!faClass.includes('fa-solid') && !faClass.includes('fa-regular') && !faClass.includes('fa-brands')) {
+            faClass = 'fa-solid ' + (faClass.startsWith('fa-') ? faClass : 'fa-' + faClass);
+        }
+        return `<i class="${faClass}"></i>`;
+    }
+
+    function initStoreCategoryBuilder(chipsId, nameInputId, iconInputId, previewId, addBtnId) {
+        const chipsEl = document.getElementById(chipsId);
+        const nameInput = document.getElementById(nameInputId);
+        const iconInput = document.getElementById(iconInputId);
+        const previewEl = document.getElementById(previewId);
+        const addBtn = document.getElementById(addBtnId);
+
+        if (!chipsEl || !nameInput || !addBtn) return null;
+
+        function updatePreview() {
+            if (!previewEl) return;
+            const pasted = iconInput ? iconInput.value.trim() : '';
+            const nameVal = nameInput ? nameInput.value.trim() : '';
+            const chosenIcon = pasted || (nameVal ? resolveCategoryEmoji(nameVal) : '🏷️');
+            previewEl.innerHTML = renderStoreIconHtml(chosenIcon);
+        }
+
+        if (iconInput) {
+            iconInput.addEventListener('input', updatePreview);
+        }
+        nameInput.addEventListener('input', () => {
+            if (!iconInput || !iconInput.value.trim()) {
+                updatePreview();
+            }
+        });
+
+        function getChips() {
+            return Array.from(chipsEl.querySelectorAll('.store-chip')).map(c => ({
+                name: c.dataset.label || c.dataset.value || '',
+                label: c.dataset.label || c.dataset.value || '',
+                icon: c.dataset.icon || '🏷️'
+            })).filter(c => c.name);
+        }
+
+        function addChip(item) {
+            let label = '';
+            let icon = '';
+
+            if (typeof item === 'string') {
+                label = item.trim();
+                icon = iconInput ? iconInput.value.trim() : '';
+            } else if (item && typeof item === 'object') {
+                label = (item.label || item.name || '').trim();
+                icon = (item.icon || '').trim();
+            }
+
+            if (!label) return;
+            if (!icon) {
+                icon = resolveCategoryEmoji(label);
+            }
+
+            const existing = getChips();
+            if (existing.some(c => c.name.toLowerCase() === label.toLowerCase())) {
+                nameInput.value = '';
+                if (iconInput) iconInput.value = '';
+                updatePreview();
+                return;
+            }
+
+            const chip = document.createElement('span');
+            chip.className = 'store-chip';
+            chip.dataset.label = label;
+            chip.dataset.value = label;
+            chip.dataset.icon = icon;
+            chip.innerHTML = `
+                ${renderStoreIconHtml(icon)}
+                <span class="chip-label">${label}</span>
+                <button type="button" class="chip-remove-btn" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+            `;
+
+            chip.querySelector('.chip-remove-btn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                chip.remove();
+            });
+
+            chipsEl.appendChild(chip);
+
+            nameInput.value = '';
+            if (iconInput) iconInput.value = '';
+            updatePreview();
+        }
+
+        addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addChip(nameInput.value);
+            nameInput.focus();
+        });
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                addChip(nameInput.value);
+            }
+        });
+
+        if (iconInput) {
+            iconInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addChip(nameInput.value);
+                }
+            });
+        }
+
+        return {
+            getChips,
+            setChips(arr) {
+                chipsEl.innerHTML = '';
+                (arr || []).forEach(item => addChip(item));
+            },
+            clear() {
+                chipsEl.innerHTML = '';
+                nameInput.value = '';
+                if (iconInput) iconInput.value = '';
+                updatePreview();
+            }
+        };
+    }
+
+    // Initialize both chip builders
+    window.addStoreCatBuilder = initStoreCategoryBuilder('addStoreCatChips', 'addStoreCatInput', 'addStoreCatIconInput', 'addStoreCatIconPreview', 'addStoreCatBtn');
+    window.editStoreCatBuilder = initStoreCategoryBuilder('editStoreCatChips', 'editStoreCatInput', 'editStoreCatIconInput', 'editStoreCatIconPreview', 'editStoreCatBtn');
+
     // Add Category Form
     document.getElementById('newCategoryForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const name = document.getElementById('catNameInput').value.trim();
         const rawTags = document.getElementById('catTagsInput')?.value.trim() || '';
         const tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+        const storeCategories = window.addStoreCatBuilder ? window.addStoreCatBuilder.getChips() : [];
 
         const categories = getDB(DB_KEYS.CATEGORIES);
         if (categories.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
@@ -2695,13 +3037,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        categories.push({ 
+        const catObj = { 
             name, 
             tags: tags,
-            desc: tags.join(', ')
-        });
+            desc: tags.join(', '),
+            storeCategories: storeCategories,
+            subcategories: storeCategories.map(s => s.name || s.label || s)
+        };
+        categories.push(catObj);
         setDB(DB_KEYS.CATEGORIES, categories);
 
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveCategory === 'function') {
+            window.lbCloudSync.saveCategory(catObj);
+        }
+
+        if (window.addStoreCatBuilder) window.addStoreCatBuilder.clear();
         document.getElementById('addCategoryModal').classList.remove('active');
         document.getElementById('newCategoryForm').reset();
         refreshAll();
@@ -2715,6 +3065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newName = document.getElementById('editCatNameInput').value.trim();
         const rawTags = document.getElementById('editCatTagsInput')?.value.trim() || '';
         const tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+        const storeCategories = window.editStoreCatBuilder ? window.editStoreCatBuilder.getChips() : [];
 
         let categories = getDB(DB_KEYS.CATEGORIES);
         const catIndex = categories.findIndex(c => c.name.toLowerCase() === originalName.toLowerCase());
@@ -2735,9 +3086,17 @@ document.addEventListener('DOMContentLoaded', () => {
             ...categories[catIndex],
             name: newName,
             tags: tags,
-            desc: tags.join(', ')
+            desc: tags.join(', '),
+            storeCategories: storeCategories,
+            subcategories: storeCategories.map(s => s.name || s.label || s)
         };
         setDB(DB_KEYS.CATEGORIES, categories);
+
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveCategory === 'function') {
+            window.lbCloudSync.saveCategory(categories[catIndex]);
+        }
+
+        if (window.editStoreCatBuilder) window.editStoreCatBuilder.clear();
 
         // Also update listings under this category if name changed
         if (originalName.toLowerCase() !== newName.toLowerCase()) {
@@ -2852,15 +3211,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const attachSize = document.getElementById('attachFileSize')?.textContent || '';
 
         const mail = getDB(DB_KEYS.MAIL);
-        mail.unshift({
+        const newMailItem = {
             id: 'ML-' + Date.now(),
+            from: 'Super Admin',
             to, subject, body,
             type: 'sent',
             read: true,
+            adminRead: true,
+            userRead: false,
             attachment: attachData ? { data: attachData, name: attachName, size: attachSize } : null,
             date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        });
+        };
+        mail.unshift(newMailItem);
         setDB(DB_KEYS.MAIL, mail);
+
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveMail === 'function') {
+            window.lbCloudSync.saveMail(newMailItem);
+        }
 
         document.getElementById('composeMailModal').classList.remove('active');
         document.getElementById('composeMailForm').reset();
@@ -4314,6 +4681,11 @@ window.openEditCategoryModal = function(encodedName) {
     if (origInput) origInput.value = encodedName;
     if (nameInput) nameInput.value = cat.name || '';
     if (tagsInput) tagsInput.value = tagsArr.map(t => t.trim()).filter(Boolean).join(', ');
+
+    // Populate existing Store Sliding Categories
+    if (window.editStoreCatBuilder) {
+        window.editStoreCatBuilder.setChips(cat.storeCategories || cat.subcategories || []);
+    }
 
     const modal = document.getElementById('editCategoryModal');
     if (modal) {

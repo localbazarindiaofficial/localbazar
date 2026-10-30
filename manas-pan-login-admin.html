@@ -1382,6 +1382,64 @@
         </div>
     </div>
 
+    <!-- Modal 4B: View Mail Details & Reply -->
+    <div class="modal-backdrop" id="viewMailModal">
+        <div class="modal-card" style="max-width: 640px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="viewMailSubject" style="display:flex; align-items:center; gap:0.55rem; margin:0; font-size:1.15rem; word-break:break-word;">
+                        <i class="fa-regular fa-envelope-open" style="color:#2563eb;"></i> <span>Mail Details</span>
+                    </h3>
+                    <div id="viewMailMetaRow" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem; font-size:0.82rem; color:var(--text-muted); flex-wrap:wrap;">
+                        <span id="viewMailTypeBadge" class="badge-type" style="padding:0.2rem 0.55rem; border-radius:6px; font-weight:700; font-size:0.75rem;">Inbox</span>
+                        <span id="viewMailDate"><i class="fa-regular fa-clock"></i> Oct 30, 2026</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-modal-close" data-close-modal="viewMailModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body" style="padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:1.1rem;">
+                <!-- Participants Card -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:0.85rem 1rem; display:flex; flex-direction:column; gap:0.4rem; font-size:0.86rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                        <span style="color:#64748b;">From:</span>
+                        <strong id="viewMailSender" style="color:#0f172a; word-break:break-all;">User Name</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                        <span style="color:#64748b;">To:</span>
+                        <span id="viewMailRecipient" style="color:#334155; font-weight:600; word-break:break-all;">Super Admin</span>
+                    </div>
+                </div>
+
+                <!-- Message Body -->
+                <div>
+                    <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; margin-bottom:0.4rem; display:block;">Message Content</label>
+                    <div id="viewMailBody" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:1.15rem; font-size:0.92rem; line-height:1.65; color:#1e293b; min-height:110px; max-height:280px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;">
+                        Message text goes here...
+                    </div>
+                </div>
+
+                <!-- Attachment Area -->
+                <div id="viewMailAttachSection" style="display:none;">
+                    <label style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; margin-bottom:0.4rem; display:block;">Attachment</label>
+                    <div id="viewMailAttachContent" style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                <button type="button" id="viewMailDeleteBtn" style="padding:0.55rem 0.95rem; border-radius:8px; border:1px solid #fee2e2; background:#fff1f2; color:#e11d48; font-weight:700; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;">
+                    <i class="fa-regular fa-trash-can"></i> Delete
+                </button>
+                <div style="display:flex; align-items:center; gap:0.65rem;">
+                    <button type="button" class="btn-modal-cancel" data-close-modal="viewMailModal">Close</button>
+                    <button type="button" class="btn-modal-submit" id="viewMailReplyBtn" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; font-weight:700; display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1.25rem;">
+                        <i class="fa-solid fa-reply"></i> Reply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal 5A: Dedicated Create Text Ad Modal -->
     <div class="modal-backdrop" id="createTextAdModal">
         <div class="modal-card modal-large-ad" style="max-width: 620px;">
@@ -2058,6 +2116,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="firebase-config.js?v=2.0.1"></script>
-    <script src="admin.js?v=2.4.0"></script>
+    <script src="admin.js?v=2.6.0"></script>
 </body>
 </html>
