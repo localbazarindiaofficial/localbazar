@@ -1,5 +1,5 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v59
-const CACHE_NAME = 'localbazar-pwa-v59';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v62
+const CACHE_NAME = 'localbazar-pwa-v62';
 
 const STATIC_ASSETS = [
     './',
@@ -91,18 +91,33 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 1. PAGE NAVIGATION (HTML Pages): Network-First, always safe
+    // 1. PAGE NAVIGATION (HTML Pages): Stale-While-Revalidate with Instant Cache Response (0ms Mobile Loading)
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request).catch(async () => {
-                // Offline fallback: try to serve cached HTML page ignoring query strings
-                const cached = await caches.match(event.request, { ignoreSearch: true });
-                if (cached) return cached;
-                const home = await caches.match('./index.html') || await caches.match('/');
-                if (home) return home;
-                return new Response('Network disconnected. Please check internet connection.', {
-                    status: 503,
-                    headers: { 'Content-Type': 'text/plain' }
+            caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+                const networkFetch = fetch(event.request).then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const copy = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, copy);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(() => null);
+
+                // If cached page is available, return it in 0ms! Network refreshes cache quietly in background.
+                if (cached) {
+                    return cached;
+                }
+                // If not in cache yet (first visit), wait for network or fallback to cached index.html
+                return networkFetch.then(async (res) => {
+                    if (res) return res;
+                    const home = await caches.match('./index.html') || await caches.match('/');
+                    if (home) return home;
+                    return new Response('Network disconnected. Please check internet connection.', {
+                        status: 503,
+                        headers: { 'Content-Type': 'text/plain' }
+                    });
                 });
             })
         );

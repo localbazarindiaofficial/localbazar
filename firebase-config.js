@@ -207,9 +207,18 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             }
         },
 
-        // 3. Pull All Listings from Firestore & Cache in LocalStorage
-        pullListings: async function() {
+        // 3. Pull All Listings from Firestore & Cache in LocalStorage (With Cooldown Throttling)
+        pullListings: async function(force = false) {
             if (!window.isFirebaseReady() || !lbFirestore) return null;
+
+            const now = Date.now();
+            const lastSync = Number(sessionStorage.getItem('lb_last_sync_listings') || 0);
+            if (!force && (now - lastSync < 3 * 60 * 1000)) {
+                try {
+                    const raw = localStorage.getItem('lb_listings');
+                    if (raw) return JSON.parse(raw);
+                } catch (e) {}
+            }
 
             try {
                 const snapshot = await lbFirestore.collection('listings').get();
@@ -221,6 +230,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
 
                     if (cloudListings.length > 0) {
                         localStorage.setItem('lb_listings', JSON.stringify(cloudListings));
+                        sessionStorage.setItem('lb_last_sync_listings', String(Date.now()));
                         console.log(`[CloudSync] Pulled ${cloudListings.length} listings from Firestore to local cache.`);
                         return cloudListings;
                     }
@@ -533,8 +543,16 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             }
         },
 
-        pullCities: async function() {
+        pullCities: async function(force = false) {
             if (!window.isFirebaseReady() || !lbFirestore) return null;
+            const now = Date.now();
+            const lastSync = Number(sessionStorage.getItem('lb_last_sync_cities') || 0);
+            if (!force && (now - lastSync < 5 * 60 * 1000)) {
+                try {
+                    const raw = localStorage.getItem('lb_cities');
+                    if (raw) return JSON.parse(raw);
+                } catch (e) {}
+            }
             try {
                 const snapshot = await lbFirestore.collection('cities').get();
                 const cloudCities = [];
@@ -546,6 +564,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                 }
                 cloudCities.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 localStorage.setItem('lb_cities', JSON.stringify(cloudCities));
+                sessionStorage.setItem('lb_last_sync_cities', String(Date.now()));
                 return cloudCities;
             } catch (err) {
                 console.error("[CloudSync] Failed to pull cities:", err);
@@ -591,8 +610,16 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             }
         },
 
-        pullCategories: async function() {
+        pullCategories: async function(force = false) {
             if (!window.isFirebaseReady() || !lbFirestore) return null;
+            const now = Date.now();
+            const lastSync = Number(sessionStorage.getItem('lb_last_sync_categories') || 0);
+            if (!force && (now - lastSync < 5 * 60 * 1000)) {
+                try {
+                    const raw = localStorage.getItem('lb_categories');
+                    if (raw) return JSON.parse(raw);
+                } catch (e) {}
+            }
             try {
                 const snapshot = await lbFirestore.collection('categories').get();
                 const cloudCats = [];
@@ -604,6 +631,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                 }
                 cloudCats.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
                 localStorage.setItem('lb_categories', JSON.stringify(cloudCats));
+                sessionStorage.setItem('lb_last_sync_categories', String(Date.now()));
                 return cloudCats;
             } catch (err) {
                 console.error("[CloudSync] Failed to pull categories:", err);
@@ -631,8 +659,16 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             }
         },
 
-        pullNews: async function() {
+        pullNews: async function(force = false) {
             if (!window.isFirebaseReady() || !lbFirestore) return null;
+            const now = Date.now();
+            const lastSync = Number(sessionStorage.getItem('lb_last_sync_news') || 0);
+            if (!force && (now - lastSync < 5 * 60 * 1000)) {
+                try {
+                    const raw = localStorage.getItem('lb_news');
+                    if (raw) return JSON.parse(raw);
+                } catch (e) {}
+            }
             try {
                 const snapshot = await lbFirestore.collection('news').get();
                 if (!snapshot.empty) {
@@ -640,6 +676,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                     snapshot.forEach(doc => cloudNews.push(doc.data()));
                     if (cloudNews.length > 0) {
                         localStorage.setItem('lb_news', JSON.stringify(cloudNews));
+                        sessionStorage.setItem('lb_last_sync_news', String(Date.now()));
                         return cloudNews;
                     }
                 }
@@ -961,32 +998,45 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
             }
         },
 
-        // 21. Full Database Pull from Firestore on startup (Optimized 2-Tier Strategy)
-        pullAllData: async function() {
+        // 21. Full Database Pull from Firestore on startup (Optimized Context-Aware & Cooldown Strategy)
+        pullAllData: async function(force = false) {
             if (!window.isFirebaseReady() || !lbFirestore) return;
+
+            const isAdminPage = window.location.pathname.includes('manas-pan-login-admin') || !!document.getElementById('adminSidebar');
+
             try {
-                // Tier 1: Search-critical data first (Cities, Categories, Listings) for 0ms initial responsiveness
+                // Tier 1: Search-critical data first (Cities, Categories, Listings) with cooldown caching
                 await Promise.allSettled([
-                    window.lbCloudSync.pullCities(),
-                    window.lbCloudSync.pullCategories(),
-                    window.lbCloudSync.pullListings()
+                    window.lbCloudSync.pullCities(force),
+                    window.lbCloudSync.pullCategories(force),
+                    window.lbCloudSync.pullListings(force)
                 ]);
                 try {
                     window.dispatchEvent(new CustomEvent('lb:cloud-synced'));
                 } catch (e) {}
 
-                // Tier 2: Background sync for secondary admin data (Users, News, Claims, Trust, Mail, Banners, City & Cat Requests)
-                Promise.allSettled([
-                    window.lbCloudSync.pullUsers(),
-                    window.lbCloudSync.pullNews(),
-                    window.lbCloudSync.pullClaims(),
-                    window.lbCloudSync.pullTrustRequests(),
-                    window.lbCloudSync.pullMail(),
-                    window.lbCloudSync.pullCityRequests(),
-                    window.lbCloudSync.pullCategoryRequests(),
-                    window.lbCloudSync.pullDefaultBanners()
-                ]).then(() => {
-                    console.log("[CloudSync] Complete Firestore database sync finished.");
+                // Tier 2: Background sync - only pull what is relevant to the current user/page
+                const tier2Tasks = [
+                    window.lbCloudSync.pullNews(force)
+                ];
+
+                // Heavy admin-only collections are strictly skipped for regular users
+                if (isAdminPage) {
+                    tier2Tasks.push(
+                        window.lbCloudSync.pullUsers(force),
+                        window.lbCloudSync.pullClaims(force),
+                        window.lbCloudSync.pullTrustRequests(force),
+                        window.lbCloudSync.pullMail(force),
+                        window.lbCloudSync.pullCityRequests(force),
+                        window.lbCloudSync.pullCategoryRequests(force),
+                        window.lbCloudSync.pullDefaultBanners(force)
+                    );
+                } else if (window.location.pathname.includes('account.html')) {
+                    tier2Tasks.push(window.lbCloudSync.pullMail(force));
+                }
+
+                Promise.allSettled(tier2Tasks).then(() => {
+                    console.log("[CloudSync] Background sync finished.");
                     try {
                         window.dispatchEvent(new CustomEvent('lb:cloud-synced'));
                     } catch (e) {}

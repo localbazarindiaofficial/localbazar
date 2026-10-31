@@ -132,20 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    setTimeout(() => {
-        if (currentUser && window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-            try {
-                const raw = localStorage.getItem('lb_listings');
-                const listings = raw ? JSON.parse(raw) : [];
-                const userOwned = listings.filter(l => 
-                    (currentUser.id && String(l.ownerId) === String(currentUser.id)) || 
-                    (currentUser.email && l.ownerId && l.ownerId.toLowerCase() === currentUser.email.toLowerCase())
-                );
-                userOwned.forEach(l => window.lbCloudSync.saveListing(l));
-            } catch (e) {}
-        }
-    }, 1200);
-
     // Populate Main Menu Profile Header
     function populateMainHeader() {
         const avatarImg = document.getElementById('userHubAvatar');
@@ -154,7 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const authBadge = document.getElementById('userAuthBadge');
         const memberSinceEl = document.getElementById('userHubMemberSince');
 
-        if (avatarImg) avatarImg.src = currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80';
+        const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='64' r='64' fill='%23e2e8f0'/><circle cx='64' cy='48' r='26' fill='%2394a3b8'/><path d='M64 82c-28 0-48 18-50 36 6 6 13 10 21 10h58c8 0 15-4 21-10-2-18-22-36-50-36z' fill='%2394a3b8'/></svg>";
+        if (avatarImg) avatarImg.src = currentUser.avatar || defaultAvatar;
         if (nameEl) nameEl.textContent = currentUser.name || 'Local Citizen';
         if (emailEl) emailEl.textContent = currentUser.email || 'Email: Not added';
         

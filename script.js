@@ -439,7 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (profileWidget) profileWidget.style.display = 'block';
 
             if (headerImg) {
-                headerImg.src = currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                const defaultAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='64' r='64' fill='%23e2e8f0'/><circle cx='64' cy='48' r='26' fill='%2394a3b8'/><path d='M64 82c-28 0-48 18-50 36 6 6 13 10 21 10h58c8 0 15-4 21-10-2-18-22-36-50-36z' fill='%2394a3b8'/></svg>";
+                headerImg.src = currentUser.avatar || defaultAvatar;
             }
         } else {
             // Guest mode

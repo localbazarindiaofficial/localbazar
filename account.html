@@ -48,13 +48,42 @@
                 <!-- Top Hero Profile Header -->
                 <div class="account-profile-header">
                     <div class="profile-avatar-wrapper">
-                        <img id="userHubAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" alt="Profile Avatar" class="profile-avatar-circle">
-                        <span class="auth-source-badge" id="userAuthBadge"><i class="fa-brands fa-google"></i></span>
+                        <img id="userHubAvatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='64' r='64' fill='%23e2e8f0'/><circle cx='64' cy='48' r='26' fill='%2394a3b8'/><path d='M64 82c-28 0-48 18-50 36 6 6 13 10 21 10h58c8 0 15-4 21-10-2-18-22-36-50-36z' fill='%2394a3b8'/></svg>" alt="Profile Avatar" class="profile-avatar-circle">
+                        <span class="auth-source-badge" id="userAuthBadge" style="display:none;"><i class="fa-brands fa-google"></i></span>
                     </div>
-                    <h2 class="user-display-name" id="userHubName">User</h2>
-                    <p class="user-display-email" id="userHubEmail">user@domain.com</p>
-                    <span class="member-since-chip" id="userHubMemberSince"><i class="fa-regular fa-calendar-check"></i> Member Since Today</span>
+                    <h2 class="user-display-name" id="userHubName"></h2>
+                    <p class="user-display-email" id="userHubEmail"></p>
+                    <span class="member-since-chip" id="userHubMemberSince" style="visibility:hidden;"><i class="fa-regular fa-calendar-check"></i> Member</span>
                 </div>
+                <script>
+                    // Synchronous inline pre-hydration to eliminate flash of default content during pull-to-refresh
+                    (function() {
+                        try {
+                            var raw = localStorage.getItem('lb_current_user');
+                            if (raw) {
+                                var u = JSON.parse(raw);
+                                if (u) {
+                                    var av = document.getElementById('userHubAvatar');
+                                    var nm = document.getElementById('userHubName');
+                                    var em = document.getElementById('userHubEmail');
+                                    var mb = document.getElementById('userHubMemberSince');
+                                    var bg = document.getElementById('userAuthBadge');
+                                    if (u.avatar && av) av.src = u.avatar;
+                                    if (u.name && nm) nm.textContent = u.name;
+                                    if (u.email && em) em.textContent = u.email;
+                                    if (mb) {
+                                        mb.style.visibility = 'visible';
+                                        mb.innerHTML = '<i class="fa-regular fa-calendar-check"></i> Member Since ' + (u.memberSince || 'Today');
+                                    }
+                                    if (bg) {
+                                        bg.style.display = 'inline-flex';
+                                        bg.innerHTML = u.method === 'Facebook' ? '<i class="fa-brands fa-facebook" style="color:#1877F2;"></i>' : '<i class="fa-brands fa-google" style="color:#4285F4;"></i>';
+                                    }
+                                }
+                            }
+                        } catch(e) {}
+                    })();
+                </script>
 
                 <!-- Live Merchant Inquiries Alert Banner (Shows when customers send inquiries) -->
                 <div id="merchantUnreadInquiryBanner" style="display:none; margin: 1rem 0 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 0.85rem 1rem; box-shadow: 0 4px 12px rgba(37,99,235,0.08); cursor: pointer;" onclick="openFirstUnreadStoreInbox()">

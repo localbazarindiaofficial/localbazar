@@ -6433,6 +6433,7 @@ window.renderAdminCityRequests = function() {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
+    // Strictly show only active Pending requests so approved/rejected items never clutter the popup
     const pending = reqs.filter(r => r && (r.status === 'Pending' || !r.status));
     const pendingCount = pending.length;
 
@@ -6447,23 +6448,19 @@ window.renderAdminCityRequests = function() {
             : '0 pending requests';
     }
 
-    if (reqs.length === 0) {
+    if (pendingCount === 0) {
         listContainer.innerHTML = `
             <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
                 <i class="fa-solid fa-map-location-dot" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1; display:block;"></i>
-                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No City Requests</h4>
-                <p style="margin:0; font-size:0.85rem;">No user-submitted city requests found.</p>
+                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No Pending City Requests</h4>
+                <p style="margin:0; font-size:0.85rem;">All user city requests have been reviewed and approved or cleared.</p>
             </div>
         `;
         return;
     }
 
-    // Sort requests: Pending first, newest first
-    const sorted = [...reqs].sort((a, b) => {
-        const aPend = (a.status === 'Pending' || !a.status);
-        const bPend = (b.status === 'Pending' || !b.status);
-        if (aPend && !bPend) return -1;
-        if (!aPend && bPend) return 1;
+    // Sort pending requests: newest first
+    const sorted = [...pending].sort((a, b) => {
         const aDate = new Date(a.createdAt || a.submittedAt || 0).getTime();
         const bDate = new Date(b.createdAt || b.submittedAt || 0).getTime();
         return bDate - aDate;
@@ -6618,13 +6615,12 @@ window.adminSubmitApproveCity = async function(reqId) {
         }
     }
 
-    req.status = 'Approved';
-    req.approvedCityName = finalCityName;
-    req.approvedAt = new Date().toISOString();
+    // Permanently remove request from pending queue and cloud database
+    reqs = reqs.filter(r => r && String(r.id) !== String(reqId));
     localStorage.setItem('lb_city_requests', JSON.stringify(reqs));
 
-    if (window.lbCloudSync && typeof window.lbCloudSync.saveCityRequest === 'function') {
-        window.lbCloudSync.saveCityRequest(req);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCityRequest === 'function') {
+        window.lbCloudSync.deleteCityRequest(reqId);
     }
 
     refreshAll();
@@ -6644,12 +6640,12 @@ window.adminRejectCityRequest = async function(reqId) {
 
     if (!confirm(`Are you sure you want to reject the request for city "${req.cityName || req.name}"?`)) return;
 
-    req.status = 'Rejected';
-    req.rejectedAt = new Date().toISOString();
+    // Permanently remove rejected request from pending queue and cloud database
+    reqs = reqs.filter(r => r && String(r.id) !== String(reqId));
     localStorage.setItem('lb_city_requests', JSON.stringify(reqs));
 
-    if (window.lbCloudSync && typeof window.lbCloudSync.saveCityRequest === 'function') {
-        window.lbCloudSync.saveCityRequest(req);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCityRequest === 'function') {
+        window.lbCloudSync.deleteCityRequest(reqId);
     }
 
     refreshAll();
@@ -6675,6 +6671,7 @@ window.renderAdminCategoryRequests = function() {
         reqs = raw ? JSON.parse(raw) : [];
     } catch {}
 
+    // Strictly show only active Pending requests so approved/rejected items never clutter the popup
     const pending = reqs.filter(r => r && (r.status === 'Pending' || !r.status));
     const pendingCount = pending.length;
 
@@ -6689,23 +6686,19 @@ window.renderAdminCategoryRequests = function() {
             : '0 pending requests';
     }
 
-    if (reqs.length === 0) {
+    if (pendingCount === 0) {
         listContainer.innerHTML = `
             <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
                 <i class="fa-solid fa-layer-group" style="font-size:2.5rem; margin-bottom:0.75rem; color:#cbd5e1; display:block;"></i>
-                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No Category Requests</h4>
-                <p style="margin:0; font-size:0.85rem;">No user-submitted category requests found.</p>
+                <h4 style="margin:0 0 0.25rem 0; color:#475569; font-size:1.05rem; font-weight:700;">No Pending Category Requests</h4>
+                <p style="margin:0; font-size:0.85rem;">All user category requests have been reviewed and approved or cleared.</p>
             </div>
         `;
         return;
     }
 
-    // Sort requests: Pending first, newest first
-    const sorted = [...reqs].sort((a, b) => {
-        const aPend = (a.status === 'Pending' || !a.status);
-        const bPend = (b.status === 'Pending' || !b.status);
-        if (aPend && !bPend) return -1;
-        if (!aPend && bPend) return 1;
+    // Sort pending requests: newest first
+    const sorted = [...pending].sort((a, b) => {
         const aDate = new Date(a.createdAt || a.submittedAt || 0).getTime();
         const bDate = new Date(b.createdAt || b.submittedAt || 0).getTime();
         return bDate - aDate;
@@ -6846,13 +6839,12 @@ window.adminSubmitApproveCategory = async function(reqId) {
         }
     }
 
-    req.status = 'Approved';
-    req.approvedCategoryName = finalCatName;
-    req.approvedAt = new Date().toISOString();
+    // Permanently remove request from pending category queue and cloud database
+    reqs = reqs.filter(r => r && String(r.id) !== String(reqId));
     localStorage.setItem('lb_category_requests', JSON.stringify(reqs));
 
-    if (window.lbCloudSync && typeof window.lbCloudSync.saveCategoryRequest === 'function') {
-        window.lbCloudSync.saveCategoryRequest(req);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCategoryRequest === 'function') {
+        window.lbCloudSync.deleteCategoryRequest(reqId);
     }
 
     refreshAll();
@@ -6872,12 +6864,12 @@ window.adminRejectCategoryRequest = async function(reqId) {
 
     if (!confirm(`Are you sure you want to reject the request for category "${req.categoryName || req.name}"?`)) return;
 
-    req.status = 'Rejected';
-    req.rejectedAt = new Date().toISOString();
+    // Permanently remove rejected request from category queue and cloud database
+    reqs = reqs.filter(r => r && String(r.id) !== String(reqId));
     localStorage.setItem('lb_category_requests', JSON.stringify(reqs));
 
-    if (window.lbCloudSync && typeof window.lbCloudSync.saveCategoryRequest === 'function') {
-        window.lbCloudSync.saveCategoryRequest(req);
+    if (window.lbCloudSync && typeof window.lbCloudSync.deleteCategoryRequest === 'function') {
+        window.lbCloudSync.deleteCategoryRequest(reqId);
     }
 
     refreshAll();
