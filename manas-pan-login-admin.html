@@ -328,8 +328,8 @@
                                     </select>
                                     <select id="listingFilterStatus">
                                         <option value="">All Statuses</option>
-                                        <option value="pending">⏳ Pending Review</option>
-                                        <option value="verified">✅ Verified</option>
+                                        <option value="public">🌐 Public</option>
+                                        <option value="draft">📝 Draft</option>
                                     </select>
                                 </div>
                             </div>
@@ -1890,38 +1890,7 @@
         </div>
     </div>
 
-    <!-- ================= REASSIGN OWNER MODAL ================= -->
-    <div class="modal-backdrop" id="reassignOwnerModal">
-        <div class="modal-card" style="max-width: 480px;">
-            <div class="modal-header">
-                <div>
-                    <h3><i class="fa-solid fa-user-pen" style="color:var(--primary);"></i> Reassign Business Owner</h3>
-                    <p>Change or assign the registered merchant who owns this listing.</p>
-                </div>
-                <button type="button" class="btn-modal-close" data-close-modal="reassignOwnerModal"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="reassignOwnerForm">
-                <input type="hidden" id="reassignListingId">
-                <div class="modal-body">
-                    <div class="form-field full" style="margin-bottom:1rem;">
-                        <label>Business Name</label>
-                        <input type="text" id="reassignListingName" readonly style="background:#f1f5f9; cursor:not-allowed; font-weight:700;">
-                    </div>
-                    <div class="form-field full">
-                        <label for="reassignOwnerSelect">Select Registered Owner</label>
-                        <select id="reassignOwnerSelect" style="width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border);">
-                            <option value="">-- No Owner (Platform Managed / Open for Claim) --</option>
-                        </select>
-                        <small style="color:var(--text-muted); font-size:0.75rem; margin-top:0.35rem; display:block;">Once assigned, this business will appear under the user's "Manage Your Business" dashboard.</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-modal-cancel" data-close-modal="reassignOwnerModal">Cancel</button>
-                    <button type="submit" class="btn-modal-submit"><i class="fa-solid fa-check"></i> Save Owner Assignment</button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <!-- ================= REJECT LISTING CLAIM MODAL ================= -->
     <div class="modal-backdrop" id="rejectClaimModal">

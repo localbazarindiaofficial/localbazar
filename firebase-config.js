@@ -229,10 +229,32 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                     });
 
                     if (cloudListings.length > 0) {
-                        localStorage.setItem('lb_listings', JSON.stringify(cloudListings));
+                        let localListings = [];
+                        try {
+                            const raw = localStorage.getItem('lb_listings');
+                            localListings = raw ? JSON.parse(raw) : [];
+                        } catch (e) {}
+
+                        const cloudMap = new Map(cloudListings.map(item => [String(item.id), item]));
+                        const merged = [...cloudListings];
+                        localListings.forEach(loc => {
+                            if (!loc || !loc.id) return;
+                            if (!cloudMap.has(String(loc.id))) {
+                                merged.push(loc);
+                            } else {
+                                const cloudItem = cloudMap.get(String(loc.id));
+                                if (loc.ownerId && !cloudItem.ownerId) cloudItem.ownerId = loc.ownerId;
+                                if (loc.ownerEmail && !cloudItem.ownerEmail) cloudItem.ownerEmail = loc.ownerEmail;
+                                if (loc.ownerPhone && !cloudItem.ownerPhone) cloudItem.ownerPhone = loc.ownerPhone;
+                                if (loc.ownerName && !cloudItem.ownerName) cloudItem.ownerName = loc.ownerName;
+                                if (loc.isPublic && !cloudItem.isPublic) cloudItem.isPublic = loc.isPublic;
+                            }
+                        });
+
+                        localStorage.setItem('lb_listings', JSON.stringify(merged));
                         sessionStorage.setItem('lb_last_sync_listings', String(Date.now()));
-                        console.log(`[CloudSync] Pulled ${cloudListings.length} listings from Firestore to local cache.`);
-                        return cloudListings;
+                        console.log(`[CloudSync] Pulled ${cloudListings.length} listings from Firestore, merged total ${merged.length} into local cache.`);
+                        return merged;
                     }
                 }
             } catch (err) {
@@ -250,7 +272,29 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                     const updated = [];
                     snapshot.forEach(doc => updated.push(doc.data()));
                     if (updated.length > 0) {
-                        localStorage.setItem('lb_listings', JSON.stringify(updated));
+                        let localListings = [];
+                        try {
+                            const raw = localStorage.getItem('lb_listings');
+                            localListings = raw ? JSON.parse(raw) : [];
+                        } catch (e) {}
+
+                        const cloudMap = new Map(updated.map(item => [String(item.id), item]));
+                        const merged = [...updated];
+                        localListings.forEach(loc => {
+                            if (!loc || !loc.id) return;
+                            if (!cloudMap.has(String(loc.id))) {
+                                merged.push(loc);
+                            } else {
+                                const cloudItem = cloudMap.get(String(loc.id));
+                                if (loc.ownerId && !cloudItem.ownerId) cloudItem.ownerId = loc.ownerId;
+                                if (loc.ownerEmail && !cloudItem.ownerEmail) cloudItem.ownerEmail = loc.ownerEmail;
+                                if (loc.ownerPhone && !cloudItem.ownerPhone) cloudItem.ownerPhone = loc.ownerPhone;
+                                if (loc.ownerName && !cloudItem.ownerName) cloudItem.ownerName = loc.ownerName;
+                                if (loc.isPublic && !cloudItem.isPublic) cloudItem.isPublic = loc.isPublic;
+                            }
+                        });
+
+                        localStorage.setItem('lb_listings', JSON.stringify(merged));
                     }
                     if (typeof callback === 'function') {
                         callback(updated);

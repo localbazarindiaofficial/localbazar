@@ -416,9 +416,73 @@ document.addEventListener('DOMContentLoaded', () => {
             : (cleanPhone ? `tel:${cleanPhone}` : '#');
     }
 
+    // Helper: Build safe, guaranteed working Google Maps direction URL without Chrome redirect hang
+    function getSafeGoogleMapsUrl(target) {
+        if (!target) return 'https://www.google.com/maps';
+
+        let raw = (typeof target === 'string' ? target : (target.mapLink || '')).trim();
+
+        // 1. Extract src if user pasted iframe embed code
+        if (raw.includes('<iframe')) {
+            const match = raw.match(/src=["']([^"']+)["']/i);
+            if (match && match[1]) {
+                raw = match[1].trim();
+            }
+        }
+
+        // 2. If it is an embed URL, extract query or fallback to clean dir search
+        if (raw.includes('/maps/embed')) {
+            try {
+                const u = new URL(raw.startsWith('http') ? raw : 'https://' + raw);
+                const q = u.searchParams.get('q');
+                if (q) {
+                    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+                }
+            } catch (e) {}
+            raw = '';
+        }
+
+        // 3. If raw starts with legacy maps.google.com/?q= or similar, convert directly to Google Universal dir URL
+        if (raw && raw.includes('maps.google.') && (raw.includes('?q=') || raw.includes('&q='))) {
+            try {
+                const u = new URL(raw.startsWith('http') ? raw : 'https://' + raw);
+                const q = u.searchParams.get('q');
+                if (q) {
+                    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+                }
+            } catch (e) {}
+        }
+
+        // 4. If raw is a valid web link (e.g. https://maps.app.goo.gl/..., https://goo.gl/maps/..., https://www.google.com/maps/...)
+        if (raw) {
+            if (!/^https?:\/\//i.test(raw)) {
+                raw = 'https://' + raw;
+            }
+            return raw;
+        }
+
+        // 5. Fallback: Build universal Google Maps destination / directions URL (no 302 redirect loops in Chrome)
+        const name = (typeof target === 'object' && target.name) ? target.name.trim() : '';
+        const address = (typeof target === 'object' && target.address) ? target.address.trim() : '';
+        const city = (typeof target === 'object' && target.city) ? target.city.trim() : '';
+
+        const queryParts = [name, address, city].filter(Boolean);
+        const dest = queryParts.length > 0 ? queryParts.join(', ') : 'India';
+
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+    }
+    window.getSafeGoogleMapsUrl = getSafeGoogleMapsUrl;
+
     const detailDirectionsAction = document.getElementById('detailDirectionsAction');
     if (detailDirectionsAction) {
-        detailDirectionsAction.href = item.mapLink || `https://maps.google.com/?q=${encodeURIComponent(item.name + ' ' + (item.city || ''))}`;
+        const safeMapUrl = getSafeGoogleMapsUrl(item);
+        detailDirectionsAction.href = safeMapUrl;
+        detailDirectionsAction.setAttribute('target', '_blank');
+        detailDirectionsAction.setAttribute('rel', 'noopener noreferrer');
+        detailDirectionsAction.onclick = (e) => {
+            e.preventDefault();
+            window.open(safeMapUrl, '_blank', 'noopener,noreferrer');
+        };
     }
 
     // Share Button Action: Opens the Luxury Store QR & Share Standee Modal
@@ -2161,7 +2225,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sheetContactPhone) sheetContactPhone.textContent = item.phone || 'Contact not provided';
 
     if (sheetGetDirectionsBtn) {
-        sheetGetDirectionsBtn.href = item.mapLink || `https://maps.google.com/?q=${encodeURIComponent(item.name + ' ' + (item.address || item.city || ''))}`;
+        const safeSheetMapUrl = getSafeGoogleMapsUrl(item);
+        sheetGetDirectionsBtn.href = safeSheetMapUrl;
+        sheetGetDirectionsBtn.setAttribute('target', '_blank');
+        sheetGetDirectionsBtn.setAttribute('rel', 'noopener noreferrer');
+        sheetGetDirectionsBtn.onclick = (e) => {
+            e.preventDefault();
+            window.open(safeSheetMapUrl, '_blank', 'noopener,noreferrer');
+        };
     }
     if (sheetCallBtn) {
         sheetCallBtn.href = cleanPhone ? `tel:${cleanPhone}` : '#';
@@ -2224,7 +2295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             district: lb.district || '',
             address: lb.address,
             phone: lb.phone,
-            mapLink: lb.mapLink || `https://maps.google.com/?q=${encodeURIComponent(lb.name + ' ' + (lb.address || lb.city || ''))}`,
+            mapLink: getSafeGoogleMapsUrl(lb),
             detailUrl: `listing-detail.html?id=${encodeURIComponent(lb.id)}`,
             isDirectListing: true
         })),
@@ -2276,7 +2347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </a>
                             ` : ''}
                             ${b.mapLink ? `
-                                <a href="${b.mapLink}" target="_blank" class="btn-branch-action map" title="Directions to this branch">
+                                <a href="${getSafeGoogleMapsUrl(b)}" target="_blank" rel="noopener noreferrer" class="btn-branch-action map" title="Directions to this branch">
                                     <i class="fa-solid fa-diamond-turn-right"></i>
                                 </a>
                             ` : ''}
@@ -2305,7 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="fa-solid fa-phone"></i> Call Store
                         </a>
                     ` : ''}
-                    <a href="${item.mapLink || `https://maps.google.com/?q=${encodeURIComponent(item.name + ' ' + (item.address || item.city || ''))}`}" target="_blank" class="btn-modal-branch-map">
+                    <a href="${getSafeGoogleMapsUrl(item)}" target="_blank" rel="noopener noreferrer" class="btn-modal-branch-map">
                         <i class="fa-solid fa-location-arrow"></i> Directions
                     </a>
                 </div>
@@ -2332,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </a>
                     ` : ''}
                     ${b.mapLink ? `
-                        <a href="${b.mapLink}" target="_blank" class="btn-modal-branch-map">
+                        <a href="${getSafeGoogleMapsUrl(b)}" target="_blank" rel="noopener noreferrer" class="btn-modal-branch-map">
                             <i class="fa-solid fa-location-arrow"></i> Directions
                         </a>
                     ` : ''}

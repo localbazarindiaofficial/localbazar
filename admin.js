@@ -978,10 +978,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Sort: pending review listings to the top so Admin immediately sees new submissions
+        // Sort: Draft listings to the top so Admin immediately sees new submissions
         const sorted = [...listings].sort((a, b) => {
-            if (a.status === 'Pending' && b.status !== 'Pending') return -1;
-            if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+            const aDraft = !(a.isPublic || a.status === 'Approved' || a.status === 'Verified' || a.status === 'Public');
+            const bDraft = !(b.isPublic || b.status === 'Approved' || b.status === 'Verified' || b.status === 'Public');
+            if (aDraft && !bDraft) return -1;
+            if (!aDraft && bDraft) return 1;
             return 0;
         });
 
@@ -999,10 +1001,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="category-chip">${item.category}</span></td>
                 <td>${item.city}</td>
                 <td>${item.phone}</td>
-                <td><span class="status-badge ${item.status === 'Verified' ? 'verified' : (item.status === 'Rejected' ? 'rejected' : 'pending')}">${item.status === 'Verified' ? '<i class="fa-solid fa-check"></i> Verified' : (item.status === 'Rejected' ? '<i class="fa-solid fa-xmark"></i> Rejected' : '<i class="fa-solid fa-clock"></i> Pending Review')}</span></td>
+                <td><span class="status-badge ${(item.isPublic || item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public') ? 'verified' : (item.status === 'Rejected' ? 'rejected' : 'draft')}" style="${(item.isPublic || item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public') ? 'background:#dcfce7; color:#15803d;' : (item.status === 'Rejected' ? 'background:#fee2e2; color:#b91c1c;' : 'background:#fef3c7; color:#b45309;')} font-weight:700;">${(item.isPublic || item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public') ? '<i class="fa-solid fa-check"></i> Public' : (item.status === 'Rejected' ? '<i class="fa-solid fa-xmark"></i> Rejected' : '<i class="fa-solid fa-file-pen"></i> Draft')}</span></td>
                 <td class="text-right">
                     <div class="action-buttons">
-                        ${item.status === 'Pending' ? `
+                        ${!(item.isPublic || item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public') ? `
                             <button type="button" class="btn-action approve" onclick="approveListing('${item.id}')" title="Approve & Publish Live" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700;"><i class="fa-solid fa-check"></i></button>
                             <button type="button" class="btn-action delete" onclick="rejectListing('${item.id}')" title="Reject Request" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><i class="fa-solid fa-xmark"></i></button>
                         ` : ''}
@@ -1263,21 +1265,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Sort: Pending listings appear first so Admin immediately sees them!
+        // Sort: Draft listings appear first so Admin immediately sees them!
         const sortedListings = [...listings].sort((a, b) => {
-            if (a.status === 'Pending' && b.status !== 'Pending') return -1;
-            if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+            const aDraft = !(a.isPublic || a.status === 'Approved' || a.status === 'Verified' || a.status === 'Public');
+            const bDraft = !(b.isPublic || b.status === 'Approved' || b.status === 'Verified' || b.status === 'Public');
+            if (aDraft && !bDraft) return -1;
+            if (!aDraft && bDraft) return 1;
             return 0;
         });
 
         tbody.innerHTML = sortedListings.map(l => {
-            const isVerified = l.status === 'Verified';
+            const isPublic = l.isPublic === true || l.status === 'Approved' || l.status === 'Verified' || l.status === 'Public';
             const isRejected = l.status === 'Rejected';
-            const statusBadge = isVerified 
-                ? `<span class="status-badge verified"><i class="fa-solid fa-check"></i> Verified</span>` 
+            const statusBadge = isPublic 
+                ? `<span class="status-badge verified" style="background:#dcfce7; color:#15803d; font-weight:700;"><i class="fa-solid fa-check"></i> Public</span>` 
                 : (isRejected 
-                    ? `<span class="status-badge" style="background:#fee2e2; color:#b91c1c;"><i class="fa-solid fa-xmark"></i> Rejected</span>` 
-                    : `<span class="status-badge pending" style="background:#fef3c7; color:#b45309; font-weight:700;"><i class="fa-solid fa-clock"></i> Pending Review</span>`);
+                    ? `<span class="status-badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;"><i class="fa-solid fa-xmark"></i> Rejected</span>` 
+                    : `<span class="status-badge draft" style="background:#fef3c7; color:#b45309; font-weight:700;"><i class="fa-solid fa-file-pen"></i> Draft</span>`);
 
             const hasTrust = !!(l.hasTrustBadge || l.status === 'Verified');
             const trustBadgeHtml = hasTrust ? `<span class="badge-gold-trust" style="font-size:0.62rem; padding:0.1rem 0.45rem; margin-left:0.35rem;"><i class="fa-solid fa-shield-halved"></i> Trust</span>` : '';
@@ -1286,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr>
                 <td>
                     <div class="place-cell">
-                        <div class="place-avatar ${isVerified ? 'blue' : 'amber'}"><i class="fa-solid fa-store"></i></div>
+                        <div class="place-avatar ${isPublic ? 'blue' : 'amber'}"><i class="fa-solid fa-store"></i></div>
                         <div>
                             <div class="place-name" style="display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
                                 <span>${l.name}</span>
@@ -1304,11 +1308,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="text-right">
                     <div class="action-buttons">
                         <a href="listing-detail.html?id=${encodeURIComponent(l.id)}" target="_blank" class="btn-action view" title="View Public Page"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                        <button type="button" class="btn-action edit" onclick="openAdminReassignOwnerModal('${l.id}')" title="Assign / Change Owner"><i class="fa-solid fa-user-pen"></i></button>
                         <button type="button" class="btn-action" onclick="adminToggleListingTrustBadge('${l.id}')" title="${hasTrust ? 'Remove Trust Badge' : 'Grant Gold Trust Badge'}" style="background:${hasTrust ? '#fef3c7' : '#f8fafc'}; color:${hasTrust ? '#b45309' : '#64748b'}; border:1px solid ${hasTrust ? '#fde68a' : '#cbd5e1'};">
                             <i class="fa-solid fa-shield-halved"></i>
                         </button>
-                        ${l.status === 'Pending' ? `
+                        ${!isPublic ? `
                             <button type="button" class="btn-action approve" onclick="approveListing('${l.id}')" title="Approve & Publish Live" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700;"><i class="fa-solid fa-check"></i></button>
                             <button type="button" class="btn-action delete" onclick="rejectListing('${l.id}')" title="Reject Request" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><i class="fa-solid fa-xmark"></i></button>
                         ` : ''}
@@ -1338,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchesKey = !keyword || text.includes(keyword);
             const matchesCity = !city || text.includes(city);
             const matchesCat = !cat || text.includes(cat);
-            const matchesStatus = !status || (status === 'pending' ? (text.includes('pending') || text.includes('review')) : (status === 'verified' ? text.includes('verified') : true));
+            const matchesStatus = !status || (status === 'draft' ? (text.includes('draft') || text.includes('pending')) : (status === 'public' || status === 'verified' ? (text.includes('public') || text.includes('verified')) : true));
 
             r.style.display = (matchesKey && matchesCity && matchesCat && matchesStatus) ? '' : 'none';
         });
@@ -1348,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switchView('listingsView');
         const statusFilter = document.getElementById('listingFilterStatus');
         if (statusFilter) {
-            statusFilter.value = 'pending';
+            statusFilter.value = 'draft';
             filterListingsTable();
         }
     };
@@ -4755,61 +4758,8 @@ window.populateAdminListingOwnerDropdown = function() {
 };
 
 window.openAdminReassignOwnerModal = function(listingId) {
-    const listings = getDB(DB_KEYS.LISTINGS);
-    const item = listings.find(l => String(l.id) === String(listingId));
-    if (!item) return;
-
-    const modal = document.getElementById('reassignOwnerModal');
-    const idInput = document.getElementById('reassignListingId');
-    const nameInput = document.getElementById('reassignListingName');
-    const selectEl = document.getElementById('reassignOwnerSelect');
-
-    if (idInput) idInput.value = item.id;
-    if (nameInput) nameInput.value = `${item.name} (#${item.id})`;
-
-    if (selectEl) {
-        const users = getDB(DB_KEYS.USERS);
-        selectEl.innerHTML = '<option value="">-- No Owner (Platform Managed / Open for Claim) --</option>' +
-            users.map(u => `<option value="${u.id}" ${String(u.id) === String(item.ownerId) ? 'selected' : ''}>${u.name} (${u.email || u.phone || u.id})</option>`).join('');
-    }
-
-    modal?.classList.add('active');
+    // Deprecated & removed per Admin UI cleanup
 };
-
-document.getElementById('reassignOwnerForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('reassignListingId')?.value;
-    const ownerId = document.getElementById('reassignOwnerSelect')?.value || '';
-
-    const listings = getDB(DB_KEYS.LISTINGS);
-    const idx = listings.findIndex(l => String(l.id) === String(id));
-    if (idx === -1) return;
-
-    let ownerName = 'Platform Managed';
-    if (ownerId) {
-        const users = getDB(DB_KEYS.USERS);
-        const u = users.find(user => String(user.id) === String(ownerId));
-        if (u) ownerName = u.name;
-    }
-
-    const ok = await window.adminSecurityConfirm({
-        title: 'Reassign Business Owner',
-        message: `Are you sure you want to assign ownership of <strong>"${listings[idx].name}"</strong> to <strong>"${ownerName}"</strong>?`,
-        actionType: 'edit'
-    });
-    if (!ok) return;
-
-    listings[idx].ownerId = ownerId;
-    listings[idx].ownerName = ownerName;
-    setDB(DB_KEYS.LISTINGS, listings);
-    if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-        await window.lbCloudSync.saveListing(listings[idx]);
-    }
-
-    document.getElementById('reassignOwnerModal')?.classList.remove('active');
-    refreshAll();
-    alert(`Success: Ownership for "${listings[idx].name}" set to "${ownerName}".`);
-});
 
 window.deleteUser = async function(id) {
     let users = getDB(DB_KEYS.USERS);

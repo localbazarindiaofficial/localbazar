@@ -573,9 +573,66 @@ document.addEventListener('DOMContentLoaded', () => {
                 : (cleanPhone ? `tel:${cleanPhone}` : '#');
         }
 
+        function getSafeGoogleMapsUrl(target) {
+            if (!target) return 'https://www.google.com/maps';
+
+            let raw = (typeof target === 'string' ? target : (target.mapLink || '')).trim();
+
+            if (raw.includes('<iframe')) {
+                const match = raw.match(/src=["']([^"']+)["']/i);
+                if (match && match[1]) {
+                    raw = match[1].trim();
+                }
+            }
+
+            if (raw.includes('/maps/embed')) {
+                try {
+                    const u = new URL(raw.startsWith('http') ? raw : 'https://' + raw);
+                    const q = u.searchParams.get('q');
+                    if (q) {
+                        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+                    }
+                } catch (e) {}
+                raw = '';
+            }
+
+            if (raw && raw.includes('maps.google.') && (raw.includes('?q=') || raw.includes('&q='))) {
+                try {
+                    const u = new URL(raw.startsWith('http') ? raw : 'https://' + raw);
+                    const q = u.searchParams.get('q');
+                    if (q) {
+                        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+                    }
+                } catch (e) {}
+            }
+
+            if (raw) {
+                if (!/^https?:\/\//i.test(raw)) {
+                    raw = 'https://' + raw;
+                }
+                return raw;
+            }
+
+            const name = (typeof target === 'object' && target.name) ? target.name.trim() : '';
+            const address = (typeof target === 'object' && target.address) ? target.address.trim() : '';
+            const city = (typeof target === 'object' && target.city) ? target.city.trim() : '';
+
+            const queryParts = [name, address, city].filter(Boolean);
+            const dest = queryParts.length > 0 ? queryParts.join(', ') : 'India';
+
+            return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+        }
+
         const mapBtn = document.getElementById('modalMapBtn');
         if (mapBtn) {
-            mapBtn.href = item.mapLink || `https://maps.google.com/?q=${encodeURIComponent(item.name + ' ' + item.city)}`;
+            const safeMapUrl = getSafeGoogleMapsUrl(item);
+            mapBtn.href = safeMapUrl;
+            mapBtn.setAttribute('target', '_blank');
+            mapBtn.setAttribute('rel', 'noopener noreferrer');
+            mapBtn.onclick = (e) => {
+                e.preventDefault();
+                window.open(safeMapUrl, '_blank', 'noopener,noreferrer');
+            };
         }
 
         const chatBtn = document.getElementById('modalChatBtn');

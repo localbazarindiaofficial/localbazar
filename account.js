@@ -1829,37 +1829,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 // UPDATE EXISTING LISTING
                 const index = listings.findIndex(l => String(l.id) === String(editingId));
                 if (index !== -1) {
+                    const existing = listings[index];
                     listings[index] = {
-                        ...listings[index],
+                        ...existing,
                         name,
                         category,
                         city,
                         phone,
                         address,
                         mapLink,
-                        image: coverImage || listings[index].image,
-                        gallery: uploadedImagesList.length > 0 ? uploadedImagesList : (listings[index].gallery || listings[index].images || [listings[index].image]),
-                        images: uploadedImagesList.length > 0 ? uploadedImagesList : (listings[index].gallery || listings[index].images || [listings[index].image]),
+                        image: coverImage || existing.image,
+                        gallery: uploadedImagesList.length > 0 ? uploadedImagesList : (existing.gallery || existing.images || [existing.image]),
+                        images: uploadedImagesList.length > 0 ? uploadedImagesList : (existing.gallery || existing.images || [existing.image]),
                         openDays: openDays,
                         scheduleTimings: primaryScheduleTimings,
                         dailySchedule: dailyScheduleData,
                         holidays,
-                        products: (products.length > 0) ? products : (listings[index].products || []),
-                        doctors: doctors.length > 0 ? doctors : (listings[index].doctors || []),
+                        products: (products.length > 0) ? products : (existing.products || []),
+                        doctors: doctors.length > 0 ? doctors : (existing.doctors || []),
                         desc,
+                        ownerId: existing.ownerId || currentUser.id || currentUser.uid || currentUser.email || '',
+                        ownerEmail: existing.ownerEmail || (currentUser.email || '').trim().toLowerCase(),
+                        ownerPhone: existing.ownerPhone || currentUser.phone || phone || '',
+                        ownerName: existing.ownerName || currentUser.name || 'Member User',
                         lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     };
                     targetListingToSync = listings[index];
                 }
             } else {
-                // CREATE NEW LISTING -> Status: 'Pending' (Registered, but awaiting Admin approval before public visibility)
+                // CREATE NEW LISTING -> Status: 'Draft', isPublic: false (User edits/adds products, then clicks "Make Public")
                 const newListingEntry = {
                     id: 'LB-' + Math.floor(1000 + Math.random() * 9000),
                     name,
                     category,
                     city,
                     phone,
-                    status: 'Pending',
+                    status: 'Draft',
+                    isPublic: false,
                     address,
                     mapLink,
                     image: coverImage,
@@ -1873,7 +1879,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeCategories: getDefaultStoreCategories(category),
                     doctors,
                     desc,
-                    ownerId: currentUser.id || currentUser.email,
+                    ownerId: currentUser.id || currentUser.uid || currentUser.email || '',
+                    ownerEmail: (currentUser.email || '').trim().toLowerCase(),
+                    ownerPhone: currentUser.phone || phone || '',
                     ownerName: currentUser.name || 'Member User',
                     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 };
@@ -2653,14 +2661,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Filter listings created strictly by this user
-        let userListings = listings.filter(l => 
-            (currentUser.id && String(l.ownerId) === String(currentUser.id)) || 
-            (currentUser.email && l.ownerId && l.ownerId.toLowerCase() === currentUser.email.toLowerCase()) || 
-            (currentUser.email && l.ownerEmail && l.ownerEmail.toLowerCase() === currentUser.email.toLowerCase()) || 
-            (currentUser.phone && l.phone && l.phone === currentUser.phone) ||
-            (currentUser.phone && l.ownerPhone && l.ownerPhone === currentUser.phone) ||
-            (currentUser.email && l.claimedBy && l.claimedBy.toLowerCase() === currentUser.email.toLowerCase())
-        );
+        const uId = currentUser.id ? String(currentUser.id).trim().toLowerCase() : '';
+        const uUid = currentUser.uid ? String(currentUser.uid).trim().toLowerCase() : '';
+        const uEmail = currentUser.email ? currentUser.email.trim().toLowerCase() : '';
+        const uPhone = currentUser.phone ? String(currentUser.phone).trim() : '';
+
+        let userListings = listings.filter(l => {
+            if (!l) return false;
+            const lOwnerId = l.ownerId ? String(l.ownerId).trim().toLowerCase() : '';
+            const lOwnerEmail = l.ownerEmail ? String(l.ownerEmail).trim().toLowerCase() : '';
+            const lClaimed = l.claimedBy ? String(l.claimedBy).trim().toLowerCase() : '';
+            const lPhone = l.phone ? String(l.phone).trim() : '';
+            const lOwnerPhone = l.ownerPhone ? String(l.ownerPhone).trim() : '';
+
+            // 1. Direct ID / UID match
+            if (uId && (lOwnerId === uId || (uUid && lOwnerId === uUid))) return true;
+            if (uUid && (lOwnerId === uUid || (uId && lOwnerId === uId))) return true;
+
+            // 2. Email match (ownerEmail, ownerId, claimedBy)
+            if (uEmail && (lOwnerEmail === uEmail || lOwnerId === uEmail || lClaimed === uEmail)) return true;
+
+            // 3. Phone match (phone, ownerPhone, ownerId)
+            if (uPhone && (lPhone === uPhone || lOwnerPhone === uPhone || lOwnerId === uPhone)) return true;
+
+            return false;
+        });
 
         userManageListingsCache = userListings;
 
@@ -2843,7 +2868,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="fa-solid fa-qrcode"></i>
                             <span>Share & QR</span>
                         </button>
-                        <button type="button" class="btn-ctrl-public ${isPublic ? 'is-public' : 'is-draft'}" onclick="event.stopPropagation(); window.toggleListingPublicStatus('${item.id}');" title="${isPublic ? 'Listing is Public (Live in search). Click to switch to Draft' : 'Click to Make Public (Visible in search)'}">
+                        <button type="button" class="btn-ctrl-public ${isPublic ? 'is-public' : 'is-draft'}" onclick="event.stopPropagation(); window.toggleListingPublicStatus('${item.id}');" title="${isPublic ? 'Listing is Public & Live on LocalBazar' : 'Click to Make Public (Visible in search)'}">
                             <i class="fa-solid ${isPublic ? 'fa-globe' : 'fa-cloud-arrow-up'}"></i>
                             <span>${isPublic ? 'Public' : 'Make Public'}</span>
                         </button>
@@ -2874,46 +2899,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const item = listings[index];
-        const isCurrentlyPublic = item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public';
+        const isCurrentlyPublic = item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public' || item.isPublic === true;
 
         if (isCurrentlyPublic) {
-            // Confirm unpublish
-            const ok = confirm(`Do you want to switch "${item.name}" back to Draft?\n\n(It will be hidden from public search results until you click "Make Public" again)`);
-            if (!ok) return;
-
-            item.status = 'Draft';
-            item.isPublic = false;
-            listings[index] = item;
-            localStorage.setItem('lb_listings', JSON.stringify(listings));
-
-            if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-                await window.lbCloudSync.saveListing(item);
-            }
-
-            renderUserManageListings();
+            // Once Public, listing cannot be reverted back to Draft
             if (typeof showLbToast === 'function') {
-                showLbToast(`"${item.name}" is now in Draft mode (hidden from search).`, 'info');
+                showLbToast(`"${item.name}" is already Public and live on LocalBazar!`, 'info');
+            } else {
+                alert(`"${item.name}" is already Public and live on LocalBazar!`);
             }
-        } else {
-            // Make Public
-            item.status = 'Approved';
-            item.isPublic = true;
-            item.publishedAt = new Date().toISOString();
-            listings[index] = item;
-            localStorage.setItem('lb_listings', JSON.stringify(listings));
-
-            if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
-                await window.lbCloudSync.saveListing(item);
-            }
-
-            renderUserManageListings();
-            showLbAlert({
-                title: 'Listing is now Public!',
-                message: `<strong>"${item.name}"</strong> is now live on LocalBazar! <br><br><span style="color:#16a34a; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Anyone searching for ${item.category || 'this category'} in <strong>${item.city}</strong> can now discover your shop!</span>`,
-                type: 'success',
-                buttonText: 'Great!'
-            });
+            return;
         }
+
+        // Make Public (Live for search)
+        item.status = 'Approved';
+        item.isPublic = true;
+        item.publishedAt = item.publishedAt || new Date().toISOString();
+
+        if (currentUser) {
+            if (!item.ownerId && (currentUser.id || currentUser.uid)) item.ownerId = currentUser.id || currentUser.uid;
+            if (!item.ownerEmail && currentUser.email) item.ownerEmail = currentUser.email.trim().toLowerCase();
+            if (!item.ownerPhone && currentUser.phone) item.ownerPhone = currentUser.phone;
+            if (!item.ownerName && currentUser.name) item.ownerName = currentUser.name;
+        }
+
+        listings[index] = item;
+        localStorage.setItem('lb_listings', JSON.stringify(listings));
+
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+            await window.lbCloudSync.saveListing(item);
+        }
+
+        renderUserManageListings();
+        showLbAlert({
+            title: 'Listing is now Public!',
+            message: `<strong>"${item.name}"</strong> is now live on LocalBazar! <br><br><span style="color:#16a34a; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Anyone searching for ${item.category || 'this category'} in <strong>${item.city}</strong> can now discover your shop!</span>`,
+            type: 'success',
+            buttonText: 'Great!'
+        });
     };
 
     window.clearManageListingsSearch = function() {
