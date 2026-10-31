@@ -947,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sidebar Badges
         document.getElementById('sidebarUsersBadge').textContent = users.length;
-        document.getElementById('sidebarListingsBadge').textContent = pendingCount;
+        document.getElementById('sidebarListingsBadge').textContent = listings.length;
         document.getElementById('sidebarCitiesBadge').textContent = cities.length;
         document.getElementById('sidebarCategoriesBadge').textContent = categories.length;
         document.getElementById('sidebarMailBadge').textContent = unreadCount;

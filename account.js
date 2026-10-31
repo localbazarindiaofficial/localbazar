@@ -1828,6 +1828,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editingId) {
                 // UPDATE EXISTING LISTING
                 const index = listings.findIndex(l => String(l.id) === String(editingId));
+                let curUser = currentUser;
+                try {
+                    const rawU = localStorage.getItem('lb_current_user');
+                    if (rawU) curUser = JSON.parse(rawU);
+                } catch(e) {}
+
                 if (index !== -1) {
                     const existing = listings[index];
                     listings[index] = {
@@ -1848,15 +1854,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         products: (products.length > 0) ? products : (existing.products || []),
                         doctors: doctors.length > 0 ? doctors : (existing.doctors || []),
                         desc,
-                        ownerId: existing.ownerId || currentUser.id || currentUser.uid || currentUser.email || '',
-                        ownerEmail: existing.ownerEmail || (currentUser.email || '').trim().toLowerCase(),
-                        ownerPhone: existing.ownerPhone || currentUser.phone || phone || '',
-                        ownerName: existing.ownerName || currentUser.name || 'Member User',
+                        ownerId: existing.ownerId || (curUser ? (curUser.id || curUser.uid || curUser.email) : ''),
+                        ownerEmail: existing.ownerEmail || (curUser && curUser.email ? curUser.email.trim().toLowerCase() : ''),
+                        ownerPhone: existing.ownerPhone || (curUser && curUser.phone ? curUser.phone : (phone || '')),
+                        ownerName: existing.ownerName || (curUser && curUser.name ? curUser.name : 'Member User'),
+                        createdBy: existing.createdBy || (curUser && curUser.email ? curUser.email.trim().toLowerCase() : (curUser ? curUser.id : '')),
                         lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     };
                     targetListingToSync = listings[index];
                 }
             } else {
+                let curUser = currentUser;
+                try {
+                    const rawU = localStorage.getItem('lb_current_user');
+                    if (rawU) curUser = JSON.parse(rawU);
+                } catch(e) {}
+
+                const userOwnerId = curUser ? (curUser.id || curUser.uid || curUser.email || '') : '';
+                const userOwnerEmail = curUser && curUser.email ? curUser.email.trim().toLowerCase() : '';
+                const userOwnerName = curUser && curUser.name ? curUser.name : 'Member User';
+                const userOwnerPhone = curUser && curUser.phone ? curUser.phone : (phone || '');
+
                 // CREATE NEW LISTING -> Status: 'Draft', isPublic: false (User edits/adds products, then clicks "Make Public")
                 const newListingEntry = {
                     id: 'LB-' + Math.floor(1000 + Math.random() * 9000),
@@ -1879,14 +1897,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeCategories: getDefaultStoreCategories(category),
                     doctors,
                     desc,
-                    ownerId: currentUser.id || currentUser.uid || currentUser.email || '',
-                    ownerEmail: (currentUser.email || '').trim().toLowerCase(),
-                    ownerPhone: currentUser.phone || phone || '',
-                    ownerName: currentUser.name || 'Member User',
+                    ownerId: userOwnerId,
+                    ownerEmail: userOwnerEmail,
+                    ownerPhone: userOwnerPhone,
+                    ownerName: userOwnerName,
+                    createdBy: userOwnerEmail || userOwnerId,
                     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 };
                 listings.unshift(newListingEntry);
                 targetListingToSync = newListingEntry;
+                try {
+                    localStorage.setItem('lb_last_created_listing_id', newListingEntry.id);
+                } catch(e) {}
             }
 
             localStorage.setItem('lb_listings', JSON.stringify(listings));
@@ -2652,6 +2674,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const filterBar = document.getElementById('manageSearchFilterBar');
         if (!container) return;
 
+        let curUser = currentUser;
+        try {
+            const rawU = localStorage.getItem('lb_current_user');
+            if (rawU) curUser = JSON.parse(rawU);
+        } catch(e) {}
+        if (!curUser) return;
+
         let listings = [];
         try {
             const rawListings = localStorage.getItem('lb_listings');
@@ -2660,29 +2689,103 @@ document.addEventListener('DOMContentLoaded', () => {
             listings = [];
         }
 
-        // Filter listings created strictly by this user
-        const uId = currentUser.id ? String(currentUser.id).trim().toLowerCase() : '';
-        const uUid = currentUser.uid ? String(currentUser.uid).trim().toLowerCase() : '';
-        const uEmail = currentUser.email ? currentUser.email.trim().toLowerCase() : '';
-        const uPhone = currentUser.phone ? String(currentUser.phone).trim() : '';
+        const uId = curUser.id ? String(curUser.id).trim().toLowerCase() : '';
+        const uUid = curUser.uid ? String(curUser.uid).trim().toLowerCase() : '';
+        const uEmail = curUser.email ? curUser.email.trim().toLowerCase() : '';
+        const uPhone = curUser.phone ? String(curUser.phone).trim() : '';
+        const uName = curUser.name ? curUser.name.trim().toLowerCase() : '';
 
+        // Collect all possible ID variants for this user from lb_users
+        const userIdentities = new Set([uId, uUid, uEmail].filter(Boolean));
+        try {
+            const rawUsers = localStorage.getItem('lb_users');
+            const allUsers = rawUsers ? JSON.parse(rawUsers) : [];
+            const matchedUser = allUsers.find(u => 
+                (uEmail && u.email && u.email.trim().toLowerCase() === uEmail) ||
+                (uUid && u.uid && u.uid === uUid) ||
+                (uId && u.id && String(u.id).toLowerCase() === uId)
+            );
+            if (matchedUser) {
+                if (matchedUser.id) userIdentities.add(String(matchedUser.id).trim().toLowerCase());
+                if (matchedUser.uid) userIdentities.add(String(matchedUser.uid).trim().toLowerCase());
+                if (matchedUser.email) userIdentities.add(matchedUser.email.trim().toLowerCase());
+            }
+        } catch(e) {}
+
+        // Auto-heal existing listings that belong to this user
+        let listingsChanged = false;
+        listings.forEach(l => {
+            if (!l) return;
+            const lOwnerId = l.ownerId ? String(l.ownerId).trim().toLowerCase() : '';
+            const lOwnerEmail = l.ownerEmail ? String(l.ownerEmail).trim().toLowerCase() : '';
+            const lOwnerName = l.ownerName ? String(l.ownerName).trim().toLowerCase() : '';
+            const lPhone = l.phone ? String(l.phone).trim() : '';
+
+            // If listing already has a direct identity match, ensure all owner fields are fully synced
+            const isMatch = (lOwnerId && userIdentities.has(lOwnerId)) ||
+                            (lOwnerEmail && userIdentities.has(lOwnerEmail)) ||
+                            (l.createdBy && userIdentities.has(String(l.createdBy).toLowerCase())) ||
+                            (uEmail && l.claimedBy && l.claimedBy.toLowerCase() === uEmail) ||
+                            (uPhone && lPhone && lPhone === uPhone) ||
+                            (uName && lOwnerName === uName && lOwnerName !== 'platform managed' && lOwnerName !== 'member user' && lOwnerName !== 'admin');
+
+            if (isMatch) {
+                if (!l.ownerId && curUser.id) { l.ownerId = curUser.id; listingsChanged = true; }
+                if (!l.ownerEmail && curUser.email) { l.ownerEmail = curUser.email.trim().toLowerCase(); listingsChanged = true; }
+                if (!l.ownerName && curUser.name) { l.ownerName = curUser.name; listingsChanged = true; }
+                if (!l.ownerPhone && curUser.phone) { l.ownerPhone = curUser.phone; listingsChanged = true; }
+            } else if (!lOwnerId || lOwnerId === 'platform managed' || lOwnerName === 'platform managed' || lOwnerName === 'member user') {
+                // If listing has NO valid owner assigned, and was created locally by this user session
+                const lastCreatedId = localStorage.getItem('lb_last_created_listing_id');
+                if (lastCreatedId && String(l.id) === String(lastCreatedId)) {
+                    l.ownerId = curUser.id || curUser.uid || curUser.email;
+                    l.ownerEmail = curUser.email ? curUser.email.trim().toLowerCase() : '';
+                    l.ownerName = curUser.name || 'Member User';
+                    l.ownerPhone = curUser.phone || l.phone || '';
+                    listingsChanged = true;
+                } else if (listings.length === 1 && !lOwnerEmail) {
+                    // There is only 1 listing in the database and it has no owner email.
+                    // Link it to this creator user so it appears in their Manage Your Business!
+                    l.ownerId = curUser.id || curUser.uid || curUser.email;
+                    l.ownerEmail = curUser.email ? curUser.email.trim().toLowerCase() : '';
+                    l.ownerName = curUser.name || 'Member User';
+                    l.ownerPhone = curUser.phone || l.phone || '';
+                    listingsChanged = true;
+                }
+            }
+        });
+
+        if (listingsChanged) {
+            localStorage.setItem('lb_listings', JSON.stringify(listings));
+            if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+                listings.forEach(l => window.lbCloudSync.saveListing(l));
+            }
+        }
+
+        // Filter listings created strictly by this user
         let userListings = listings.filter(l => {
             if (!l) return false;
             const lOwnerId = l.ownerId ? String(l.ownerId).trim().toLowerCase() : '';
             const lOwnerEmail = l.ownerEmail ? String(l.ownerEmail).trim().toLowerCase() : '';
+            const lCreatedBy = l.createdBy ? String(l.createdBy).trim().toLowerCase() : '';
             const lClaimed = l.claimedBy ? String(l.claimedBy).trim().toLowerCase() : '';
             const lPhone = l.phone ? String(l.phone).trim() : '';
             const lOwnerPhone = l.ownerPhone ? String(l.ownerPhone).trim() : '';
+            const lOwnerName = l.ownerName ? String(l.ownerName).trim().toLowerCase() : '';
 
-            // 1. Direct ID / UID match
-            if (uId && (lOwnerId === uId || (uUid && lOwnerId === uUid))) return true;
-            if (uUid && (lOwnerId === uUid || (uId && lOwnerId === uId))) return true;
+            // 1. Direct ID / UID match (including alternate/previous IDs)
+            if (lOwnerId && userIdentities.has(lOwnerId)) return true;
+            if (lCreatedBy && userIdentities.has(lCreatedBy)) return true;
 
-            // 2. Email match (ownerEmail, ownerId, claimedBy)
-            if (uEmail && (lOwnerEmail === uEmail || lOwnerId === uEmail || lClaimed === uEmail)) return true;
+            // 2. Email match (ownerEmail, ownerId, claimedBy, createdBy)
+            if (lOwnerEmail && userIdentities.has(lOwnerEmail)) return true;
+            if (uEmail && (lClaimed === uEmail || lCreatedBy === uEmail)) return true;
 
-            // 3. Phone match (phone, ownerPhone, ownerId)
+            // 3. Phone match
             if (uPhone && (lPhone === uPhone || lOwnerPhone === uPhone || lOwnerId === uPhone)) return true;
+
+            // 4. Owner Name match (if customized name and not generic)
+            if (uName && lOwnerName === uName && lOwnerName !== 'platform managed' && lOwnerName !== 'member user' && lOwnerName !== 'admin') return true;
 
             return false;
         });
