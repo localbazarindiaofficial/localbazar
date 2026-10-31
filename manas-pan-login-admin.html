@@ -521,13 +521,13 @@
                         </div>
                         <div class="view-actions" style="display:flex; gap:0.65rem; flex-wrap:wrap;">
                             <button type="button" class="btn-primary-action" id="btnOpenTextAdModal" style="background:#2563eb; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.15rem; font-weight:700; border-radius:10px; cursor:pointer;">
-                                <i class="fa-solid fa-font"></i> Text Ad
+                                <i class="fa-solid fa-font"></i> + Text Ad
                             </button>
                             <button type="button" class="btn-primary-action" id="btnOpenBannerAdModal" style="background:#7c3aed; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.15rem; font-weight:700; border-radius:10px; cursor:pointer;">
-                                <i class="fa-solid fa-image"></i> Banner Ad
+                                <i class="fa-solid fa-image"></i> + Banner Ad
                             </button>
                             <button type="button" class="btn-primary-action" id="btnOpenProductAdModal" style="background:#059669; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.15rem; font-weight:700; border-radius:10px; cursor:pointer;">
-                                <i class="fa-solid fa-bag-shopping"></i> Product Promotion
+                                <i class="fa-solid fa-bag-shopping"></i> + Product Promotion
                             </button>
                             <button type="button" class="btn-primary-action" id="btnOpenDefaultBannersModal" style="background:#d97706; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.15rem; font-weight:700; border-radius:10px; cursor:pointer;" title="Configure default fallback banners for empty listings">
                                 <i class="fa-solid fa-images"></i> Listing Empty Banners
@@ -535,7 +535,29 @@
                         </div>
                     </div>
 
+                    <!-- Clean 4-Way Segment Filter Navigation -->
+                    <div class="news-tabs-bar" id="newsFilterTabsBar" style="display:flex; gap:0.5rem; align-items:center; margin:1.25rem 0 1.5rem 0; overflow-x:auto; padding-bottom:4px; flex-wrap:wrap;">
+                        <button type="button" class="news-tab-pill active" id="newsTabAll" onclick="filterNewsByType('all')" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; border:1px solid #1e293b; background:#1e293b; color:#ffffff; transition:all 0.15s ease;">
+                            <i class="fa-solid fa-layer-group"></i> All Campaigns <span class="pill-count" id="countAllAds" style="padding:0.15rem 0.5rem; border-radius:20px; font-size:0.72rem; font-weight:800; background:rgba(255,255,255,0.2); color:#ffffff;">0</span>
+                        </button>
+                        <button type="button" class="news-tab-pill" id="newsTabText" onclick="filterNewsByType('text')" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; border:1px solid #e2e8f0; background:#ffffff; color:#475569; transition:all 0.15s ease;">
+                            <i class="fa-solid fa-font" style="color:#2563eb;"></i> Text Ads <span class="pill-count" id="countTextAds" style="padding:0.15rem 0.5rem; border-radius:20px; font-size:0.72rem; font-weight:800; background:#eff6ff; color:#2563eb;">0</span>
+                        </button>
+                        <button type="button" class="news-tab-pill" id="newsTabBanner" onclick="filterNewsByType('banner')" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; border:1px solid #e2e8f0; background:#ffffff; color:#475569; transition:all 0.15s ease;">
+                            <i class="fa-solid fa-image" style="color:#7c3aed;"></i> Banner Ads <span class="pill-count" id="countBannerAds" style="padding:0.15rem 0.5rem; border-radius:20px; font-size:0.72rem; font-weight:800; background:#f3e8ff; color:#7c3aed;">0</span>
+                        </button>
+                        <button type="button" class="news-tab-pill" id="newsTabProduct" onclick="filterNewsByType('product')" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; border:1px solid #e2e8f0; background:#ffffff; color:#475569; transition:all 0.15s ease;">
+                            <i class="fa-solid fa-bag-shopping" style="color:#059669;"></i> Product Promotions <span class="pill-count" id="countProductAds" style="padding:0.15rem 0.5rem; border-radius:20px; font-size:0.72rem; font-weight:800; background:#ecfdf5; color:#059669;">0</span>
+                        </button>
+                        <button type="button" class="news-tab-pill" id="newsTabEmptyBanners" onclick="filterNewsByType('empty-banners')" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; border:1px solid #e2e8f0; background:#ffffff; color:#475569; transition:all 0.15s ease;">
+                            <i class="fa-solid fa-images" style="color:#d97706;"></i> Listing Empty Banners <span class="pill-count" id="countEmptyBanners" style="padding:0.15rem 0.5rem; border-radius:20px; font-size:0.72rem; font-weight:800; background:#fef3c7; color:#d97706;">4</span>
+                        </button>
+                    </div>
+
                     <div class="news-cards-grid" id="newsGridContainer"></div>
+
+                    <!-- Dedicated View for Listing Empty Banners (Fallback Slides) -->
+                    <div id="newsEmptyBannersContainer" style="display:none;"></div>
                 </div>
             </div>
 

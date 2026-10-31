@@ -1417,17 +1417,44 @@
                                 </div>
                             </div>
 
-                            <!-- 7-day schedule rows with daily hours -->
-                            <div class="m-daily-schedule-list" id="mPortalDailyScheduleList">
-                                <!-- Populated dynamically via JS -->
+                            <!-- Daily Operating Schedule Matrix (Identical to Add Listing) -->
+                            <div class="daily-schedule-matrix" id="mPortalDailyScheduleMatrix">
+                                <!-- Mon to Sun rows populated cleanly via JS -->
                             </div>
 
-                            <div class="m-field span-2" style="margin-top:1.25rem;">
-                                <label>Holidays / Emergency Off-dates (comma separated or notes)</label>
-                                <input type="text" id="mInputScheduleHolidays" placeholder="e.g. 2026-10-25, Sunday, Durga Puja Off">
+                            <!-- Holidays / Specific Off Dates (Identical Interactive Calendar Popover) -->
+                            <div class="form-section-subblock" style="margin-top: 1.5rem; max-width: 480px;">
+                                <div class="form-field">
+                                    <label><i class="fa-regular fa-calendar-xmark text-danger"></i> Scheduled Holidays / Specific Off Dates</label>
+                                    <div class="custom-holiday-picker-wrap">
+                                        <div class="holiday-trigger-box" id="mPortalHolidayTriggerBtn">
+                                            <i class="fa-regular fa-calendar-days" style="color: #ef4444;"></i>
+                                            <span id="mPortalHolidaySummaryDisplay">0 Holidays Selected</span>
+                                            <i class="fa-solid fa-chevron-down ml-auto"></i>
+                                        </div>
+                                        
+                                        <!-- Multi-select Calendar Dropdown -->
+                                        <div class="calendar-popover" id="mPortalCalendarPopover">
+                                            <div class="calendar-header">
+                                                <button type="button" class="btn-cal-nav" id="mPortalPrevMonthBtn"><i class="fa-solid fa-chevron-left"></i></button>
+                                                <span class="cal-month-title" id="mPortalCalMonthTitle">October 2026</span>
+                                                <button type="button" class="btn-cal-nav" id="mPortalNextMonthBtn"><i class="fa-solid fa-chevron-right"></i></button>
+                                            </div>
+                                            <div class="calendar-weekdays">
+                                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                                            </div>
+                                            <div class="calendar-days-grid" id="mPortalCalendarDaysGrid"></div>
+                                            <div class="calendar-footer">
+                                                <span class="cal-selected-count" id="mPortalCalSelectedCountText">0 selected</span>
+                                                <button type="button" class="btn-cal-done" id="mPortalCalendarDoneBtn"><i class="fa-solid fa-check"></i> <span>Save Holidays</span></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="field-hint">Select specific dates when your business will be completely closed this month.</small>
+                                </div>
                             </div>
 
-                            <div class="m-form-action-row" style="margin-top:1.25rem;">
+                            <div class="m-form-action-row" style="margin-top:1.5rem;">
                                 <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Daily Schedule</button>
                             </div>
                         </div>

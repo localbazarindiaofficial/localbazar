@@ -1061,7 +1061,8 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
 
                 // Tier 2: Background sync - only pull what is relevant to the current user/page
                 const tier2Tasks = [
-                    window.lbCloudSync.pullNews(force)
+                    window.lbCloudSync.pullNews(force),
+                    window.lbCloudSync.pullDefaultBanners(force)
                 ];
 
                 // Heavy admin-only collections are strictly skipped for regular users
@@ -1072,8 +1073,7 @@ window.uploadImageToCloud = async function(fileOrDataUrl, maxKB = 300, maxDimens
                         window.lbCloudSync.pullTrustRequests(force),
                         window.lbCloudSync.pullMail(force),
                         window.lbCloudSync.pullCityRequests(force),
-                        window.lbCloudSync.pullCategoryRequests(force),
-                        window.lbCloudSync.pullDefaultBanners(force)
+                        window.lbCloudSync.pullCategoryRequests(force)
                     );
                 } else if (window.location.pathname.includes('account.html')) {
                     tier2Tasks.push(window.lbCloudSync.pullMail(force));

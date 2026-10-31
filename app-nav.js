@@ -173,7 +173,7 @@
             // Check if sub-screen is open (e.g. My Listings, Add Listing, Profile)
             const activeSub = document.querySelector('.account-view-screen.active');
             if (activeSub && activeSub.id !== 'viewMainMenu' && typeof window.switchAccountScreen === 'function') {
-                window.switchAccountScreen('viewMainMenu');
+                window.switchAccountScreen('viewMainMenu', false);
                 return;
             }
         }

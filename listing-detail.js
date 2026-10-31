@@ -1557,6 +1557,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initStoreBanners();
+    window.addEventListener('lb:cloud-synced', () => {
+        try { initStoreBanners(); } catch (e) {}
+    });
 
     // ================= 2. FEATURED TOP PICKS AUTO-SLIDER (CIRCULAR LOOP) =================
     const btnShelfPrev = document.getElementById('btnShelfPrev');
@@ -2080,16 +2083,29 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAndRenderReviews();
 
     // ================= LISTING BOTTOM NAVBAR VIEW CONTROLLER =================
+    let isNavbarScrollLocked = false;
+    let navbarLockTimeout = null;
+
     window.switchListingView = function(view) {
         const tabHome = document.getElementById('tabListingHome');
         const tabRevs = document.getElementById('tabListingReviews');
         const revSection = document.getElementById('storeReviewsSection');
 
+        // Lock scroll listener temporarily during smooth scroll transition
+        isNavbarScrollLocked = true;
+        if (navbarLockTimeout) clearTimeout(navbarLockTimeout);
+        navbarLockTimeout = setTimeout(() => {
+            isNavbarScrollLocked = false;
+        }, 1100);
+
         if (view === 'reviews') {
             tabHome?.classList.remove('active');
             tabRevs?.classList.add('active');
             if (revSection) {
-                revSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const navBarHeight = 56;
+                const rect = revSection.getBoundingClientRect();
+                const targetY = window.pageYOffset + rect.top - navBarHeight;
+                window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
                 revSection.classList.add('highlight-pulse');
                 setTimeout(() => revSection.classList.remove('highlight-pulse'), 1200);
             }
@@ -2102,18 +2118,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-update active navbar tab on scroll
     window.addEventListener('scroll', () => {
+        if (isNavbarScrollLocked) return;
+
         const revSection = document.getElementById('storeReviewsSection');
         const tabHome = document.getElementById('tabListingHome');
         const tabRevs = document.getElementById('tabListingReviews');
         if (!revSection || !tabHome || !tabRevs) return;
 
         const rect = revSection.getBoundingClientRect();
-        if (rect.top <= window.innerHeight * 0.45) {
-            tabHome.classList.remove('active');
-            tabRevs.classList.add('active');
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const isNearPageBottom = (window.innerHeight + window.pageYOffset) >= (document.documentElement.scrollHeight - 80);
+
+        if (rect.top <= windowHeight * 0.65 || isNearPageBottom) {
+            if (!tabRevs.classList.contains('active')) {
+                tabHome.classList.remove('active');
+                tabRevs.classList.add('active');
+            }
         } else {
-            tabRevs.classList.remove('active');
-            tabHome.classList.add('active');
+            if (!tabHome.classList.contains('active')) {
+                tabRevs.classList.remove('active');
+                tabHome.classList.add('active');
+            }
         }
     }, { passive: true });
 

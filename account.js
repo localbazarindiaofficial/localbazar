@@ -279,21 +279,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // State & Hash Persistence: Never lose position on page refresh
         if (screenId !== 'viewMainMenu') {
             sessionStorage.setItem('lb_active_account_screen', screenId);
-            if (updateHistory && window.location.hash !== '#' + screenId) {
-                history.replaceState(null, '', '#' + screenId);
+            if (updateHistory) {
+                if (window.location.hash !== '#' + screenId) {
+                    history.pushState({ accountScreen: screenId }, '', '#' + screenId);
+                }
+            } else {
+                if (window.location.hash !== '#' + screenId) {
+                    history.replaceState({ accountScreen: screenId }, '', '#' + screenId);
+                }
             }
         } else {
             sessionStorage.removeItem('lb_active_account_screen');
-            if (updateHistory && window.location.hash) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
+            sessionStorage.removeItem('lb_editing_listing_id');
+            if (window.location.hash) {
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
             }
-        }
-
-        // Handle navigation modal stack for hardware/browser back
-        if (screenId !== 'viewMainMenu') {
-            if (window.lbPushModal) window.lbPushModal('accountSubScreen', () => window.switchAccountScreen('viewMainMenu'));
-        } else {
-            if (window.lbPopModal) window.lbPopModal('accountSubScreen');
         }
 
         // Screen-specific triggers
@@ -4662,80 +4662,241 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ================= 6. TAB 6: SCHEDULE (DAILY OPEN/CLOSE HOURS) =================
-    const allWeekDaysList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // ================= 6. TAB 6: SCHEDULE (DAILY OPERATING SCHEDULE MATRIX & CALENDAR) =================
+    const mPortalDaysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let mPortalDailyScheduleData = {};
+    const mPortalSelectedHolidaysSet = new Set();
+    let mPortalCalCurrentDate = new Date();
 
-    function renderPortalDailySchedule(biz) {
-        const container = document.getElementById('mPortalDailyScheduleList');
-        const holsInput = document.getElementById('mInputScheduleHolidays');
-        if (!container) return;
+    const mPortalHolidayTriggerBtn = document.getElementById('mPortalHolidayTriggerBtn');
+    const mPortalCalendarPopover = document.getElementById('mPortalCalendarPopover');
+    const mPortalCalMonthTitle = document.getElementById('mPortalCalMonthTitle');
+    const mPortalCalendarDaysGrid = document.getElementById('mPortalCalendarDaysGrid');
+    const mPortalCalSelectedCountText = document.getElementById('mPortalCalSelectedCountText');
+    const mPortalHolidaySummaryDisplay = document.getElementById('mPortalHolidaySummaryDisplay');
+    const mPortalCalendarDoneBtn = document.getElementById('mPortalCalendarDoneBtn');
+    const mPortalPrevMonthBtn = document.getElementById('mPortalPrevMonthBtn');
+    const mPortalNextMonthBtn = document.getElementById('mPortalNextMonthBtn');
 
-        if (holsInput) {
-            holsInput.value = Array.isArray(biz.holidays) ? biz.holidays.join(', ') : (biz.holidays || '');
-        }
+    if (mPortalHolidayTriggerBtn && mPortalCalendarPopover) {
+        mPortalHolidayTriggerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mPortalCalendarPopover.classList.toggle('open');
+            renderMPortalCalendar();
+        });
 
-        const openDays = Array.isArray(biz.openDays) && biz.openDays.length > 0 ? biz.openDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const dailySchedule = biz.dailySchedule && typeof biz.dailySchedule === 'object' ? biz.dailySchedule : {};
+        mPortalCalendarPopover.addEventListener('click', (e) => e.stopPropagation());
+        document.addEventListener('click', () => {
+            if (mPortalCalendarPopover) mPortalCalendarPopover.classList.remove('open');
+        });
 
-        container.innerHTML = allWeekDaysList.map(day => {
-            const dayData = dailySchedule[day] || {
-                isOpen: openDays.includes(day),
-                openTime: '09:00',
-                openAmPm: 'AM',
-                closeTime: '08:30',
-                closeAmPm: 'PM'
-            };
-            const isOpen = dayData.isOpen !== false && openDays.includes(day);
+        mPortalCalendarDoneBtn?.addEventListener('click', () => {
+            mPortalCalendarPopover.classList.remove('open');
+            updateMPortalHolidaySummary();
+        });
 
-            return `
-                <div class="m-day-schedule-row ${isOpen ? '' : 'is-closed'}" id="rowDay_${day}">
-                    <div class="m-day-toggle-col">
-                        <label class="m-switch-wrap">
-                            <input type="checkbox" id="cbIsOpen_${day}" ${isOpen ? 'checked' : ''} onchange="toggleDayRowState('${day}', this.checked)">
-                            <span class="m-switch-slider"></span>
-                        </label>
-                        <strong class="m-day-name">${day}</strong>
-                        <span class="m-day-status-pill ${isOpen ? 'open' : 'closed'}" id="pillStatus_${day}">${isOpen ? 'Open' : 'Off'}</span>
-                    </div>
+        mPortalPrevMonthBtn?.addEventListener('click', () => {
+            mPortalCalCurrentDate.setMonth(mPortalCalCurrentDate.getMonth() - 1);
+            renderMPortalCalendar();
+        });
 
-                    <div class="m-day-times-col" id="timesCol_${day}" style="${isOpen ? '' : 'opacity:0.4; pointer-events:none;'}">
-                        <div class="m-time-picker-group">
-                            <span class="m-time-lbl">Open:</span>
-                            <input type="text" class="m-time-input" id="openTime_${day}" value="${dayData.openTime || '09:00'}" placeholder="09:00">
-                            <select class="m-ampm-select" id="openAmPm_${day}">
-                                <option value="AM" ${dayData.openAmPm === 'AM' ? 'selected' : ''}>AM</option>
-                                <option value="PM" ${dayData.openAmPm === 'PM' ? 'selected' : ''}>PM</option>
-                            </select>
-                        </div>
-                        <span class="m-time-divider">to</span>
-                        <div class="m-time-picker-group">
-                            <span class="m-time-lbl">Close:</span>
-                            <input type="text" class="m-time-input" id="closeTime_${day}" value="${dayData.closeTime || '08:30'}" placeholder="08:30">
-                            <select class="m-ampm-select" id="closeAmPm_${day}">
-                                <option value="AM" ${dayData.closeAmPm === 'AM' ? 'selected' : ''}>AM</option>
-                                <option value="PM" ${dayData.closeAmPm === 'PM' ? 'selected' : ''}>PM</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        mPortalNextMonthBtn?.addEventListener('click', () => {
+            mPortalCalCurrentDate.setMonth(mPortalCalCurrentDate.getMonth() + 1);
+            renderMPortalCalendar();
+        });
     }
 
-    window.toggleDayRowState = function(day, isChecked) {
-        const row = document.getElementById(`rowDay_${day}`);
-        const pill = document.getElementById(`pillStatus_${day}`);
-        const timesCol = document.getElementById(`timesCol_${day}`);
-        if (row) row.classList.toggle('is-closed', !isChecked);
-        if (pill) {
-            pill.className = `m-day-status-pill ${isChecked ? 'open' : 'closed'}`;
-            pill.textContent = isChecked ? 'Open' : 'Off';
+    function renderMPortalCalendar() {
+        if (!mPortalCalendarDaysGrid || !mPortalCalMonthTitle) return;
+        const year = mPortalCalCurrentDate.getFullYear();
+        const month = mPortalCalCurrentDate.getMonth();
+
+        mPortalCalMonthTitle.textContent = mPortalCalCurrentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        mPortalCalendarDaysGrid.innerHTML = '';
+
+        const firstDayIdx = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDayIdx; i++) {
+            const blank = document.createElement('div');
+            blank.className = 'cal-day-cell empty';
+            mPortalCalendarDaysGrid.appendChild(blank);
         }
-        if (timesCol) {
-            timesCol.style.opacity = isChecked ? '1' : '0.4';
-            timesCol.style.pointerEvents = isChecked ? 'auto' : 'none';
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-day-cell';
+            cell.textContent = d;
+
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            if (mPortalSelectedHolidaysSet.has(dateStr)) {
+                cell.classList.add('selected');
+            }
+
+            cell.addEventListener('click', () => {
+                if (mPortalSelectedHolidaysSet.has(dateStr)) {
+                    mPortalSelectedHolidaysSet.delete(dateStr);
+                    cell.classList.remove('selected');
+                } else {
+                    mPortalSelectedHolidaysSet.add(dateStr);
+                    cell.classList.add('selected');
+                }
+                if (mPortalCalSelectedCountText) mPortalCalSelectedCountText.textContent = `${mPortalSelectedHolidaysSet.size} selected`;
+                updateMPortalHolidaySummary();
+            });
+
+            mPortalCalendarDaysGrid.appendChild(cell);
+        }
+        if (mPortalCalSelectedCountText) mPortalCalSelectedCountText.textContent = `${mPortalSelectedHolidaysSet.size} selected`;
+    }
+
+    function updateMPortalHolidaySummary() {
+        if (mPortalHolidaySummaryDisplay) {
+            const count = mPortalSelectedHolidaysSet.size;
+            mPortalHolidaySummaryDisplay.textContent = count === 0 ? '0 Holidays Selected' : `${count} Holiday${count > 1 ? 's' : ''} Selected`;
+        }
+    }
+
+    function renderPortalDailySchedule(biz) {
+        const container = document.getElementById('mPortalDailyScheduleMatrix');
+        if (!container) return;
+
+        // Reset and populate holidays
+        mPortalSelectedHolidaysSet.clear();
+        if (Array.isArray(biz.holidays)) {
+            biz.holidays.forEach(h => {
+                if (h && typeof h === 'string') mPortalSelectedHolidaysSet.add(h.trim());
+            });
+        } else if (typeof biz.holidays === 'string' && biz.holidays.trim()) {
+            biz.holidays.split(',').forEach(h => {
+                if (h.trim()) mPortalSelectedHolidaysSet.add(h.trim());
+            });
+        }
+        updateMPortalHolidaySummary();
+
+        // Extract or default daily schedule
+        const openDays = Array.isArray(biz.openDays) && biz.openDays.length > 0 ? biz.openDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const existingSchedule = (biz.dailySchedule && typeof biz.dailySchedule === 'object') ? biz.dailySchedule : {};
+
+        mPortalDailyScheduleData = {};
+        mPortalDaysOfWeek.forEach(day => {
+            if (existingSchedule[day]) {
+                mPortalDailyScheduleData[day] = {
+                    isOpen: existingSchedule[day].isOpen !== false,
+                    openTime: existingSchedule[day].openTime || '09:00',
+                    openAmPm: existingSchedule[day].openAmPm || 'AM',
+                    closeTime: existingSchedule[day].closeTime || '08:30',
+                    closeAmPm: existingSchedule[day].closeAmPm || 'PM'
+                };
+            } else {
+                mPortalDailyScheduleData[day] = {
+                    isOpen: openDays.includes(day),
+                    openTime: '09:00',
+                    openAmPm: 'AM',
+                    closeTime: '08:30',
+                    closeAmPm: 'PM'
+                };
+            }
+        });
+
+        container.innerHTML = `
+            <div class="matrix-quick-actions">
+                <span class="matrix-tip"><i class="fa-solid fa-wand-magic-sparkles text-amber"></i> Quick Tip: Customize each day's exact timings or toggle Closed.</span>
+                <button type="button" class="btn-copy-timings" id="btnPortalApplyAllDays" title="Apply Monday timings to all open days">
+                    <i class="fa-solid fa-copy"></i> Apply Mon Times to All Days
+                </button>
+            </div>
+            <div class="matrix-rows-wrap">
+                ${mPortalDaysOfWeek.map(day => {
+                    const d = mPortalDailyScheduleData[day] || { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+                    return `
+                        <div class="matrix-day-row ${d.isOpen ? 'is-open' : 'is-closed'}" id="mPortalMatrixRow_${day}">
+                            <!-- Left: Day & Toggle Switch -->
+                            <div class="matrix-day-info">
+                                <label class="day-toggle-switch">
+                                    <input type="checkbox" class="chk-day-open" data-day="${day}" ${d.isOpen ? 'checked' : ''} onchange="handlePortalDayToggle('${day}', this.checked)">
+                                    <span class="slider round"></span>
+                                </label>
+                                <span class="matrix-day-name">${day}</span>
+                                <span class="matrix-status-tag ${d.isOpen ? 'tag-open' : 'tag-closed'}" id="mPortalMatrixTag_${day}">${d.isOpen ? 'Open' : 'Closed'}</span>
+                            </div>
+
+                            <!-- Right: Daily Time Controls -->
+                            <div class="matrix-times-box" id="mPortalMatrixTimesBox_${day}" style="${d.isOpen ? '' : 'opacity:0.4; pointer-events:none;'}">
+                                <div class="matrix-time-input-wrap">
+                                    <span class="time-lbl">Open:</span>
+                                    <div class="time-ampm-row">
+                                        <input type="text" class="inp-open-val" data-day="${day}" value="${d.openTime}" maxlength="5" onchange="handlePortalDailyTimeChange('${day}', 'openTime', this.value)">
+                                        <select class="sel-open-ampm" data-day="${day}" onchange="handlePortalDailyTimeChange('${day}', 'openAmPm', this.value)">
+                                            <option value="AM" ${d.openAmPm === 'AM' ? 'selected' : ''}>AM</option>
+                                            <option value="PM" ${d.openAmPm === 'PM' ? 'selected' : ''}>PM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <span class="matrix-time-sep">—</span>
+                                <div class="matrix-time-input-wrap">
+                                    <span class="time-lbl">Close:</span>
+                                    <div class="time-ampm-row">
+                                        <input type="text" class="inp-close-val" data-day="${day}" value="${d.closeTime}" maxlength="5" onchange="handlePortalDailyTimeChange('${day}', 'closeTime', this.value)">
+                                        <select class="sel-close-ampm" data-day="${day}" onchange="handlePortalDailyTimeChange('${day}', 'closeAmPm', this.value)">
+                                            <option value="PM" ${d.closeAmPm === 'PM' ? 'selected' : ''}>PM</option>
+                                            <option value="AM" ${d.closeAmPm === 'AM' ? 'selected' : ''}>AM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        document.getElementById('btnPortalApplyAllDays')?.addEventListener('click', applyPortalMondayTimeToAll);
+    }
+
+    window.handlePortalDayToggle = function(day, isOpen) {
+        if (!mPortalDailyScheduleData[day]) mPortalDailyScheduleData[day] = {};
+        mPortalDailyScheduleData[day].isOpen = isOpen;
+
+        const row = document.getElementById(`mPortalMatrixRow_${day}`);
+        const tag = document.getElementById(`mPortalMatrixTag_${day}`);
+        const timesBox = document.getElementById(`mPortalMatrixTimesBox_${day}`);
+
+        if (row) {
+            row.classList.toggle('is-open', isOpen);
+            row.classList.toggle('is-closed', !isOpen);
+        }
+        if (tag) {
+            tag.textContent = isOpen ? 'Open' : 'Closed';
+            tag.className = `matrix-status-tag ${isOpen ? 'tag-open' : 'tag-closed'}`;
+        }
+        if (timesBox) {
+            timesBox.style.opacity = isOpen ? '1' : '0.4';
+            timesBox.style.pointerEvents = isOpen ? 'auto' : 'none';
         }
     };
+
+    window.handlePortalDailyTimeChange = function(day, field, val) {
+        if (!mPortalDailyScheduleData[day]) mPortalDailyScheduleData[day] = {};
+        mPortalDailyScheduleData[day][field] = val;
+    };
+
+    function applyPortalMondayTimeToAll() {
+        const mon = mPortalDailyScheduleData['Monday'] || { openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+        mPortalDaysOfWeek.forEach(day => {
+            if (day !== 'Monday' && mPortalDailyScheduleData[day]?.isOpen) {
+                mPortalDailyScheduleData[day].openTime = mon.openTime;
+                mPortalDailyScheduleData[day].openAmPm = mon.openAmPm;
+                mPortalDailyScheduleData[day].closeTime = mon.closeTime;
+                mPortalDailyScheduleData[day].closeAmPm = mon.closeAmPm;
+            }
+        });
+        const currentBiz = {
+            dailySchedule: mPortalDailyScheduleData,
+            holidays: Array.from(mPortalSelectedHolidaysSet)
+        };
+        renderPortalDailySchedule(currentBiz);
+    }
 
     window.handlePortalScheduleSubmit = function(e) {
         if (e) e.preventDefault();
@@ -4749,30 +4910,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = listings.findIndex(l => l.id === currentPortalListingId);
         if (idx === -1) return;
 
-        const dailySchedule = {};
-        const openDays = [];
+        const openDays = mPortalDaysOfWeek.filter(day => mPortalDailyScheduleData[day]?.isOpen);
+        const firstOpenDay = openDays.length > 0 ? openDays[0] : 'Monday';
+        const primaryDayObj = mPortalDailyScheduleData[firstOpenDay] || { openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
 
-        allWeekDaysList.forEach(day => {
-            const cb = document.getElementById(`cbIsOpen_${day}`);
-            const isOpen = cb ? cb.checked : false;
-            const openTime = document.getElementById(`openTime_${day}`)?.value.trim() || '09:00';
-            const openAmPm = document.getElementById(`openAmPm_${day}`)?.value || 'AM';
-            const closeTime = document.getElementById(`closeTime_${day}`)?.value.trim() || '08:30';
-            const closeAmPm = document.getElementById(`closeAmPm_${day}`)?.value || 'PM';
-
-            if (isOpen) openDays.push(day);
-            dailySchedule[day] = { isOpen, openTime, openAmPm, closeTime, closeAmPm };
-        });
-
-        const hols = document.getElementById('mInputScheduleHolidays')?.value.trim();
-
-        listings[idx].dailySchedule = dailySchedule;
+        listings[idx].dailySchedule = { ...mPortalDailyScheduleData };
         listings[idx].openDays = openDays.length > 0 ? openDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        listings[idx].scheduleTimings = `${dailySchedule['Monday']?.openTime || '09:00'} ${dailySchedule['Monday']?.openAmPm || 'AM'} - ${dailySchedule['Monday']?.closeTime || '08:30'} ${dailySchedule['Monday']?.closeAmPm || 'PM'}`;
-        listings[idx].holidays = hols ? hols.split(',').map(s => s.trim()).filter(Boolean) : [];
+        listings[idx].scheduleTimings = `${primaryDayObj.openTime || '09:00'} ${primaryDayObj.openAmPm || 'AM'} - ${primaryDayObj.closeTime || '08:30'} ${primaryDayObj.closeAmPm || 'PM'}`;
+        listings[idx].holidays = Array.from(mPortalSelectedHolidaysSet);
 
         syncPortalListingToStorageAndCloud(listings[idx]);
-        alert('Daily schedule and timings updated successfully!');
+        if (typeof renderUserManageListings === 'function') {
+            renderUserManageListings();
+        }
+        alert('Store operating schedule and holiday calendar updated successfully!');
     };
 
     // ================= 7. TAB 7: INBOX (CUSTOMER DIRECT INQUIRIES & REPLIES) =================
@@ -7105,24 +7256,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // Restore Active Screen on Page Load / Refresh (Hash & Session persistence)
     function restoreInitialAccountScreen() {
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
-        const stored = sessionStorage.getItem('lb_active_account_screen');
-        const targetScreen = hash || stored;
 
-        if (targetScreen && targetScreen !== 'viewMainMenu') {
-            const editingId = sessionStorage.getItem('lb_editing_listing_id');
-            if (targetScreen === 'viewAddListing' && editingId && typeof window.openEditListing === 'function') {
-                window.openEditListing(editingId);
-            } else {
-                window.switchAccountScreen(targetScreen, false);
-            }
+        // 1. If NO hash is in the URL, this is a fresh visit to Account Hub (e.g. from Home page Profile Icon)
+        if (!hash || hash === 'viewMainMenu') {
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
+            window.switchAccountScreen('viewMainMenu', false);
+            try {
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+            } catch (e) {}
+            return;
+        }
+
+        // 2. If a hash IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
+        const targetScreen = hash;
+
+        // Establish the base menu state in history behind this sub-screen
+        // so that pressing back from this refreshed page will step back to viewMainMenu!
+        try {
+            history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+            history.pushState({ accountScreen: targetScreen }, '', '#' + targetScreen);
+        } catch (e) {}
+
+        const editingId = sessionStorage.getItem('lb_editing_listing_id');
+        if (targetScreen === 'viewAddListing' && editingId && typeof window.openEditListing === 'function') {
+            window.openEditListing(editingId);
+        } else {
+            window.switchAccountScreen(targetScreen, false);
         }
     }
     restoreInitialAccountScreen();
 
-    // Listen to Browser Back / Forward hash navigation
-    window.addEventListener('hashchange', () => {
+    // Listen to Browser Back / Forward navigation (popstate & hashchange)
+    window.addEventListener('popstate', (e) => {
+        const portalOverlay = document.getElementById('merchantPortalOverlay');
+        if (portalOverlay && portalOverlay.classList.contains('active')) {
+            return;
+        }
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
-        if (hash) {
+        if (hash && hash !== 'viewMainMenu') {
+            window.switchAccountScreen(hash, false);
+        } else {
+            window.switchAccountScreen('viewMainMenu', false);
+        }
+    });
+
+    window.addEventListener('hashchange', () => {
+        const portalOverlay = document.getElementById('merchantPortalOverlay');
+        if (portalOverlay && portalOverlay.classList.contains('active')) {
+            return;
+        }
+        const hash = (window.location.hash || '').replace(/^#/, '').trim();
+        if (hash && hash !== 'viewMainMenu') {
             window.switchAccountScreen(hash, false);
         } else {
             window.switchAccountScreen('viewMainMenu', false);

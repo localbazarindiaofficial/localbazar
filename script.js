@@ -488,10 +488,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentHomeCity = (document.getElementById('cityInput')?.value || '').trim().toLowerCase();
         const activeAds = ads.filter(ad => {
             if (ad.active === false) return false;
-            if (!ad.targetPage || ad.targetPage === 'all' || ad.targetPage === 'home') return true;
-            if (ad.targetPage === 'city') {
+            if (!ad.targetPage || ad.targetPage === 'all' || ad.targetPage === 'home') {
+                if (ad.targetCity && ad.targetCity.toLowerCase() !== 'all cities') {
+                    if (!currentHomeCity) return true;
+                    const adCity = ad.targetCity.toLowerCase();
+                    return adCity.includes(currentHomeCity) || currentHomeCity.includes(adCity);
+                }
+                return true;
+            }
+            if (ad.targetPage === 'city' || ad.targetPage === 'explore') {
                 if (!currentHomeCity) return true;
-                return (ad.city || '').toLowerCase() === currentHomeCity;
+                const adCity = (ad.city || ad.targetCity || '').toLowerCase();
+                return adCity === 'all cities' || adCity.includes(currentHomeCity) || currentHomeCity.includes(adCity);
             }
             return false;
         });
