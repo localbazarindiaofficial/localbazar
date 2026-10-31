@@ -246,7 +246,7 @@
                     </div>
 
                     <!-- 6. Log Out (Red Styled Action) -->
-                    <button type="button" class="menu-list-row logout-row" id="hubSignOutBtn" onclick="handleHubSignOut()">
+                    <button type="button" class="menu-list-row logout-row" id="hubSignOutBtn">
                         <div class="menu-row-left">
                             <div class="menu-icon-box red"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
                             <div class="menu-row-info">
@@ -444,11 +444,6 @@
                         <span class="step-num">3</span>
                         <span class="step-lbl">Timings</span>
                     </button>
-                    <!-- Dynamic Doctor Chamber Tab (Appears for Medical, Pharmacy, Diagnostic, Clinic, Hospital) -->
-                    <button type="button" class="step-nav-pill" id="stepPillDoctorChamber" data-step="4" style="display:none;">
-                        <span class="step-num"><i class="fa-solid fa-user-doctor"></i></span>
-                        <span class="step-lbl">Doctor Chamber</span>
-                    </button>
                 </div>
 
                 <div class="sub-screen-content">
@@ -626,62 +621,10 @@
                                     <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
                                 </button>
                                 <div class="step-action-right" id="timingsActionRight">
-                                    <button type="button" class="btn-step-next" id="btnNextToDoctor" style="display:none;" onclick="navigateListingStep(4)">
-                                        <span>Continue to Doctor Chamber</span> <i class="fa-solid fa-arrow-right"></i>
-                                    </button>
                                     <button type="button" class="btn-primary-action btn-large" id="btnPublishFromTimings" onclick="handleListingRegistrationSubmit()">
                                         <i class="fa-solid fa-store"></i> <span class="uPublishBtnText">Complete Your Registration</span>
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- ================= STAGE 4: DOCTOR CHAMBER (Dynamic for Medical, Pharmacy, Clinic, Diagnostic) ================= -->
-                        <div class="listing-step-pane" id="listingStepPane4" style="display:none;">
-                            <div class="form-section-block">
-                                <div class="section-title-action">
-                                    <h3 class="form-section-title"><i class="fa-solid fa-user-doctor"></i> Doctor Chamber & Visiting Specialists</h3>
-                                    <button type="button" class="btn-secondary-action-sm" id="uAddDoctorRowBtn"><i class="fa-solid fa-plus"></i> Add Doctor</button>
-                                </div>
-                                <p class="section-sub-desc">List the visiting doctors, their medical degrees, visiting days, timings and consultation fees.</p>
-
-                                <div class="doctors-list-wrap" id="uDoctorsContainer">
-                                    <div class="doctor-chamber-card">
-                                        <div class="doctor-card-grid">
-                                            <div class="form-field span-2">
-                                                <label>Doctor's Full Name *</label>
-                                                <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Specialist / Department *</label>
-                                                <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Visiting Days</label>
-                                                <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Chamber Timings</label>
-                                                <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Consultation Fee</label>
-                                                <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
-                                            </div>
-                                        </div>
-                                        <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Step Action Bar -->
-                            <div class="step-action-bar">
-                                <button type="button" class="btn-step-prev" onclick="navigateListingStep(3)">
-                                    <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
-                                </button>
-                                <button type="button" class="btn-primary-action btn-large" onclick="handleListingRegistrationSubmit()">
-                                    <i class="fa-solid fa-store"></i> <span class="uPublishBtnText">Complete Your Registration</span>
-                                </button>
                             </div>
                         </div>
 
@@ -1253,7 +1196,7 @@
                         <div class="m-drawer-item-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
                         <div class="m-drawer-item-content">
                             <span class="m-drawer-item-title">Products & Services</span>
-                            <span class="m-drawer-item-sub">In-store categories, multi-pics & stock</span>
+                            <span class="m-drawer-item-sub">Product catalog, prices & stock status</span>
                         </div>
                     </button>
                     <button type="button" class="m-drawer-item" data-tab="tabBanners">
@@ -1399,35 +1342,14 @@
                     </form>
                 </div>
 
-                <!-- TAB 4: PRODUCTS & SERVICES (Sliding Categories + Multi-Pic Product Catalog with Stock Status) -->
+                <!-- TAB 4: PRODUCTS & SERVICES (Product Catalog with Stock Status + Top Products Showcase) -->
                 <div class="m-tab-panel" id="tabProductsServices">
-                    <!-- 1. In-Store Category Slide Bar Management -->
+                    <!-- 1. Products & Services Catalog -->
                     <div class="m-panel-box">
                         <div class="m-panel-box-header">
                             <div>
-                                <h4><i class="fa-solid fa-layer-group text-primary"></i> 1. In-Store Sliding Categories</h4>
-                                <p>Add, edit or delete filter chips that appear below the search bar on your store page.</p>
-                            </div>
-                            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
-                                <button type="button" class="btn-portal-secondary-sm" id="btnSyncCatDefaults" onclick="syncStoreCategoriesWithAdminDefaults()" title="Load/Reset to default sliding categories from Admin for this business category">
-                                    <i class="fa-solid fa-arrows-rotate"></i> Reset to Category Defaults
-                                </button>
-                                <button type="button" class="btn-portal-primary-sm" onclick="openPortalStoreCategoryModal()">
-                                    <i class="fa-solid fa-plus"></i> Add Category
-                                </button>
-                            </div>
-                        </div>
-                        <div class="m-store-cats-manager-grid" id="mPortalStoreCatsGrid">
-                            <!-- Populated dynamically via JS -->
-                        </div>
-                    </div>
-
-                    <!-- 2. Products & Services List under Categories -->
-                    <div class="m-panel-box" style="margin-top:1.25rem;">
-                        <div class="m-panel-box-header">
-                            <div>
-                                <h4><i class="fa-solid fa-boxes-stacked text-primary"></i> 2. Products & Services Catalog</h4>
-                                <p>Manage products under sliding categories with multi-image gallery, price, details, and In Stock / Out of Stock toggle.</p>
+                                <h4><i class="fa-solid fa-boxes-stacked text-primary"></i> 1. Products & Services Catalog</h4>
+                                <p>Manage your products & services with multi-image gallery, price, details, and In Stock / Out of Stock toggle.</p>
                             </div>
                             <button type="button" class="btn-portal-primary-sm" onclick="openPortalCatalogModal('product')">
                                 <i class="fa-solid fa-plus"></i> Add Product
@@ -1447,11 +1369,11 @@
                         </div>
                     </div>
 
-                    <!-- 3. Top Products Showcase Selection -->
+                    <!-- 2. Top Products Showcase Selection -->
                     <div class="m-panel-box" style="margin-top:1.25rem;">
                         <div class="m-panel-box-header">
                             <div>
-                                <h4><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 3. Top Products Showcase</h4>
+                                <h4><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 2. Top Products Showcase</h4>
                                 <p>Select which products from your catalog to feature prominently in the square product shelf at the bottom of your storefront page.</p>
                             </div>
                             <button type="button" class="btn-portal-primary-sm" onclick="openSelectTopProductsModal()">
@@ -1698,43 +1620,6 @@
                 <div class="m-submodal-actions">
                     <button type="button" class="btn-submodal-cancel" onclick="closePortalBannerModal()">Cancel</button>
                     <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Banner</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= NESTED MODAL 3: ADD / EDIT IN-STORE SLIDING CATEGORY ================= -->
-    <div class="m-submodal-overlay" id="portalStoreCategoryModal" style="display:none;" onclick="closePortalStoreCategoryModal()">
-        <div class="m-submodal-card" onclick="event.stopPropagation()">
-            <div class="m-submodal-header">
-                <h4 id="portalStoreCatModalTitle"><i class="fa-solid fa-layer-group text-primary"></i> Add Store Category</h4>
-                <button type="button" class="btn-submodal-close" onclick="closePortalStoreCategoryModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="portalStoreCatForm" onsubmit="handlePortalStoreCategorySubmit(event)">
-                <input type="hidden" id="pStoreCatIndex" value="-1">
-
-                <div class="m-field">
-                    <label>Category Label *</label>
-                    <input type="text" id="pStoreCatLabel" required placeholder="e.g. Smart Watches, Kurtis, Cold Drinks">
-                </div>
-
-                <div class="m-field">
-                    <label>Filter Tag / Identifier (Optional)</label>
-                    <input type="text" id="pStoreCatTag" placeholder="e.g. watches, fashion, electronics (auto-generated if empty)">
-                </div>
-
-                <div class="m-field">
-                    <label>Category Emoji <span style="font-weight:normal; color:#94a3b8;">(যেমন: 🍔, 👗, 📱, 🛒 - যেকোনো Emoji পেস্ট করুন)</span></label>
-                    <div style="position:relative;">
-                        <input type="text" id="pStoreCatIconInput" placeholder="Emoji পেস্ট করুন (যেমন 🍔 বা 👗)" data-no-capitalize style="padding-left:38px; font-size:1.05rem;">
-                        <span id="pStoreCatIconPreview" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:1.25rem; pointer-events:none;">🏷️</span>
-                    </div>
-                    <small style="color:#64748b; font-size:0.75rem; margin-top:0.35rem; display:block;">যেকোনো ওয়েবসাইট থেকে Emoji কপি করে এখানে পেস্ট করুন, অথবা খালি রাখলে স্বয়ংক্রিয়ভাবে মানানসই Emoji সেট হবে।</small>
-                </div>
-
-                <div class="m-submodal-actions">
-                    <button type="button" class="btn-submodal-cancel" onclick="closePortalStoreCategoryModal()">Cancel</button>
-                    <button type="submit" class="btn-portal-primary"><i class="fa-solid fa-check"></i> Save Category</button>
                 </div>
             </form>
         </div>

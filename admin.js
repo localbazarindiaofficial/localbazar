@@ -2664,25 +2664,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = '';
     });
 
-    // 4. Dynamic Category Change Handler (Doctor Chamber Injection)
+    // 4. Dynamic Category Change Handler
     window.handleAdminCategoryChange = function(categoryVal) {
-        const cat = (categoryVal || '').toLowerCase();
-        const medicalKeywords = ['medical', 'pharmacy', 'medicine', 'diagnostic', 'doctor', 'clinic', 'hospital', 'health', 'pathology'];
-        isAdminDoctorChamberApplicable = medicalKeywords.some(kw => cat.includes(kw));
-
-        const stepPillDoctor = document.getElementById('adminStepPillDoctorChamber');
-        const btnNextToDoctor = document.getElementById('adminBtnNextToDoctor');
         const btnPublishFromTimings = document.getElementById('adminBtnPublishFromTimings');
-
-        if (isAdminDoctorChamberApplicable) {
-            if (stepPillDoctor) stepPillDoctor.style.display = 'inline-flex';
-            if (btnNextToDoctor) btnNextToDoctor.style.display = 'inline-flex';
-            if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'none';
-        } else {
-            if (stepPillDoctor) stepPillDoctor.style.display = 'none';
-            if (btnNextToDoctor) btnNextToDoctor.style.display = 'none';
-            if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'inline-flex';
-        }
+        if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'inline-flex';
     };
 
     // 5. Enterprise Day-by-Day Operating Schedule Matrix
@@ -2933,37 +2918,6 @@ document.addEventListener('DOMContentLoaded', () => {
         adminSelectedHolidaysSet.clear();
         window.updateAdminHolidaySummary();
 
-        const docContainer = document.getElementById('adminDoctorsContainer');
-        if (docContainer) {
-            docContainer.innerHTML = `
-                <div class="doctor-chamber-card">
-                    <div class="doctor-card-grid">
-                        <div class="form-field span-2">
-                            <label>Doctor's Full Name *</label>
-                            <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
-                        </div>
-                        <div class="form-field">
-                            <label>Specialist / Department *</label>
-                            <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
-                        </div>
-                        <div class="form-field">
-                            <label>Visiting Days</label>
-                            <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
-                        </div>
-                        <div class="form-field">
-                            <label>Chamber Timings</label>
-                            <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
-                        </div>
-                        <div class="form-field">
-                            <label>Consultation Fee</label>
-                            <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
-                        </div>
-                    </div>
-                    <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                </div>
-            `;
-        }
-
         isAdminDoctorChamberApplicable = false;
         const ownerSelect = document.getElementById('fullListingOwner');
         if (ownerSelect) ownerSelect.value = '';
@@ -3012,26 +2966,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const primaryScheduleTimings = `${defaultDayObj.openTime} ${defaultDayObj.openAmPm} - ${defaultDayObj.closeTime} ${defaultDayObj.closeAmPm}`;
         const holidays = Array.from(adminSelectedHolidaysSet);
 
-        // Doctor Chamber Data (if applicable)
+        // Doctor Chamber Data
         const doctors = [];
-        if (isAdminDoctorChamberApplicable) {
-            document.querySelectorAll('#adminDoctorsContainer .doctor-chamber-card').forEach(card => {
-                const docName = card.querySelector('.doc-name')?.value.trim();
-                const specialist = card.querySelector('.doc-specialist')?.value.trim();
-                const days = card.querySelector('.doc-days')?.value.trim();
-                const time = card.querySelector('.doc-time')?.value.trim();
-                const fee = card.querySelector('.doc-fee')?.value.trim();
-                if (docName || specialist) {
-                    doctors.push({
-                        name: docName || 'Visiting Specialist',
-                        specialist: specialist || 'General Physician',
-                        days: days || 'On Call / Weekly',
-                        time: time || 'By Appointment',
-                        fee: fee || 'Standard'
-                    });
-                }
-            });
-        }
 
         const listings = getDB(DB_KEYS.LISTINGS);
         const cities = getDB(DB_KEYS.CITIES);

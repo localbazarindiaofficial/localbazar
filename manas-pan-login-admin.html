@@ -564,11 +564,6 @@
                             <span class="step-num">3</span>
                             <span class="step-lbl">Timings</span>
                         </button>
-                        <!-- Dynamic Doctor Chamber Tab (Appears for Medical, Pharmacy, Diagnostic, Clinic, Hospital) -->
-                        <button type="button" class="step-nav-pill" id="adminStepPillDoctorChamber" data-step="4" style="display:none;" onclick="navigateAdminListingStep(4)">
-                            <span class="step-num"><i class="fa-solid fa-user-doctor"></i></span>
-                            <span class="step-lbl">Doctor Chamber</span>
-                        </button>
                     </div>
 
                     <form id="fullListingCreationForm" class="enterprise-form-card" novalidate onsubmit="event.preventDefault();">
@@ -741,62 +736,10 @@
                                     <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
                                 </button>
                                 <div class="step-action-right" id="adminTimingsActionRight">
-                                    <button type="button" class="btn-step-next" id="adminBtnNextToDoctor" style="display:none;" onclick="navigateAdminListingStep(4)">
-                                        <span>Continue to Doctor Chamber</span> <i class="fa-solid fa-arrow-right"></i>
-                                    </button>
                                     <button type="button" class="btn-primary-action btn-large" id="adminBtnPublishFromTimings" onclick="handleAdminListingRegistrationSubmit()">
                                         <i class="fa-solid fa-store"></i> <span class="adminPublishBtnText">Save & Publish Listing</span>
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- ================= STAGE 4: DOCTOR CHAMBER (Dynamic for Medical, Pharmacy, Clinic, Diagnostic) ================= -->
-                        <div class="listing-step-pane" id="adminListingStepPane4" style="display:none;">
-                            <div class="form-section-block">
-                                <div class="section-title-action">
-                                    <h3 class="form-section-title"><i class="fa-solid fa-user-doctor"></i> Doctor Chamber & Visiting Specialists</h3>
-                                    <button type="button" class="btn-secondary-action-sm" id="adminAddDoctorRowBtn" onclick="addAdminDoctorRow()"><i class="fa-solid fa-plus"></i> Add Doctor</button>
-                                </div>
-                                <p class="section-sub-desc">List the visiting doctors, their medical degrees, visiting days, timings and consultation fees.</p>
-
-                                <div class="doctors-list-wrap" id="adminDoctorsContainer">
-                                    <div class="doctor-chamber-card">
-                                        <div class="doctor-card-grid">
-                                            <div class="form-field span-2">
-                                                <label>Doctor's Full Name *</label>
-                                                <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Specialist / Department *</label>
-                                                <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Visiting Days</label>
-                                                <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Chamber Timings</label>
-                                                <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
-                                            </div>
-                                            <div class="form-field">
-                                                <label>Consultation Fee</label>
-                                                <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
-                                            </div>
-                                        </div>
-                                        <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Step Action Bar -->
-                            <div class="step-action-bar">
-                                <button type="button" class="btn-step-prev" onclick="navigateAdminListingStep(3)">
-                                    <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
-                                </button>
-                                <button type="button" class="btn-primary-action btn-large" onclick="handleAdminListingRegistrationSubmit()">
-                                    <i class="fa-solid fa-store"></i> <span class="adminPublishBtnText">Save & Publish Listing</span>
-                                </button>
                             </div>
                         </div>
 

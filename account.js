@@ -1813,26 +1813,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Doctor Chamber Data (if applicable)
-        const doctors = [];
-        if (isDoctorChamberApplicable) {
-            document.querySelectorAll('#uDoctorsContainer .doctor-chamber-card').forEach(card => {
-                const docName = card.querySelector('.doc-name')?.value.trim();
-                const specialist = card.querySelector('.doc-specialist')?.value.trim();
-                const days = card.querySelector('.doc-days')?.value.trim();
-                const time = card.querySelector('.doc-time')?.value.trim();
-                const fee = card.querySelector('.doc-fee')?.value.trim();
-                if (docName) {
-                    doctors.push({
-                        name: docName,
-                        specialist: specialist || 'General Physician',
-                        days: days || 'Daily',
-                        time: time || 'Evening',
-                        fee: fee || 'Consultation fee on request'
-                    });
-                }
-            });
-        }
+        // Doctor Chamber Data
+        const doctors = editingItem && Array.isArray(editingItem.doctors) ? editingItem.doctors : [];
 
         const editingId = document.getElementById('uEditingListingId')?.value || '';
 
@@ -1943,7 +1925,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             showLbAlert({
                 title: 'Registration Successful!',
-                message: `<strong>"${name}"</strong> is now securely registered! <br><br><span style="font-size:0.86rem; color:#64748b;"><i class="fa-solid fa-clock" style="color:#d97706;"></i> <strong>Status: Pending Verification</strong>. To ensure high quality, your listing will undergo rapid admin review before becoming publicly visible in search results.</span>`,
+                message: `<strong>"${name}"</strong> is now registered! <br><br><span style="font-size:0.86rem; color:#475569;">You can now add products and customize your store in <strong>Manage Business</strong>. Whenever you are ready, tap the <strong>"Make Public"</strong> button to publish it live to search results!</span>`,
                 type: 'success',
                 buttonText: 'Go to Manage Business',
                 onConfirm: () => {
@@ -2425,63 +2407,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // B. Category Change Handler (Dynamic Doctor Chamber Injection)
+    // B. Category Change Handler
     window.handleCategoryChange = function(categoryVal) {
-        const cat = (categoryVal || '').toLowerCase();
-        const medicalKeywords = ['medical', 'pharmacy', 'medicine', 'diagnostic', 'doctor', 'clinic', 'hospital', 'health', 'pathology'];
-        
-        isDoctorChamberApplicable = medicalKeywords.some(kw => cat.includes(kw));
-
-        const stepPillDoctor = document.getElementById('stepPillDoctorChamber');
-        const btnNextToDoctor = document.getElementById('btnNextToDoctor');
         const btnPublishFromTimings = document.getElementById('btnPublishFromTimings');
-
-        if (isDoctorChamberApplicable) {
-            if (stepPillDoctor) stepPillDoctor.style.display = 'inline-flex';
-            if (btnNextToDoctor) btnNextToDoctor.style.display = 'inline-flex';
-            if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'none';
-        } else {
-            if (stepPillDoctor) stepPillDoctor.style.display = 'none';
-            if (btnNextToDoctor) btnNextToDoctor.style.display = 'none';
-            if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'inline-flex';
-        }
+        if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'inline-flex';
     };
-
-    // C. Doctor Chamber Add/Remove Rows
-    const uAddDoctorRowBtn = document.getElementById('uAddDoctorRowBtn');
-    const uDoctorsContainer = document.getElementById('uDoctorsContainer');
-
-    uAddDoctorRowBtn?.addEventListener('click', () => {
-        if (!uDoctorsContainer) return;
-        const card = document.createElement('div');
-        card.className = 'doctor-chamber-card';
-        card.innerHTML = `
-            <div class="doctor-card-grid">
-                <div class="form-field span-2">
-                    <label>Doctor's Full Name *</label>
-                    <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
-                </div>
-                <div class="form-field">
-                    <label>Specialist / Department *</label>
-                    <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
-                </div>
-                <div class="form-field">
-                    <label>Visiting Days</label>
-                    <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
-                </div>
-                <div class="form-field">
-                    <label>Chamber Timings</label>
-                    <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
-                </div>
-                <div class="form-field">
-                    <label>Consultation Fee</label>
-                    <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
-                </div>
-            </div>
-            <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-        `;
-        uDoctorsContainer.appendChild(card);
-    });
 
     // ================= STEP-BY-STEP ADD/EDIT LISTING STAGES ENGINE =================
     let currentListingStep = 1;
@@ -2535,41 +2465,10 @@ document.addEventListener('DOMContentLoaded', () => {
             el.textContent = 'Complete Your Registration';
         });
 
-        // Reset Multi-Images & Doctor Chamber
+        // Reset Multi-Images
         uploadedImagesList = [];
         renderMultiImagesGrid();
-        isDoctorChamberApplicable = false;
         handleCategoryChange('');
-
-        if (uDoctorsContainer) {
-            uDoctorsContainer.innerHTML = `
-                <div class="doctor-chamber-card">
-                    <div class="doctor-card-grid">
-                        <div class="form-field span-2">
-                            <label>Doctor's Full Name *</label>
-                            <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)">
-                        </div>
-                        <div class="form-field">
-                            <label>Specialist / Department *</label>
-                            <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist">
-                        </div>
-                        <div class="form-field">
-                            <label>Visiting Days</label>
-                            <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily">
-                        </div>
-                        <div class="form-field">
-                            <label>Chamber Timings</label>
-                            <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM">
-                        </div>
-                        <div class="form-field">
-                            <label>Consultation Fee</label>
-                            <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700">
-                        </div>
-                    </div>
-                    <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                </div>
-            `;
-        }
 
         uSelectedHolidaysSet.clear();
         updateUHolidaySummary();
@@ -2663,42 +2562,6 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedImagesList = [item.image];
         }
         renderMultiImagesGrid();
-
-        // 2b. Doctor Chamber Data populate (if medical listing)
-        if (isDoctorChamberApplicable && uDoctorsContainer) {
-            uDoctorsContainer.innerHTML = '';
-            const docs = Array.isArray(item.doctors) && item.doctors.length > 0 ? item.doctors : [{ name: '', specialist: '', days: '', time: '', fee: '' }];
-            docs.forEach(doc => {
-                const card = document.createElement('div');
-                card.className = 'doctor-chamber-card';
-                card.innerHTML = `
-                    <div class="doctor-card-grid">
-                        <div class="form-field span-2">
-                            <label>Doctor's Full Name *</label>
-                            <input type="text" class="doc-name" placeholder="e.g. Dr. Subhash Chandra Roy (MD, Medicine)" value="${doc.name || ''}">
-                        </div>
-                        <div class="form-field">
-                            <label>Specialist / Department *</label>
-                            <input type="text" class="doc-specialist" placeholder="e.g. Cardiologist, Pediatrician, Gynecologist" value="${doc.specialist || ''}">
-                        </div>
-                        <div class="form-field">
-                            <label>Visiting Days</label>
-                            <input type="text" class="doc-days" placeholder="e.g. Mon, Wed, Fri or Daily" value="${doc.days || ''}">
-                        </div>
-                        <div class="form-field">
-                            <label>Chamber Timings</label>
-                            <input type="text" class="doc-time" placeholder="e.g. 05:00 PM - 08:00 PM" value="${doc.time || ''}">
-                        </div>
-                        <div class="form-field">
-                            <label>Consultation Fee</label>
-                            <input type="text" class="doc-fee" placeholder="e.g. ₹500, ₹700" value="${doc.fee || ''}">
-                        </div>
-                    </div>
-                    <button type="button" class="btn-remove-doc" onclick="this.parentElement.remove()" title="Remove Doctor"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                `;
-                uDoctorsContainer.appendChild(card);
-            });
-        }
 
         // 3. Daily Operating Schedule Matrix Population
         if (item.dailySchedule && typeof item.dailySchedule === 'object') {
@@ -2944,15 +2807,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         container.innerHTML = filtered.map(item => {
-            const isVerified = item.status === 'Verified';
+            const isPublic = item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public';
             const isBranch = !!item.isBranch;
             return `
             <div class="ctrl-listing-card ${isBranch ? 'ctrl-is-branch-card' : ''}" onclick="handleBusinessCardClick('${item.id}')" style="cursor:pointer;" title="Click to manage ${item.name} dashboard">
                 <div class="ctrl-card-top">
                     <div class="ctrl-thumb-wrapper">
                         <img src="${item.image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=160&auto=format&fit=crop&q=80'}" alt="${item.name}" class="ctrl-listing-thumb">
-                        <span class="ctrl-badge-status ${isVerified ? 'verified' : 'pending'}">
-                            ${isVerified ? '<i class="fa-solid fa-circle-check"></i> Live' : '<i class="fa-solid fa-clock"></i> In Review'}
+                        <span class="ctrl-badge-status ${isPublic ? 'verified' : 'pending'}" style="${isPublic ? '' : 'background:#fef3c7; color:#92400e; border:1px solid #fde68a;'}">
+                            ${isPublic ? '<i class="fa-solid fa-circle-check"></i> Public' : '<i class="fa-solid fa-pen-ruler"></i> Draft'}
                         </span>
                     </div>
                     <div class="ctrl-card-details">
@@ -2980,6 +2843,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="fa-solid fa-qrcode"></i>
                             <span>Share & QR</span>
                         </button>
+                        <button type="button" class="btn-ctrl-public ${isPublic ? 'is-public' : 'is-draft'}" onclick="event.stopPropagation(); window.toggleListingPublicStatus('${item.id}');" title="${isPublic ? 'Listing is Public (Live in search). Click to switch to Draft' : 'Click to Make Public (Visible in search)'}">
+                            <i class="fa-solid ${isPublic ? 'fa-globe' : 'fa-cloud-arrow-up'}"></i>
+                            <span>${isPublic ? 'Public' : 'Make Public'}</span>
+                        </button>
                         <div class="ctrl-card-arrow" title="Open Merchant Control Hub">
                             <i class="fa-solid fa-chevron-right"></i>
                         </div>
@@ -2988,6 +2855,65 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             `;
         }).join('');
+    };
+
+    // Toggle Public / Draft status directly from user Manage Business hub
+    window.toggleListingPublicStatus = async function(listingId) {
+        if (!listingId) return;
+
+        let listings = [];
+        try {
+            const raw = localStorage.getItem('lb_listings');
+            listings = raw ? JSON.parse(raw) : [];
+        } catch {}
+
+        const index = listings.findIndex(l => String(l.id) === String(listingId));
+        if (index === -1) {
+            alert('Listing not found!');
+            return;
+        }
+
+        const item = listings[index];
+        const isCurrentlyPublic = item.status === 'Approved' || item.status === 'Verified' || item.status === 'Public';
+
+        if (isCurrentlyPublic) {
+            // Confirm unpublish
+            const ok = confirm(`Do you want to switch "${item.name}" back to Draft?\n\n(It will be hidden from public search results until you click "Make Public" again)`);
+            if (!ok) return;
+
+            item.status = 'Draft';
+            item.isPublic = false;
+            listings[index] = item;
+            localStorage.setItem('lb_listings', JSON.stringify(listings));
+
+            if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+                await window.lbCloudSync.saveListing(item);
+            }
+
+            renderUserManageListings();
+            if (typeof showLbToast === 'function') {
+                showLbToast(`"${item.name}" is now in Draft mode (hidden from search).`, 'info');
+            }
+        } else {
+            // Make Public
+            item.status = 'Approved';
+            item.isPublic = true;
+            item.publishedAt = new Date().toISOString();
+            listings[index] = item;
+            localStorage.setItem('lb_listings', JSON.stringify(listings));
+
+            if (window.lbCloudSync && typeof window.lbCloudSync.saveListing === 'function') {
+                await window.lbCloudSync.saveListing(item);
+            }
+
+            renderUserManageListings();
+            showLbAlert({
+                title: 'Listing is now Public!',
+                message: `<strong>"${item.name}"</strong> is now live on LocalBazar! <br><br><span style="color:#16a34a; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Anyone searching for ${item.category || 'this category'} in <strong>${item.city}</strong> can now discover your shop!</span>`,
+                type: 'success',
+                buttonText: 'Great!'
+            });
+        }
     };
 
     window.clearManageListingsSearch = function() {
@@ -6114,17 +6040,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     };
 
-    // ================= 5. LOG OUT ACTION =================
-    window.handleHubSignOut = function() {
-        if (confirm('Are you sure you want to sign out from LocalBazar?')) {
-            try {
-                if (window.firebase && window.firebase.auth) {
-                    firebase.auth().signOut().catch(() => {});
-                }
-            } catch (e) {}
-            localStorage.removeItem('lb_current_user');
-            window.location.href = 'index.html';
+    // ================= 5. LOG OUT ACTION (Fast, Professional & Non-Blocking) =================
+    let isHubSigningOut = false;
+    window.handleHubSignOut = async function(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (isHubSigningOut) return;
+
+        if (!confirm('Are you sure you want to sign out from LocalBazar?')) {
+            return;
         }
+
+        isHubSigningOut = true;
+
+        // 1. Immediately wipe all local user credentials and active screen state
+        try {
+            localStorage.removeItem('lb_current_user');
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
+            sessionStorage.removeItem('lb_pending_search');
+        } catch (err) {}
+
+        // 2. Disconnect Firebase Auth session with max 300ms race so network latency never buffers/hangs
+        try {
+            if (window.firebase && typeof firebase.auth === 'function') {
+                const auth = firebase.auth();
+                if (auth && auth.currentUser) {
+                    await Promise.race([
+                        auth.signOut(),
+                        new Promise(resolve => setTimeout(resolve, 300))
+                    ]).catch(() => {});
+                }
+            }
+        } catch (err) {}
+
+        // 3. Immediately replace location with Home Page (index.html)
+        window.location.replace('index.html');
     };
 
     // ================= 7. TRUST BADGE VERIFICATION APPLICATION SUITE =================

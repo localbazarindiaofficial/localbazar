@@ -5744,6 +5744,65 @@ body.dark-mode .sub-screen-header {
     transform: translateY(0);
 }
 
+.btn-ctrl-public {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.btn-ctrl-public.is-public {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
+}
+
+.btn-ctrl-public.is-public i {
+    color: #059669;
+    font-size: 0.9rem;
+}
+
+.btn-ctrl-public.is-public:hover {
+    background: #059669;
+    color: #ffffff;
+    border-color: #059669;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-ctrl-public.is-public:hover i {
+    color: #ffffff;
+}
+
+.btn-ctrl-public.is-draft {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    border: 1px solid #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.btn-ctrl-public.is-draft i {
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.btn-ctrl-public.is-draft:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-ctrl-public:active {
+    transform: translateY(0);
+}
+
 .ctrl-card-arrow {
     color: #94a3b8;
     font-size: 1.15rem;
@@ -6268,7 +6327,8 @@ body.dark-mode .sub-screen-header {
         padding-top: 0.5rem;
         border-top: 1px dashed #e2e8f0;
     }
-    .btn-ctrl-share {
+    .btn-ctrl-share,
+    .btn-ctrl-public {
         flex: 1;
         justify-content: center;
     }
