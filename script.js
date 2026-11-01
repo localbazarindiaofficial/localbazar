@@ -457,7 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (guestBtn) guestBtn.style.display = 'flex';
             if (profileWidget) profileWidget.style.display = 'none';
         }
+        // Ensure clean slate when entering Account Hub from Home Profile Icon
+        document.getElementById('profileTriggerBtn')?.addEventListener('click', () => {
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
+        });
     }
+
+    // Always clean account sub-screen memory on Home page so fresh visits open the main options menu
+    try {
+        sessionStorage.removeItem('lb_active_account_screen');
+        sessionStorage.removeItem('lb_editing_listing_id');
+    } catch (e) {}
 
     initUserProfileHeader();
 

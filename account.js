@@ -2557,7 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Global: Open Listing in Full Edit Mode
-    window.openEditListing = function(listingId) {
+    window.openEditListing = function(listingId, updateHistory = true) {
         let listings = [];
         try {
             const raw = localStorage.getItem('lb_listings');
@@ -2674,7 +2674,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Switch to the form view
-        switchAccountScreen('viewAddListing');
+        switchAccountScreen('viewAddListing', updateHistory);
     };
 
     // ================= 6. USER MANAGE BUSINESS SUITE (Enterprise Merchant Hub) =================
@@ -7304,14 +7304,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.handleHubSignOut();
     });
 
-    // Restore Active Screen on Page Load / Refresh (Hash & Session persistence)
+    // Restore Active Screen on Page Load / Refresh (Hash-first persistence)
     function restoreInitialAccountScreen() {
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
-        const storedScreen = sessionStorage.getItem('lb_active_account_screen');
-        const targetScreen = hash || (storedScreen && storedScreen !== 'viewMainMenu' ? storedScreen : '');
+        const targetScreen = (hash && hash !== 'viewMainMenu') ? hash : '';
 
-        // 1. If NO hash/active sub-screen is found, this is a fresh visit to Account Hub (e.g. from Home page Profile Icon)
-        if (!targetScreen || targetScreen === 'viewMainMenu') {
+        // 1. If NO hash in URL, this is a clean visit to Account Hub (e.g. from Home page Profile Icon)
+        if (!targetScreen) {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             window.switchAccountScreen('viewMainMenu', false);
@@ -7321,7 +7320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 2. If a sub-screen IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
+        // 2. If a hash IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
         // Establish the base menu state in history behind this sub-screen
         // so that pressing back from this refreshed page will step back to viewMainMenu!
         try {
@@ -7331,7 +7330,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const editingId = sessionStorage.getItem('lb_editing_listing_id');
         if (targetScreen === 'viewAddListing' && editingId && typeof window.openEditListing === 'function') {
-            window.openEditListing(editingId);
+            window.openEditListing(editingId, false);
         } else {
             window.switchAccountScreen(targetScreen, false);
         }
@@ -7343,13 +7342,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function primeSubScreenHistoryWithGesture() {
         if (hasPrimedUserGestureHistory) return;
         const currentHash = (window.location.hash || '').replace(/^#/, '').trim();
-        const activeSub = document.querySelector('.account-view-screen.active');
-        const screenKey = currentHash || (activeSub && activeSub.id !== 'viewMainMenu' ? activeSub.id : '');
-        if (screenKey && screenKey !== 'viewMainMenu') {
+        if (currentHash && currentHash !== 'viewMainMenu') {
             hasPrimedUserGestureHistory = true;
             try {
                 history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                history.pushState({ accountScreen: screenKey }, '', '#' + screenKey);
+                history.pushState({ accountScreen: currentHash }, '', '#' + currentHash);
             } catch (e) {}
         }
     }
@@ -7368,6 +7365,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.switchAccountScreen(hash, false);
         } else {
             window.switchAccountScreen('viewMainMenu', false);
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
             try {
                 history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
             } catch (err) {}
@@ -7384,6 +7383,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.switchAccountScreen(hash, false);
         } else {
             window.switchAccountScreen('viewMainMenu', false);
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
             try {
                 history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
             } catch (err) {}

@@ -175,6 +175,8 @@
             if (activeSub && activeSub.id !== 'viewMainMenu' && typeof window.switchAccountScreen === 'function') {
                 window.switchAccountScreen('viewMainMenu', false);
                 try {
+                    sessionStorage.removeItem('lb_active_account_screen');
+                    sessionStorage.removeItem('lb_editing_listing_id');
                     history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
                 } catch (err) {}
                 return;
