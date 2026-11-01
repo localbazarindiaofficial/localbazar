@@ -1510,14 +1510,14 @@
                     </div>
                 </div>
 
-                <!-- Multi-image Upload & Thumbnails for Product -->
+                <!-- Multi-image Upload & Thumbnails for Product (Max 3 Photos) -->
                 <div class="m-field span-2" style="margin-top:0.75rem;">
-                    <label>Product Images (Upload multiple photos - 1st image will be cover)</label>
+                    <label>Product Images (Upload up to 3 photos - 1st image is Cover)</label>
                     <input type="file" id="pCatItemFilesInput" accept="image/*" multiple style="display:none;" onchange="handleProductMultiImagesUpload(this)">
-                    <div class="m-submodal-upload" onclick="document.getElementById('pCatItemFilesInput').click()">
+                    <div class="m-submodal-upload" id="pCatUploadDropArea" onclick="document.getElementById('pCatItemFilesInput').click()">
                         <div id="pCatItemPlaceholder">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span>Click to upload 1 or more product photos</span>
+                            <span id="pCatUploadPromptText">Click to upload photos (Max 3 photos - 1st is Cover)</span>
                         </div>
                     </div>
                     <!-- Thumbnails row -->

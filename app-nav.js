@@ -174,6 +174,9 @@
             const activeSub = document.querySelector('.account-view-screen.active');
             if (activeSub && activeSub.id !== 'viewMainMenu' && typeof window.switchAccountScreen === 'function') {
                 window.switchAccountScreen('viewMainMenu', false);
+                try {
+                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                } catch (err) {}
                 return;
             }
         }

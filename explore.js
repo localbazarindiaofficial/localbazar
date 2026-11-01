@@ -66,7 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function filterAndRenderListings() {
+    let hasCloudSyncFinished = Boolean(sessionStorage.getItem('lb_last_sync_listings'));
+    let currentPageIndex = 1;
+    const PAGE_LIMIT = 20;
+
+    function filterAndRenderListings(resetPage = true) {
+        if (resetPage) {
+            currentPageIndex = 1;
+        }
         let listings = [];
         try {
             const raw = localStorage.getItem('lb_listings');
@@ -77,6 +84,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const cityQuery = selectedCity.trim().toLowerCase();
         const catQuery = selectedCategory.trim().toLowerCase();
+
+        // If local storage is empty and cloud sync hasn't confirmed completion yet, show smooth loading
+        if (listings.length === 0 && !hasCloudSyncFinished) {
+            if (listingsGridFeed) {
+                listingsGridFeed.innerHTML = `
+                    <div class="listings-empty-state" style="padding: 3.5rem 1.5rem; text-align: center;">
+                        <div style="width: 44px; height: 44px; border: 3.5px solid #e2e8f0; border-top-color: #1a73e8; border-radius: 50%; animation: lbSpin 0.75s linear infinite; margin: 0 auto 1.25rem;"></div>
+                        <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.35rem;">Searching Verified Places...</h3>
+                        <p style="color: #64748b; font-size: 0.9rem;">Connecting to verified local records in ${selectedCity || 'your area'}...</p>
+                        <style>@keyframes lbSpin { to { transform: rotate(360deg); } }</style>
+                    </div>
+                `;
+            }
+            if (resultsCountBadge) resultsCountBadge.textContent = 'Searching...';
+
+            if (window.lbCloudSync && typeof window.lbCloudSync.pullListings === 'function') {
+                window.lbCloudSync.pullListings().then(cloudListings => {
+                    hasCloudSyncFinished = true;
+                    filterAndRenderListings();
+                }).catch(() => {
+                    hasCloudSyncFinished = true;
+                    filterAndRenderListings();
+                });
+            }
+            return;
+        }
 
         // Strict Targeted Search Match:
         // 1. Only Verified listings appear in public view (Pending registrations require Admin approval)
@@ -152,13 +185,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="index.html" class="btn-modal-action primary" style="max-width:200px; margin:0 auto;"><i class="fa-solid fa-magnifying-glass"></i> Try New Search</a>
                 </div>
             `;
+            renderExploreAds();
             return;
         }
 
         // Render Targeted Sponsored Ads on Explore / Results Page
         renderExploreAds();
 
-        listingsGridFeed.innerHTML = filtered.map(item => renderListingCardHtml(item)).join('');
+        // High-Performance Dynamic Pagination (20 Places per Page Slice)
+        const displayedListings = filtered.slice(0, currentPageIndex * PAGE_LIMIT);
+
+        let feedHtml = displayedListings.map(item => renderListingCardHtml(item)).join('');
+
+        // If there are more listings available, render "Load More" pagination trigger
+        if (filtered.length > displayedListings.length) {
+            feedHtml += `
+                <div class="explore-pagination-slot" id="explorePaginationSlot" style="grid-column: 1 / -1; width: 100%; text-align: center; padding: 2rem 0 3rem;">
+                    <button type="button" class="btn-explore-load-more" id="btnExploreLoadMore" style="background: #ffffff; color: #1a73e8; border: 1.5px solid #1a73e8; padding: 0.8rem 2.25rem; border-radius: 30px; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.65rem; box-shadow: 0 4px 14px rgba(26, 115, 232, 0.14); transition: transform 0.2s, box-shadow 0.2s;">
+                        <i class="fa-solid fa-arrow-down"></i>
+                        <span>Load More Places (Showing ${displayedListings.length} of ${filtered.length})</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        listingsGridFeed.innerHTML = feedHtml;
+
+        // Wire up Load More pagination click handler
+        const btnLoadMore = document.getElementById('btnExploreLoadMore');
+        if (btnLoadMore) {
+            btnLoadMore.addEventListener('click', () => {
+                currentPageIndex++;
+                filterAndRenderListings(false);
+            });
+        }
     }
 
     function normalizeAdLink(link) {
@@ -700,8 +760,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Listen for Cloud Firestore Background Sync completion (Instant Live Auto-Update)
+    window.addEventListener('lb:cloud-synced', () => {
+        hasCloudSyncFinished = true;
+        filterAndRenderListings();
+        renderExploreAds();
+    });
+
+    // Listen for cross-tab storage updates
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'lb_listings' || e.key === 'lb_news') {
+            filterAndRenderListings();
+            renderExploreAds();
+        }
+    });
+
     // Initial render
     filterAndRenderListings();
+    renderExploreAds();
 });
 
 // ================= PROFESSIONAL SEARCH LOGIN GATEWAY =================
@@ -752,9 +828,19 @@ window.handleModalGoogleSignIn = async function() {
                     existingUser = users.find(u => (user.email && u.email && u.email.toLowerCase() === user.email.toLowerCase()) || (user.uid && u.uid === user.uid));
                 } catch(e) {}
 
-                let uniqueId = existingUser ? existingUser.id : ('LB' + Math.floor(100000 + Math.random() * 900000));
+                const generateDeterministicLBId = (uid, em) => {
+                    const seed = String(uid || em || 'lb_user').trim().toLowerCase();
+                    let hash = 0;
+                    for (let i = 0; i < seed.length; i++) {
+                        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                        hash |= 0;
+                    }
+                    return 'LB' + (100000 + Math.abs(hash % 900000));
+                };
+
+                let uniqueId = existingUser ? existingUser.id : generateDeterministicLBId(user.uid, user.email);
                 if (uniqueId && (uniqueId.startsWith('USR-') || !uniqueId.startsWith('LB'))) {
-                    uniqueId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                    uniqueId = generateDeterministicLBId(user.uid, user.email);
                 }
 
                 activeUser = {

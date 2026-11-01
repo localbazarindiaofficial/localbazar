@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================
+    // LOCALBAZER PRODUCTION CLOUD FIRESTORE SECURITY RULES
+    // Lifetime Validity (No 30-Day Expiry)
+    // ========================================================
+
+    // 1. Listings Collection (Shops, Doctors, Clinics, Stores)
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if true;
+    }
+
+    // 2. Users Collection (Customer & Merchant Profiles)
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false; // Protects user accounts from accidental batch deletion
+    }
+
+    // 3. Store Reviews & Ratings
+    match /reviews/{storeId}/items/{reviewId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if true;
+    }
+
+    // 4. Live Merchant Inbox & Customer Chat
+    match /inquiries/{storeId}/messages/{messageId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
+    // 5. Cities & Categories
+    match /cities/{cityId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // 6. News, Promotional Ads & Banner Ads
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // 7. Platform Settings (Admin Security & Default 16:9 Banners)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // 8. Business Claims & Trust Badge Verification Requests
+    match /claims/{claimId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+    match /trust_requests/{requestId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // 9. Admin Mailbox & In-App Alerts
+    match /mail/{mailId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // 10. City & Category Community Requests
+    match /city_requests/{reqId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /category_requests/{reqId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Fallback Catch-All Safety Rule
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1503,18 +1503,17 @@
                         </div>
                     </div>
 
-                    <!-- 2. Target Page (All, Home, Target City), City & Category -->
+                    <!-- 2. Target Page (Home, Target City), City & Category -->
                     <div class="form-grid-2" style="margin-top:1.15rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                         <div class="form-field">
-                            <label for="textAdTargetPage" style="font-weight:700; color:var(--text-main);">Target Page *</label>
+                            <label for="textAdTargetPage" style="font-weight:700; color:var(--text-main);">Target Placement *</label>
                             <select id="textAdTargetPage" onchange="toggleAdCityTarget(this.value, 'textAdCityWrap', 'textAdCategoryWrap')" style="width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border); font-weight:600;">
-                                <option value="all">All</option>
-                                <option value="home">Home</option>
+                                <option value="home" selected>Home Page</option>
                                 <option value="city">Target City</option>
                             </select>
                         </div>
                         <div class="form-field" id="textAdCityWrap" style="display:none; position:relative;">
-                            <label for="textAdCityInput" style="font-weight:700; color:var(--text-main);">Select Target City *</label>
+                            <label for="textAdCityInput" style="font-weight:700; color:var(--text-main);">Select Target City * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
                                 <input type="text" id="textAdCityInput" placeholder="Type city name..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-location-dot" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#ef4444; font-size:0.9rem;"></i>
@@ -1522,7 +1521,7 @@
                             </div>
                         </div>
                         <div class="form-field" id="textAdCategoryWrap" style="display:none; position:relative;">
-                            <label for="textAdCategoryInput" style="font-weight:700; color:var(--text-main);">Select Target Category (Optional / Blank for All)</label>
+                            <label for="textAdCategoryInput" style="font-weight:700; color:var(--text-main);">Select Target Category * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
                                 <input type="text" id="textAdCategoryInput" placeholder="Type category (e.g. Doctor, Restaurant)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-tags" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#7c3aed; font-size:0.88rem;"></i>
@@ -1657,18 +1656,17 @@
                         </div>
                     </div>
 
-                    <!-- 3. Target Page (All, Home, Target City), City, Category & Action Link -->
+                    <!-- 3. Target Placement (Home, Target City), City, Category & Action Link -->
                     <div class="form-grid-2" style="margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                         <div class="form-field">
-                            <label for="bannerAdTargetPage" style="font-weight:700; color:var(--text-main);">Target Page *</label>
+                            <label for="bannerAdTargetPage" style="font-weight:700; color:var(--text-main);">Target Placement *</label>
                             <select id="bannerAdTargetPage" onchange="toggleAdCityTarget(this.value, 'bannerAdCityWrap', 'bannerAdCategoryWrap')" style="width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border); font-weight:600;">
-                                <option value="all">All</option>
-                                <option value="home">Home</option>
+                                <option value="home" selected>Home Page</option>
                                 <option value="city">Target City</option>
                             </select>
                         </div>
                         <div class="form-field" id="bannerAdCityWrap" style="display:none; position:relative;">
-                            <label for="bannerAdCityInput" style="font-weight:700; color:var(--text-main);">Select Target City *</label>
+                            <label for="bannerAdCityInput" style="font-weight:700; color:var(--text-main);">Select Target City * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
                                 <input type="text" id="bannerAdCityInput" placeholder="Type city name..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-location-dot" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#ef4444; font-size:0.9rem;"></i>
@@ -1676,7 +1674,7 @@
                             </div>
                         </div>
                         <div class="form-field" id="bannerAdCategoryWrap" style="display:none; position:relative;">
-                            <label for="bannerAdCategoryInput" style="font-weight:700; color:var(--text-main);">Select Target Category (Optional / Blank for All)</label>
+                            <label for="bannerAdCategoryInput" style="font-weight:700; color:var(--text-main);">Select Target Category * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
                                 <input type="text" id="bannerAdCategoryInput" placeholder="Type category (e.g. Doctor, Restaurant)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-tags" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#7c3aed; font-size:0.88rem;"></i>
@@ -1719,19 +1717,18 @@
                     <div class="form-field full" style="margin-bottom:1rem;">
                         <label for="prodAdTargetPage" style="font-weight:700; color:var(--text-main);">Target Placement *</label>
                         <select id="prodAdTargetPage" onchange="toggleProductAdTarget(this.value)" style="width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border); font-weight:600;">
-                            <option value="all">All Pages (Home & City)</option>
                             <option value="home" selected>Home Page</option>
-                            <option value="city">Target City / Locality</option>
+                            <option value="city">Target City</option>
                         </select>
                     </div>
 
                     <!-- 2. Target City & Category (With prefix auto-suggest) -->
-                    <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                    <div class="form-grid-2" id="prodAdCityCategoryWrap" style="display:none; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
                         <!-- City input with prefix auto-suggest -->
                         <div class="form-field" style="position:relative;">
-                            <label for="prodAdCityInput" style="font-weight:700; color:var(--text-main);">1. Target City *</label>
+                            <label for="prodAdCityInput" style="font-weight:700; color:var(--text-main);">Target City * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
-                                <input type="text" id="prodAdCityInput" placeholder="Type city (e.g. Kolkata, Siliguri)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;" required>
+                                <input type="text" id="prodAdCityInput" placeholder="Type city (e.g. Kolkata, Siliguri)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-location-dot" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#ef4444; font-size:0.9rem;"></i>
                                 <div class="admin-city-suggestions-popover" id="prodAdCitySuggestions" style="display:none;"></div>
                             </div>
@@ -1739,9 +1736,9 @@
 
                         <!-- Category input with prefix auto-suggest -->
                         <div class="form-field" style="position:relative;">
-                            <label for="prodAdCategoryInput" style="font-weight:700; color:var(--text-main);">2. Target Category *</label>
+                            <label for="prodAdCategoryInput" style="font-weight:700; color:var(--text-main);">Target Category * <span style="color:#ef4444;">(Mandatory)</span></label>
                             <div style="position:relative;">
-                                <input type="text" id="prodAdCategoryInput" placeholder="Type category (e.g. Healthcare, Dining)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;" required>
+                                <input type="text" id="prodAdCategoryInput" placeholder="Type category (e.g. Healthcare, Dining)..." autocomplete="off" style="width:100%; padding:0.65rem 0.65rem 0.65rem 2.2rem; border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
                                 <i class="fa-solid fa-tags" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#7c3aed; font-size:0.88rem;"></i>
                                 <div class="admin-city-suggestions-popover" id="prodAdCategorySuggestions" style="display:none;"></div>
                             </div>

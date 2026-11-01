@@ -4372,4 +4372,43 @@ body.admin-body.dark-theme .user-stores-sublist strong {
     color: #f8fafc !important;
 }
 
+/* Listing Fallback Banner Slot Action Buttons */
+.btn-slot-action {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    padding: 0.45rem 0.85rem !important;
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    border: 1px solid transparent !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.btn-slot-action.change {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    border-color: #bfdbfe !important;
+}
+.btn-slot-action.change:hover {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
+.btn-slot-action.remove {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+}
+.btn-slot-action.remove:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+}
+
+
 

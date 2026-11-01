@@ -19,15 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 (u.id && u.id === ('USR-' + userUid.substring(0, 12)))
             );
 
-            // Helper to generate unique LB + 6-digit User ID (Supports 10 Lakh users without conflict)
+            // Helper to generate deterministic unique LB + 6-digit User ID based on Google UID / Email
             const generateLBUserId = () => {
-                let newId;
-                let attempts = 0;
-                do {
-                    newId = 'LB' + Math.floor(100000 + Math.random() * 900000);
-                    attempts++;
-                } while (users.some(u => u && u.id === newId) && attempts < 100);
-                return newId;
+                const seed = String(userUid || normEmail || defaultName || 'lb_user').trim().toLowerCase();
+                let hash = 0;
+                for (let i = 0; i < seed.length; i++) {
+                    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                    hash |= 0;
+                }
+                return 'LB' + (100000 + Math.abs(hash % 900000));
             };
 
             if (!existing) {

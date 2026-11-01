@@ -1,6 +1,6 @@
 // LocalBazar - Dedicated Listing Detail Page Engine
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     let listingId = urlParams.get('id');
     if (listingId) {
@@ -13,17 +13,73 @@ document.addEventListener('DOMContentLoaded', () => {
         listings = raw ? JSON.parse(raw) : [];
     } catch {}
 
-    // Find listing by exact ID or case-insensitive ID or fallback to first
-    let item = listings.find(l => String(l.id).trim() === String(listingId).trim());
+    // Helper to find listing from an array
+    const findInListings = (list, idToFind) => {
+        if (!list || !idToFind) return null;
+        let match = list.find(l => l && String(l.id).trim() === String(idToFind).trim());
+        if (!match) match = list.find(l => l && String(l.id).toLowerCase() === String(idToFind).toLowerCase());
+        if (!match) {
+            const clean = String(idToFind).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            match = list.find(l => l && String(l.id).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === clean);
+        }
+        if (!match) match = list.find(l => l && l.name && l.name.toLowerCase() === String(idToFind).toLowerCase());
+        return match;
+    };
+
+    let item = findInListings(listings, listingId);
+
+    // If not found in local cache, fetch from Firestore cloud (handles direct WhatsApp / link shares)
     if (!item && listingId) {
-        item = listings.find(l => String(l.id).toLowerCase() === String(listingId).toLowerCase());
-    }
-    if (!item && listingId) {
-        const cleanParamId = String(listingId).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        item = listings.find(l => String(l.id).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === cleanParamId);
-    }
-    if (!item && listingId) {
-        item = listings.find(l => l.name && l.name.toLowerCase() === listingId.toLowerCase());
+        // Show lightweight connection loader
+        const loader = document.createElement('div');
+        loader.id = 'listingDetailCloudLoader';
+        loader.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:#ffffff; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:"Plus Jakarta Sans",sans-serif; text-align:center; padding:1.5rem;';
+        loader.innerHTML = `
+            <div style="width:46px; height:46px; border:4px solid #e2e8f0; border-top-color:#1a73e8; border-radius:50%; animation:lbSpin 0.75s linear infinite;"></div>
+            <div style="margin-top:1.15rem; font-weight:700; color:#0f172a; font-size:1.05rem;">Loading Store Details...</div>
+            <div style="margin-top:0.35rem; color:#64748b; font-size:0.86rem;">Connecting to verified local records...</div>
+            <style>@keyframes lbSpin { to { transform: rotate(360deg); } }</style>
+        `;
+        document.body.appendChild(loader);
+
+        try {
+            // Wait for Firestore to connect and retrieve the document
+            let cloudItem = null;
+            if (window.lbCloudSync && typeof window.lbCloudSync.getFirestore === 'function') {
+                const db = window.lbCloudSync.getFirestore();
+                if (db) {
+                    const docSnap = await db.collection('listings').doc(String(listingId)).get().catch(() => null);
+                    if (docSnap && docSnap.exists) {
+                        cloudItem = docSnap.data();
+                    } else {
+                        // Case-insensitive / alternate ID fallback query
+                        const qSnap = await db.collection('listings').where('id', '==', listingId).limit(1).get().catch(() => null);
+                        if (qSnap && !qSnap.empty) {
+                            cloudItem = qSnap.docs[0].data();
+                        }
+                    }
+                }
+            }
+
+            if (cloudItem) {
+                item = cloudItem;
+                // Merge into local cache for instantaneous future visits
+                try {
+                    const rawNow = localStorage.getItem('lb_listings');
+                    const curList = rawNow ? JSON.parse(rawNow) : [];
+                    if (!curList.some(l => l && String(l.id) === String(cloudItem.id))) {
+                        curList.unshift(cloudItem);
+                        localStorage.setItem('lb_listings', JSON.stringify(curList));
+                    }
+                } catch (e) {}
+            }
+        } catch (fetchErr) {
+            console.warn('[ListingDetail] Cloud lookup error:', fetchErr);
+        } finally {
+            if (loader && loader.parentNode) {
+                loader.parentNode.removeChild(loader);
+            }
+        }
     }
 
     if (!item) {
@@ -1289,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const images = Array.isArray(p.images) && p.images.length > 0
-            ? p.images
+            ? p.images.slice(0, 3)
             : (p.image ? [p.image] : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400']);
 
         if (dpmSliderTrack) {

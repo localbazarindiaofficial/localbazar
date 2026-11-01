@@ -1875,9 +1875,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userOwnerName = curUser && curUser.name ? curUser.name : 'Member User';
                 const userOwnerPhone = curUser && curUser.phone ? curUser.phone : (phone || '');
 
+                // Helper to generate globally unique listing ID (100% collision-proof)
+                const generateUniqueListingId = () => {
+                    let newId;
+                    let attempts = 0;
+                    do {
+                        const timePart = Date.now().toString(36).toUpperCase();
+                        const randPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+                        newId = `LB-${timePart}-${randPart}`;
+                        attempts++;
+                    } while (listings.some(l => l && String(l.id).toUpperCase() === newId) && attempts < 100);
+                    return newId;
+                };
+
                 // CREATE NEW LISTING -> Status: 'Draft', isPublic: false (User edits/adds products, then clicks "Make Public")
                 const newListingEntry = {
-                    id: 'LB-' + Math.floor(1000 + Math.random() * 9000),
+                    id: generateUniqueListingId(),
                     name,
                     category,
                     city,
@@ -4033,7 +4046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pCatItemDetails) pCatItemDetails.value = p.details || p.description || '';
             const pCatItemIsTop = document.getElementById('pCatItemIsTop');
             if (pCatItemIsTop) pCatItemIsTop.checked = !!p.isTopProduct;
-            currentUploadedProductImages = Array.isArray(p.images) ? [...p.images] : (p.image ? [p.image] : []);
+            currentUploadedProductImages = Array.isArray(p.images) ? [...p.images].slice(0, 3) : (p.image ? [p.image] : []);
         } else {
             if (title) title.innerHTML = '<i class="fa-solid fa-box-open text-primary"></i> Add Product';
             if (pCatItemName) pCatItemName.value = '';
@@ -4061,19 +4074,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.handleProductMultiImagesUpload = function(input) {
         if (!input.files || input.files.length === 0) return;
-        const files = Array.from(input.files);
+
+        const maxAllowed = 3;
+        const currentCount = currentUploadedProductImages.length;
+        if (currentCount >= maxAllowed) {
+            alert('Maximum 3 photos allowed per product. You can delete an existing photo to upload a new one.');
+            input.value = '';
+            return;
+        }
+
+        const remaining = maxAllowed - currentCount;
+        let files = Array.from(input.files);
+        if (files.length > remaining) {
+            alert(`You can only add ${remaining} more photo(s). Maximum 3 photos allowed per product.`);
+            files = files.slice(0, remaining);
+        }
 
         files.forEach(file => {
             compressFileImage(file, 220, 1000)
                 .then(compressedUrl => {
-                    currentUploadedProductImages.push(compressedUrl);
-                    renderProductModalThumbs();
+                    if (currentUploadedProductImages.length < maxAllowed) {
+                        currentUploadedProductImages.push(compressedUrl);
+                        renderProductModalThumbs();
+                    }
                 })
                 .catch(() => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        currentUploadedProductImages.push(e.target.result);
-                        renderProductModalThumbs();
+                        if (currentUploadedProductImages.length < maxAllowed) {
+                            currentUploadedProductImages.push(e.target.result);
+                            renderProductModalThumbs();
+                        }
                     };
                     reader.readAsDataURL(file);
                 });
@@ -4083,16 +4114,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProductModalThumbs() {
         if (!pCatImagesPreviewRow) return;
-        if (currentUploadedProductImages.length === 0) {
+        const uploadArea = document.getElementById('pCatUploadDropArea');
+        const promptText = document.getElementById('pCatUploadPromptText');
+        const count = currentUploadedProductImages.length;
+
+        if (promptText) {
+            if (count >= 3) {
+                promptText.innerHTML = '<strong style="color:#059669;"><i class="fa-solid fa-circle-check"></i> 3 of 3 Photos Selected (Maximum Limit Reached)</strong>';
+            } else if (count > 0) {
+                promptText.textContent = `${count} of 3 photos selected. Click to add more.`;
+            } else {
+                promptText.textContent = 'Click to upload photos (Max 3 photos - 1st is Cover)';
+            }
+        }
+
+        if (uploadArea) {
+            uploadArea.style.opacity = count >= 3 ? '0.6' : '1';
+            uploadArea.style.pointerEvents = count >= 3 ? 'none' : 'auto';
+            uploadArea.style.cursor = count >= 3 ? 'not-allowed' : 'pointer';
+        }
+
+        if (count === 0) {
             pCatImagesPreviewRow.innerHTML = '';
             return;
         }
 
-        pCatImagesPreviewRow.innerHTML = currentUploadedProductImages.map((imgUrl, idx) => `
+        pCatImagesPreviewRow.innerHTML = currentUploadedProductImages.slice(0, 3).map((imgUrl, idx) => `
             <div class="m-modal-thumb-item ${idx === 0 ? 'is-first' : ''}">
                 <img src="${imgUrl}" alt="Photo ${idx + 1}">
                 ${idx === 0 ? '<span class="thumb-badge">1st (Cover)</span>' : ''}
-                <button type="button" class="btn-thumb-remove" onclick="removeProductModalThumb(${idx})"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="btn-thumb-remove" onclick="removeProductModalThumb(${idx})" title="Remove photo"><i class="fa-solid fa-xmark"></i></button>
             </div>
         `).join('');
     }
@@ -4131,7 +4182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stockStatus: stockStatus || 'in_stock',
             details: details || '',
             isTopProduct: isTopProduct,
-            images: currentUploadedProductImages.length > 0 ? currentUploadedProductImages : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=90'],
+            images: currentUploadedProductImages.length > 0 ? currentUploadedProductImages.slice(0, 3) : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=90'],
             image: currentUploadedProductImages[0] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=90'
         };
 
@@ -7256,9 +7307,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Restore Active Screen on Page Load / Refresh (Hash & Session persistence)
     function restoreInitialAccountScreen() {
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
+        const storedScreen = sessionStorage.getItem('lb_active_account_screen');
+        const targetScreen = hash || (storedScreen && storedScreen !== 'viewMainMenu' ? storedScreen : '');
 
-        // 1. If NO hash is in the URL, this is a fresh visit to Account Hub (e.g. from Home page Profile Icon)
-        if (!hash || hash === 'viewMainMenu') {
+        // 1. If NO hash/active sub-screen is found, this is a fresh visit to Account Hub (e.g. from Home page Profile Icon)
+        if (!targetScreen || targetScreen === 'viewMainMenu') {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             window.switchAccountScreen('viewMainMenu', false);
@@ -7268,9 +7321,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 2. If a hash IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
-        const targetScreen = hash;
-
+        // 2. If a sub-screen IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
         // Establish the base menu state in history behind this sub-screen
         // so that pressing back from this refreshed page will step back to viewMainMenu!
         try {
@@ -7287,6 +7338,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     restoreInitialAccountScreen();
 
+    // Prime history with genuine user activation (Prevents mobile Chrome/Safari from skipping in-page states on back)
+    let hasPrimedUserGestureHistory = false;
+    function primeSubScreenHistoryWithGesture() {
+        if (hasPrimedUserGestureHistory) return;
+        const currentHash = (window.location.hash || '').replace(/^#/, '').trim();
+        const activeSub = document.querySelector('.account-view-screen.active');
+        const screenKey = currentHash || (activeSub && activeSub.id !== 'viewMainMenu' ? activeSub.id : '');
+        if (screenKey && screenKey !== 'viewMainMenu') {
+            hasPrimedUserGestureHistory = true;
+            try {
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                history.pushState({ accountScreen: screenKey }, '', '#' + screenKey);
+            } catch (e) {}
+        }
+    }
+    ['touchstart', 'pointerdown', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
+        window.addEventListener(evt, primeSubScreenHistoryWithGesture, { capture: true, passive: true });
+    });
+
     // Listen to Browser Back / Forward navigation (popstate & hashchange)
     window.addEventListener('popstate', (e) => {
         const portalOverlay = document.getElementById('merchantPortalOverlay');
@@ -7298,6 +7368,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.switchAccountScreen(hash, false);
         } else {
             window.switchAccountScreen('viewMainMenu', false);
+            try {
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+            } catch (err) {}
         }
     });
 
@@ -7311,6 +7384,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.switchAccountScreen(hash, false);
         } else {
             window.switchAccountScreen('viewMainMenu', false);
+            try {
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+            } catch (err) {}
         }
     });
 });

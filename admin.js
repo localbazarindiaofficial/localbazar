@@ -14,7 +14,27 @@ const DB_KEYS = {
 };
 
 const DEFAULT_ADMIN_EMAIL = 'localbazar@adminmanaspan.com';
-const DEFAULT_ADMIN_PWD = 'Localbazar@Manaspan@8798';
+const ADMIN_AUTH_SALT = 'lb_admin_auth_salt_9876';
+// Cryptographic SHA-256 One-Way Hash of Super Admin Credentials (Impossible to reverse from code)
+const DEFAULT_ADMIN_PWD_HASH = '4e0d268d927e16d587c63f68290e711004538d0c769325991f0dcef7392145cb';
+
+async function computeAdminPwdHash(pwd) {
+    if (!pwd) return '';
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(pwd + ADMIN_AUTH_SALT);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+        let h = 0;
+        for (let i = 0; i < pwd.length; i++) {
+            h = ((h << 5) - h) + pwd.charCodeAt(i);
+            h |= 0;
+        }
+        return 'fb_' + Math.abs(h);
+    }
+}
 
 // Safe HTML sanitizer for Admin UI
 function escapeAdminHtml(str) {
@@ -56,14 +76,13 @@ function checkAdminAuthSession() {
     } else {
         if (gate) gate.classList.remove('hidden');
         if (wrapper) wrapper.style.display = 'none';
-        const emailInput = document.getElementById('adminGateEmail');
-        if (emailInput && !emailInput.value) {
-            emailInput.value = DEFAULT_ADMIN_EMAIL;
-        }
     }
 }
 
-window.handleAdminGatewayLogin = function(e) {
+let failedAdminLoginAttempts = 0;
+let adminLockoutUntil = 0;
+
+window.handleAdminGatewayLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById('adminGateEmail');
     const pwdInput = document.getElementById('adminGatePassword');
@@ -71,32 +90,76 @@ window.handleAdminGatewayLogin = function(e) {
     const errMsg = document.getElementById('adminLoginErrorMsg');
     const submitBtn = document.getElementById('btnAdminGateSubmit');
 
+    // Anti-Brute Force Protection Lockout Check
+    const now = Date.now();
+    if (now < adminLockoutUntil) {
+        const remainingSecs = Math.ceil((adminLockoutUntil - now) / 1000);
+        if (errBox) {
+            errBox.style.display = 'flex';
+            if (errMsg) errMsg.textContent = `Security Lockout! Too many failed attempts. Please wait ${remainingSecs}s.`;
+        }
+        return;
+    }
+
     const enteredEmail = (emailInput?.value || '').trim();
     const enteredPwd = pwdInput?.value || '';
 
-    // Retrieve active admin credentials
-    const adminProfile = getDB(DB_KEYS.ADMIN, { email: DEFAULT_ADMIN_EMAIL });
-    const validEmail = adminProfile.email || DEFAULT_ADMIN_EMAIL;
-    const validPwd = localStorage.getItem('lb_admin_pwd') || DEFAULT_ADMIN_PWD;
+    if (!enteredEmail || !enteredPwd) {
+        if (errBox) {
+            errBox.style.display = 'flex';
+            if (errMsg) errMsg.textContent = 'Please enter both Admin Email and Password.';
+        }
+        return;
+    }
 
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Verifying...</span>`;
     }
 
-    setTimeout(() => {
-        if (enteredEmail.toLowerCase() === validEmail.toLowerCase() && enteredPwd === validPwd) {
+    try {
+        // Proactively fetch latest cloud admin security credentials so all devices stay in sync
+        if (window.lbCloudSync && typeof window.lbCloudSync.pullAdminSecurity === 'function') {
+            await window.lbCloudSync.pullAdminSecurity().catch(() => {});
+        }
+
+        const adminProfile = getDB(DB_KEYS.ADMIN, { email: DEFAULT_ADMIN_EMAIL });
+        const validEmail = adminProfile.email || DEFAULT_ADMIN_EMAIL;
+
+        const enteredHash = await computeAdminPwdHash(enteredPwd);
+        const storedHash = localStorage.getItem('lb_admin_pwd_hash') || DEFAULT_ADMIN_PWD_HASH;
+        const legacyPlain = localStorage.getItem('lb_admin_pwd');
+
+        const isEmailMatch = (enteredEmail.toLowerCase() === validEmail.toLowerCase());
+        const isPwdMatch = (enteredHash === storedHash) || (legacyPlain && enteredPwd === legacyPlain);
+
+        if (isEmailMatch && isPwdMatch) {
+            if (legacyPlain) {
+                localStorage.setItem('lb_admin_pwd_hash', enteredHash);
+                localStorage.removeItem('lb_admin_pwd');
+            }
+            failedAdminLoginAttempts = 0;
             sessionStorage.setItem('lb_admin_logged_in', 'true');
             if (errBox) errBox.style.display = 'none';
             if (pwdInput) pwdInput.value = '';
             checkAdminAuthSession();
         } else {
-            if (errBox) {
-                errBox.style.display = 'flex';
-                if (enteredEmail.toLowerCase() !== validEmail.toLowerCase()) {
-                    if (errMsg) errMsg.textContent = 'Admin ID / Email does not exist.';
-                } else {
-                    if (errMsg) errMsg.textContent = 'Incorrect password! Please enter valid credentials.';
+            failedAdminLoginAttempts++;
+            if (failedAdminLoginAttempts >= 5) {
+                adminLockoutUntil = Date.now() + 60000;
+                if (errBox) {
+                    errBox.style.display = 'flex';
+                    if (errMsg) errMsg.textContent = 'Security Alert: 5 failed attempts! Gate locked for 60 seconds.';
+                }
+            } else {
+                const remaining = 5 - failedAdminLoginAttempts;
+                if (errBox) {
+                    errBox.style.display = 'flex';
+                    if (!isEmailMatch) {
+                        if (errMsg) errMsg.textContent = `Admin ID / Email does not exist. (${remaining} attempts left)`;
+                    } else {
+                        if (errMsg) errMsg.textContent = `Incorrect password! (${remaining} attempts left)`;
+                    }
                 }
             }
             if (pwdInput) {
@@ -104,11 +167,14 @@ window.handleAdminGatewayLogin = function(e) {
                 pwdInput.focus();
             }
         }
+    } catch (authErr) {
+        console.error('Admin authentication error:', authErr);
+    } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = `<i class="fa-solid fa-lock-open"></i> <span>Authenticate & Access</span>`;
         }
-    }, 350);
+    }
 };
 
 window.handleAdminLogout = function() {
@@ -1930,11 +1996,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                     ${hasImg ? `<img src="${imgUrl}" alt="Fallback Slide ${i + 1}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="text-align:center; color:#94a3b8; font-size:0.8rem;"><i class="fa-solid fa-image" style="font-size:2rem; display:block; margin-bottom:0.35rem; color:#475569;"></i> Empty Slide Slot</div>`}
                                 </div>
                             </div>
-                            <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-                                <button type="button" class="btn-action" onclick="openDefaultListingBannersModal()" style="font-size:0.8rem; padding:0.35rem 0.75rem; border-radius:6px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; font-weight:700; cursor:pointer;">
-                                    <i class="fa-solid fa-pen-to-square"></i> ${hasImg ? 'Change' : 'Upload'}
+                            <div style="display:flex; gap:0.6rem; align-items:center; justify-content:flex-end; margin-top:0.85rem; flex-wrap:wrap;">
+                                <button type="button" class="btn-slot-action change" onclick="openDefaultListingBannersModal()">
+                                    <i class="fa-solid fa-pen-to-square"></i> <span>${hasImg ? 'Change' : 'Upload'}</span>
                                 </button>
-                                ${hasImg ? `<button type="button" class="btn-action delete" onclick="clearDefBannerAndSave(${i})" style="font-size:0.8rem; padding:0.35rem 0.75rem; border-radius:6px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; font-weight:700; cursor:pointer;"><i class="fa-regular fa-trash-can"></i> Remove</button>` : ''}
+                                ${hasImg ? `
+                                <button type="button" class="btn-slot-action remove" onclick="clearDefBannerAndSave(${i})">
+                                    <i class="fa-regular fa-trash-can"></i> <span>Remove</span>
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -2096,11 +2166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 9. SETTINGS, PROFILE, THEME & PUSH NOTIFICATIONS
-    // Initialize default password if not set
-    if (!localStorage.getItem('lb_admin_pwd')) {
-        localStorage.setItem('lb_admin_pwd', DEFAULT_ADMIN_PWD);
-    }
-
     function renderAdminProfile() {
         const admin = getDB(DB_KEYS.ADMIN, { name: 'Master Admin', email: DEFAULT_ADMIN_EMAIL });
         const emailToDisplay = admin.email || DEFAULT_ADMIN_EMAIL;
@@ -2123,17 +2188,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setDB(DB_KEYS.ADMIN, { name, email });
         renderAdminProfile();
+
+        const storedHash = localStorage.getItem('lb_admin_pwd_hash') || DEFAULT_ADMIN_PWD_HASH;
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveAdminSecurity === 'function') {
+            window.lbCloudSync.saveAdminSecurity({
+                pwdHash: storedHash,
+                email: email
+            });
+        }
+
         alert('Admin Identity Profile updated successfully!');
     });
 
-    // Password Update with Old Password Verification
-    document.getElementById('adminPasswordForm')?.addEventListener('submit', (e) => {
+    // Password Update with Cryptographic Verification & Hashing
+    document.getElementById('adminPasswordForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const currentInput = document.getElementById('adminCurrentPwd')?.value || '';
         const newPwd = document.getElementById('adminNewPwd')?.value || '';
-        const storedPwd = localStorage.getItem('lb_admin_pwd') || DEFAULT_ADMIN_PWD;
 
-        if (currentInput !== storedPwd) {
+        const currentInputHash = await computeAdminPwdHash(currentInput);
+        const storedHash = localStorage.getItem('lb_admin_pwd_hash') || DEFAULT_ADMIN_PWD_HASH;
+        const legacyPlain = localStorage.getItem('lb_admin_pwd');
+
+        const isCurrentValid = (currentInputHash === storedHash) || (legacyPlain && currentInput === legacyPlain);
+        if (!isCurrentValid) {
             alert('Current password does not match! Please enter your valid current password.');
             document.getElementById('adminCurrentPwd')?.focus();
             return;
@@ -2145,16 +2223,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (newPwd === storedPwd) {
+        const newHash = await computeAdminPwdHash(newPwd);
+        if (newHash === storedHash) {
             alert('New password cannot be identical to your current password. Please choose a new password.');
             document.getElementById('adminNewPwd')?.focus();
             return;
         }
 
-        localStorage.setItem('lb_admin_pwd', newPwd);
+        localStorage.setItem('lb_admin_pwd_hash', newHash);
+        localStorage.removeItem('lb_admin_pwd');
+
+        // Sync globally to Firebase Cloud Firestore as the single master password worldwide
+        if (window.lbCloudSync && typeof window.lbCloudSync.saveAdminSecurity === 'function') {
+            const adminEmail = (document.getElementById('adminProfileEmail')?.value || DEFAULT_ADMIN_EMAIL).trim();
+            await window.lbCloudSync.saveAdminSecurity({
+                pwdHash: newHash,
+                email: adminEmail
+            });
+        }
+
         document.getElementById('adminCurrentPwd').value = '';
         document.getElementById('adminNewPwd').value = '';
-        alert('Admin password has been changed successfully! Keep your new credentials safe.');
+        alert('Admin Master Password has been changed and updated globally in Cloud! Old password is now permanently revoked across all devices.');
     });
 
     // ================= APPEARANCE & THEME CONTROLLER =================
@@ -3143,8 +3233,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userObj) ownerName = userObj.name;
         }
 
+        const existingListings = getDB(DB_KEYS.LISTINGS);
+        const generateUniqueListingId = () => {
+            let newId;
+            let attempts = 0;
+            do {
+                const timePart = Date.now().toString(36).toUpperCase();
+                const randPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+                newId = `LB-${timePart}-${randPart}`;
+                attempts++;
+            } while (existingListings.some(l => l && String(l.id).toUpperCase() === newId) && attempts < 100);
+            return newId;
+        };
+
         const newListing = {
-            id: 'LB-' + Math.floor(1000 + Math.random() * 9000),
+            id: generateUniqueListingId(),
             name,
             category,
             city,
@@ -3981,9 +4084,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('textAdForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const content = document.getElementById('textAdContentInput')?.value.trim() || '';
-        const targetOption = document.getElementById('textAdTargetPage')?.value || 'all';
+        const targetOption = document.getElementById('textAdTargetPage')?.value || 'home';
         const targetCity = targetOption === 'city' ? (document.getElementById('textAdCityInput')?.value.trim() || '') : '';
-        const targetCategory = targetOption === 'city' ? (document.getElementById('textAdCategoryInput')?.value.trim() || 'all') : 'all';
+        const targetCategory = targetOption === 'city' ? (document.getElementById('textAdCategoryInput')?.value.trim() || '') : '';
         const link = document.getElementById('textAdLink')?.value.trim() || '';
         const textColor = document.getElementById('textAdSelectedColor')?.value || '#1e293b';
 
@@ -3992,10 +4095,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (targetOption === 'city' && !targetCity) {
-            alert('Please select or type a target city.');
-            document.getElementById('textAdCityInput')?.focus();
-            return;
+        if (targetOption === 'city') {
+            if (!targetCity) {
+                alert('Please select or type a Target City.');
+                document.getElementById('textAdCityInput')?.focus();
+                return;
+            }
+            if (!targetCategory || targetCategory.toLowerCase() === 'all') {
+                alert('Please select or type a Target Category (Category is mandatory when Target City is selected).');
+                document.getElementById('textAdCategoryInput')?.focus();
+                return;
+            }
         }
 
         const news = getDB(DB_KEYS.NEWS);
@@ -4006,11 +4116,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title: '',
             content,
             textColor,
-            targetPage: targetOption === 'city' ? 'explore' : targetOption,
-            targetCity: targetCity || '',
-            city: targetCity || '',
-            targetCategory: targetCategory || 'all',
-            category: targetCategory || 'all',
+            targetPage: targetOption === 'city' ? 'city' : 'home',
+            targetCity: targetOption === 'city' ? targetCity : '',
+            city: targetOption === 'city' ? targetCity : '',
+            targetCategory: targetOption === 'city' ? targetCategory : '',
+            category: targetOption === 'city' ? targetCategory : '',
             placement: 'top-bar',
             bgTheme: 'transparent',
             link,
@@ -4039,12 +4149,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        toggleAdCityTarget('all', 'textAdCityWrap', 'textAdCategoryWrap');
+        toggleAdCityTarget('home', 'textAdCityWrap', 'textAdCategoryWrap');
         updateTextAdLivePreview();
         refreshAll();
         const targetDesc = targetOption === 'city' 
-            ? `${targetCity}${targetCategory && targetCategory !== 'all' ? ' (' + targetCategory + ')' : ''}`
-            : targetOption.toUpperCase();
+            ? `${targetCity} (${targetCategory})`
+            : 'HOME PAGE';
         alert(`Text Announcement published successfully for ${targetDesc}!`);
     });
 
@@ -4111,9 +4221,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('bannerAdTitleInput')?.value.trim() || '';
         const image = document.getElementById('bannerImageCompressedData')?.value || '';
         const ratio = document.getElementById('selectedBannerRatio')?.value || '16:9';
-        const targetOption = document.getElementById('bannerAdTargetPage')?.value || 'all';
+        const targetOption = document.getElementById('bannerAdTargetPage')?.value || 'home';
         const targetCity = targetOption === 'city' ? (document.getElementById('bannerAdCityInput')?.value.trim() || '') : '';
-        const targetCategory = targetOption === 'city' ? (document.getElementById('bannerAdCategoryInput')?.value.trim() || 'all') : 'all';
+        const targetCategory = targetOption === 'city' ? (document.getElementById('bannerAdCategoryInput')?.value.trim() || '') : '';
         const link = document.getElementById('bannerAdLink')?.value.trim() || '';
 
         if (!title) {
@@ -4126,10 +4236,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (targetOption === 'city' && !targetCity) {
-            alert('Please select or type a target city.');
-            document.getElementById('bannerAdCityInput')?.focus();
-            return;
+        if (targetOption === 'city') {
+            if (!targetCity) {
+                alert('Please select or type a Target City.');
+                document.getElementById('bannerAdCityInput')?.focus();
+                return;
+            }
+            if (!targetCategory || targetCategory.toLowerCase() === 'all') {
+                alert('Please select or type a Target Category (Category is mandatory when Target City is selected).');
+                document.getElementById('bannerAdCategoryInput')?.focus();
+                return;
+            }
         }
 
         const news = getDB(DB_KEYS.NEWS);
@@ -4140,11 +4257,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title,
             image,
             aspectRatio: ratio,
-            targetPage: targetOption,
-            targetCity: targetCity || 'All Cities',
-            city: targetCity || 'All Cities',
-            targetCategory: targetCategory || 'all',
-            category: targetCategory || 'all',
+            targetPage: targetOption === 'city' ? 'city' : 'home',
+            targetCity: targetOption === 'city' ? targetCity : '',
+            city: targetOption === 'city' ? targetCity : '',
+            targetCategory: targetOption === 'city' ? targetCategory : '',
+            category: targetOption === 'city' ? targetCategory : '',
             placement: 'below-search',
             link,
             active: true,
@@ -4154,7 +4271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('createBannerAdModal')?.classList.remove('active');
         document.getElementById('bannerAdForm')?.reset();
-        toggleAdCityTarget('all', 'bannerAdCityWrap', 'bannerAdCategoryWrap');
+        toggleAdCityTarget('home', 'bannerAdCityWrap', 'bannerAdCategoryWrap');
         if (bannerPreviewWrapper) bannerPreviewWrapper.style.display = 'none';
         if (bannerFileTrigger) bannerFileTrigger.style.display = 'flex';
         if (bannerImageCompressedData) bannerImageCompressedData.value = '';
@@ -4162,8 +4279,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refreshAll();
         const targetDesc = targetOption === 'city' 
-            ? `${targetCity}${targetCategory && targetCategory !== 'all' ? ' (' + targetCategory + ')' : ''}`
-            : targetOption.toUpperCase();
+            ? `${targetCity} (${targetCategory})`
+            : 'HOME PAGE';
         alert(`Banner Ad (${ratio}) published successfully for ${targetDesc}!`);
     });
 
@@ -4171,7 +4288,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. MULTI-PRODUCT PROMOTION SYSTEM (Catalog Linking & Multi-Selection)
     // ========================================================
     window.toggleProductAdTarget = function(val) {
-        // Keeps targeting consistent with City & Category filters
+        const wrap = document.getElementById('prodAdCityCategoryWrap');
+        if (wrap) {
+            wrap.style.display = val === 'city' ? 'grid' : 'none';
+            if (val === 'city') {
+                document.getElementById('prodAdCityInput')?.focus();
+            } else {
+                const cityInp = document.getElementById('prodAdCityInput');
+                const catInp = document.getElementById('prodAdCategoryInput');
+                if (cityInp) cityInp.value = '';
+                if (catInp) catInp.value = '';
+            }
+        }
     };
 
     let multiCatalogProducts = [];
@@ -4492,14 +4620,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const targetPage = document.getElementById('prodAdTargetPage')?.value || 'home';
-        const city = document.getElementById('prodAdCityInput')?.value.trim() || 'all';
-        const category = document.getElementById('prodAdCategoryInput')?.value.trim() || 'all';
+        const city = targetPage === 'city' ? (document.getElementById('prodAdCityInput')?.value.trim() || '') : '';
+        const category = targetPage === 'city' ? (document.getElementById('prodAdCategoryInput')?.value.trim() || '') : '';
         const listingId = document.getElementById('prodAdListingId')?.value.trim() || '';
         const listingName = document.getElementById('prodAdListingName')?.value.trim() || document.getElementById('prodAdListingInput')?.value.trim() || 'Verified Store';
 
         if (!listingName) {
             alert('Please select a listing or store.');
             return;
+        }
+
+        if (targetPage === 'city') {
+            if (!city || city.toLowerCase() === 'all') {
+                alert('Please select or type a Target City.');
+                document.getElementById('prodAdCityInput')?.focus();
+                return;
+            }
+            if (!category || category.toLowerCase() === 'all') {
+                alert('Please select or type a Target Category (Category is mandatory when Target City is selected).');
+                document.getElementById('prodAdCategoryInput')?.focus();
+                return;
+            }
         }
 
         let news = getDB(DB_KEYS.NEWS) || [];
@@ -4524,8 +4665,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 listingId: listingId,
                 listingName: listingName,
                 targetPage: targetPage,
-                city: city,
-                category: prod.category || category,
+                targetCity: targetPage === 'city' ? city : '',
+                city: targetPage === 'city' ? city : '',
+                targetCategory: targetPage === 'city' ? category : '',
+                category: targetPage === 'city' ? category : (prod.category || ''),
                 link: actionLink,
                 active: true,
                 date: dateStr,
@@ -4540,6 +4683,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset and close modal
         document.getElementById('createProductAdModal')?.classList.remove('active');
         productAdForm.reset();
+        toggleProductAdTarget('home');
         multiCatalogProducts = [];
         if (typeof window.renderCatalogItemsList === 'function') {
             window.renderCatalogItemsList();

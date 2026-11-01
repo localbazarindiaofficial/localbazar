@@ -342,9 +342,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     (userUid && u.uid === userUid)
                 );
 
-                let deterministicId = existingUser ? existingUser.id : ('LB' + Math.floor(100000 + Math.random() * 900000));
+                const generateDeterministicLBId = (uid, em) => {
+                    const seed = String(uid || em || 'lb_user').trim().toLowerCase();
+                    let hash = 0;
+                    for (let i = 0; i < seed.length; i++) {
+                        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                        hash |= 0;
+                    }
+                    return 'LB' + (100000 + Math.abs(hash % 900000));
+                };
+
+                let deterministicId = existingUser ? existingUser.id : generateDeterministicLBId(userUid, userEmail);
                 if (deterministicId && (deterministicId.startsWith('USR-') || !deterministicId.startsWith('LB'))) {
-                    deterministicId = 'LB' + Math.floor(100000 + Math.random() * 900000);
+                    deterministicId = generateDeterministicLBId(userUid, userEmail);
                 }
 
                 const activeUser = {

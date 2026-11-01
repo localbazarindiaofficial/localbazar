@@ -1,5 +1,5 @@
 // ================= STORE CATEGORY DEDICATED PAGE LOGIC (AMAZON / FLIPKART STYLE) =================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get('id');
     let currentCatTag = (urlParams.get('cat') || '').toLowerCase().trim();
@@ -18,9 +18,55 @@ document.addEventListener('DOMContentLoaded', () => {
         listings = [];
     }
 
-    let item = listings.find(l => String(l.id).trim() === String(listingId).trim());
+    let item = listings.find(l => l && String(l.id).trim() === String(listingId).trim());
     if (!item && listingId) {
-        item = listings.find(l => String(l.id).toLowerCase() === String(listingId).toLowerCase());
+        item = listings.find(l => l && String(l.id).toLowerCase() === String(listingId).toLowerCase());
+    }
+
+    // Direct cloud fetch fallback for direct shared category links
+    if (!item && listingId) {
+        const loader = document.createElement('div');
+        loader.id = 'storeCategoryCloudLoader';
+        loader.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:#ffffff; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:"Plus Jakarta Sans",sans-serif; text-align:center; padding:1.5rem;';
+        loader.innerHTML = `
+            <div style="width:44px; height:44px; border:3.5px solid #e2e8f0; border-top-color:#1a73e8; border-radius:50%; animation:lbSpin 0.75s linear infinite;"></div>
+            <div style="margin-top:1.15rem; font-weight:700; color:#0f172a; font-size:1.05rem;">Loading Store Catalog...</div>
+            <div style="margin-top:0.35rem; color:#64748b; font-size:0.86rem;">Connecting to verified local records...</div>
+            <style>@keyframes lbSpin { to { transform: rotate(360deg); } }</style>
+        `;
+        document.body.appendChild(loader);
+
+        try {
+            let cloudItem = null;
+            if (window.lbCloudSync && typeof window.lbCloudSync.getFirestore === 'function') {
+                const db = window.lbCloudSync.getFirestore();
+                if (db) {
+                    const docSnap = await db.collection('listings').doc(String(listingId)).get().catch(() => null);
+                    if (docSnap && docSnap.exists) {
+                        cloudItem = docSnap.data();
+                    } else {
+                        const qSnap = await db.collection('listings').where('id', '==', listingId).limit(1).get().catch(() => null);
+                        if (qSnap && !qSnap.empty) cloudItem = qSnap.docs[0].data();
+                    }
+                }
+            }
+
+            if (cloudItem) {
+                item = cloudItem;
+                try {
+                    const rawNow = localStorage.getItem('lb_listings');
+                    const curList = rawNow ? JSON.parse(rawNow) : [];
+                    if (!curList.some(l => l && String(l.id) === String(cloudItem.id))) {
+                        curList.unshift(cloudItem);
+                        localStorage.setItem('lb_listings', JSON.stringify(curList));
+                    }
+                } catch (e) {}
+            }
+        } catch (fetchErr) {
+            console.warn('[StoreCategory] Cloud lookup error:', fetchErr);
+        } finally {
+            if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+        }
     }
 
     if (!item) {
