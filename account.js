@@ -213,6 +213,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Clean 1-Click Navigation Back to Home from Main Menu
+    window.navigateBackToHome = function() {
+        try {
+            sessionStorage.removeItem('lb_active_account_screen');
+            sessionStorage.removeItem('lb_editing_listing_id');
+        } catch (e) {}
+        window.location.href = 'index.html';
+    };
+
     // ================= SCREEN SWITCHER WITH PERSISTENCE =================
     window.switchAccountScreen = function(screenId, updateHistory = true) {
         if (!screenId || typeof screenId !== 'string') screenId = 'viewMainMenu';
@@ -7361,6 +7370,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
+        const activeSub = document.querySelector('.account-view-screen.active');
+        const wasInSub = activeSub && activeSub.id !== 'viewMainMenu';
+
         if (hash && hash !== 'viewMainMenu') {
             window.switchAccountScreen(hash, false);
         } else {
@@ -7368,7 +7380,11 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             try {
-                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                if (wasInSub) {
+                    history.pushState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                } else {
+                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                }
             } catch (err) {}
         }
     });
@@ -7379,6 +7395,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
+        const activeSub = document.querySelector('.account-view-screen.active');
+        const wasInSub = activeSub && activeSub.id !== 'viewMainMenu';
+
         if (hash && hash !== 'viewMainMenu') {
             window.switchAccountScreen(hash, false);
         } else {
@@ -7386,7 +7405,11 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             try {
-                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                if (wasInSub) {
+                    history.pushState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                } else {
+                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                }
             } catch (err) {}
         }
     });

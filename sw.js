@@ -1,5 +1,5 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v85
-const CACHE_NAME = 'localbazar-pwa-v85';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v86
+const CACHE_NAME = 'localbazar-pwa-v86';
 
 const STATIC_ASSETS = [
     './',
