@@ -7329,14 +7329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 2. If a hash IS present (e.g. user refreshed on account.html#viewAddListing, or deep link)
-        // Establish the base menu state in history behind this sub-screen
-        // so that pressing back from this refreshed page will step back to viewMainMenu!
-        try {
-            history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-            history.pushState({ accountScreen: targetScreen }, '', '#' + targetScreen);
-        } catch (e) {}
-
+        // 2. If a hash IS present on reload, switch directly to that view without creating unactivated pushState entries
         const editingId = sessionStorage.getItem('lb_editing_listing_id');
         if (targetScreen === 'viewAddListing' && editingId && typeof window.openEditListing === 'function') {
             window.openEditListing(editingId, false);
@@ -7346,23 +7339,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     restoreInitialAccountScreen();
 
-    // Prime history with genuine user activation (Prevents mobile Chrome/Safari from skipping in-page states on back)
-    let hasPrimedUserGestureHistory = false;
-    function primeSubScreenHistoryWithGesture() {
-        if (hasPrimedUserGestureHistory) return;
-        const currentHash = (window.location.hash || '').replace(/^#/, '').trim();
-        if (currentHash && currentHash !== 'viewMainMenu') {
-            hasPrimedUserGestureHistory = true;
-            try {
-                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                history.pushState({ accountScreen: currentHash }, '', '#' + currentHash);
-            } catch (e) {}
-        }
-    }
-    ['touchstart', 'pointerdown', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
-        window.addEventListener(evt, primeSubScreenHistoryWithGesture, { capture: true, passive: true });
-    });
-
     // Listen to Browser Back / Forward navigation (popstate & hashchange)
     window.addEventListener('popstate', (e) => {
         const portalOverlay = document.getElementById('merchantPortalOverlay');
@@ -7370,8 +7346,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
-        const activeSub = document.querySelector('.account-view-screen.active');
-        const wasInSub = activeSub && activeSub.id !== 'viewMainMenu';
 
         if (hash && hash !== 'viewMainMenu') {
             window.switchAccountScreen(hash, false);
@@ -7380,11 +7354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             try {
-                if (wasInSub) {
-                    history.pushState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                } else {
-                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                }
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
             } catch (err) {}
         }
     });
@@ -7395,8 +7365,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const hash = (window.location.hash || '').replace(/^#/, '').trim();
-        const activeSub = document.querySelector('.account-view-screen.active');
-        const wasInSub = activeSub && activeSub.id !== 'viewMainMenu';
 
         if (hash && hash !== 'viewMainMenu') {
             window.switchAccountScreen(hash, false);
@@ -7405,11 +7373,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('lb_active_account_screen');
             sessionStorage.removeItem('lb_editing_listing_id');
             try {
-                if (wasInSub) {
-                    history.pushState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                } else {
-                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
-                }
+                history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
             } catch (err) {}
         }
     });

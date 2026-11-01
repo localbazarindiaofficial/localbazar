@@ -160,7 +160,7 @@
         }
 
         // B. Account Hub Sub-View Interception
-        if (window.location.pathname.includes('account.html')) {
+        if (window.location.pathname.includes('account')) {
             // Check if merchant portal is open
             const portalOverlay = document.getElementById('merchantPortalOverlay');
             if (portalOverlay && portalOverlay.classList.contains('active')) {
@@ -177,7 +177,7 @@
                 try {
                     sessionStorage.removeItem('lb_active_account_screen');
                     sessionStorage.removeItem('lb_editing_listing_id');
-                    history.pushState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
+                    history.replaceState({ accountScreen: 'viewMainMenu' }, '', window.location.pathname + window.location.search);
                 } catch (err) {}
                 return;
             }
