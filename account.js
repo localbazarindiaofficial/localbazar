@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ================= SCREEN SWITCHER WITH PERSISTENCE =================
-    window.switchAccountScreen = function(screenId, updateHistory = true) {
+    function switchAccountScreen(screenId, updateHistory = true) {
         if (!screenId || typeof screenId !== 'string') screenId = 'viewMainMenu';
         screenId = screenId.replace(/^#/, '').trim();
 
@@ -330,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (screenId === 'viewSettings') {
             if (typeof updateUserNotifPermStatusDisplay === 'function') updateUserNotifPermStatusDisplay();
         }
-    };
+    }
+    window.switchAccountScreen = switchAccountScreen;
 
     // Helper: Handle Back / Cancel navigation from Add/Edit Listing Form
     window.handleListingFormBack = function() {
@@ -1694,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ================= PREMIUM MNC-STYLE NOTIFICATION MODAL ENGINE =================
-    window.showLbAlert = function({ title, message, type = 'warning', buttonText = 'Understood', onConfirm = null }) {
+    function showLbAlert({ title, message, type = 'warning', buttonText = 'Understood', onConfirm = null }) {
         const overlay = document.getElementById('lbAlertOverlay');
         const iconWrap = document.getElementById('lbAlertIconWrap');
         const icon = document.getElementById('lbAlertIcon');
@@ -1727,9 +1728,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window._lbAlertConfirmCb = onConfirm;
         overlay.style.display = 'flex';
-    };
+    }
+    window.showLbAlert = showLbAlert;
 
-    window.closeLbAlert = function() {
+    function closeLbAlert() {
         const overlay = document.getElementById('lbAlertOverlay');
         if (overlay) overlay.style.display = 'none';
         if (typeof window._lbAlertConfirmCb === 'function') {
@@ -1737,7 +1739,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window._lbAlertConfirmCb = null;
             cb();
         }
-    };
+    }
+    window.closeLbAlert = closeLbAlert;
 
     // E. Save & Register Full Listing (Validates all required fields across all steps before registering)
     window.handleListingRegistrationSubmit = async function(e) {
@@ -1822,10 +1825,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Doctor Chamber Data
-        const doctors = editingItem && Array.isArray(editingItem.doctors) ? editingItem.doctors : [];
-
         const editingId = document.getElementById('uEditingListingId')?.value || '';
+
+        // Doctor Chamber Data
+        let doctors = [];
+        if (editingId) {
+            try {
+                const rawListings = localStorage.getItem('lb_listings');
+                const tempL = rawListings ? JSON.parse(rawListings) : [];
+                const existItem = tempL.find(l => String(l.id) === String(editingId));
+                if (existItem && Array.isArray(existItem.doctors)) {
+                    doctors = existItem.doctors;
+                }
+            } catch (e) {}
+        }
 
         // Insert or Update in localStorage
         try {
@@ -2460,15 +2473,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // B. Category Change Handler
-    window.handleCategoryChange = function(categoryVal) {
+    function handleCategoryChange(categoryVal) {
         const btnPublishFromTimings = document.getElementById('btnPublishFromTimings');
         if (btnPublishFromTimings) btnPublishFromTimings.style.display = 'inline-flex';
-    };
+    }
+    window.handleCategoryChange = handleCategoryChange;
 
     // ================= STEP-BY-STEP ADD/EDIT LISTING STAGES ENGINE =================
     let currentListingStep = 1;
 
-    window.navigateListingStep = function(stepNum) {
+    function navigateListingStep(stepNum) {
         // Free step-to-step navigation without blocking: users can freely view and fill any tab
         currentListingStep = stepNum;
 
@@ -2489,7 +2503,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }
+    window.navigateListingStep = navigateListingStep;
 
     // Allow user to click directly on step navigation pills
     document.querySelectorAll('.step-nav-pill').forEach(btn => {
