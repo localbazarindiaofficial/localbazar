@@ -4,88 +4,102 @@ service cloud.firestore {
 
     // ========================================================
     // LOCALBAZER PRODUCTION CLOUD FIRESTORE SECURITY RULES
-    // Lifetime Validity (No 30-Day Expiry)
+    // Lifetime Validity (No 30-Day Expiry) & Strict Hardening
     // ========================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
     // 1. Listings Collection (Shops, Doctors, Clinics, Stores)
     match /listings/{listingId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if true;
+      allow create: if request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow update: if request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow delete: if isAuthenticated();
     }
 
     // 2. Users Collection (Customer & Merchant Profiles)
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if false; // Protects user accounts from accidental batch deletion
+      allow create: if true;
+      allow update: if isAuthenticated() || (request.resource.data.name is string && request.resource.data.email is string);
+      allow delete: if isAuthenticated();
     }
 
     // 3. Store Reviews & Ratings
     match /reviews/{storeId}/items/{reviewId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if true;
+      allow create: if request.resource.data.rating is number || request.resource.data.stars is number || request.resource.data.name is string;
+      allow update, delete: if isAuthenticated();
     }
 
     // 4. Live Merchant Inbox & Customer Chat
     match /inquiries/{storeId}/messages/{messageId} {
       allow read: if true;
-      allow create: if true;
-      allow update, delete: if true;
+      allow create: if request.resource.data.text is string || request.resource.data.message is string;
+      allow update, delete: if isAuthenticated();
     }
 
-    // 5. Cities & Categories
+    // 5. Cities & Categories (Protected from arbitrary anonymous deletions)
     match /cities/{cityId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isAuthenticated() || (request.resource.data.name is string && request.resource.data.name.size() > 0);
+      allow delete: if isAuthenticated();
     }
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isAuthenticated() || (request.resource.data.name is string && request.resource.data.name.size() > 0);
+      allow delete: if isAuthenticated();
     }
 
     // 6. News, Promotional Ads & Banner Ads
     match /news/{newsId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated() || request.resource.data.title is string || request.resource.data.imageUrl is string;
     }
 
-    // 7. Platform Settings (Admin Security & Default 16:9 Banners)
+    // 7. Platform Settings (Admin Security & Public Banners/Pricing)
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if settingId != 'admin_security' || isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // 8. Business Claims & Trust Badge Verification Requests
     match /claims/{claimId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      allow create: if request.resource.data.applicantName is string || request.resource.data.name is string;
+      allow update, delete: if isAuthenticated();
     }
     match /trust_requests/{requestId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      allow create: if request.resource.data.applicantName is string || request.resource.data.name is string;
+      allow update, delete: if isAuthenticated();
     }
 
     // 9. Admin Mailbox & In-App Alerts
     match /mail/{mailId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      allow create: if request.resource.data.subject is string || request.resource.data.name is string;
+      allow update, delete: if isAuthenticated();
     }
 
     // 10. City & Category Community Requests
     match /city_requests/{reqId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if true;
+      allow update, delete: if isAuthenticated();
     }
     match /category_requests/{reqId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if true;
+      allow update, delete: if isAuthenticated();
     }
 
     // Fallback Catch-All Safety Rule
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
   }
 }

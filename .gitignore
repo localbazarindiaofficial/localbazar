@@ -29,3 +29,19 @@ pnpm-debug.log*
 
 # Node modules (if any tools are used locally)
 node_modules/
+
+# Next.js Build Output
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Local Environment Variables & Secrets
+.env
+.env*.local
+.env.local
+.env.production
+.env.development
+
+# Old prototype archive folder
+localbazar/

@@ -1,0 +1,620 @@
+/* =========================================================
+   LocalBazar - Global Professional Dark Theme (Enterprise Edition)
+   Applies site-wide to all pages, components and modals
+   ========================================================= */
+
+/* Root variable overrides for Dark Mode */
+html.dark-theme,
+body.dark-theme {
+    --brand-blue: #3b82f6;
+    --brand-blue-hover: #60a5fa;
+    --brand-blue-soft: #1e293b;
+    
+    --slate-900: #f8fafc;
+    --slate-800: #f1f5f9;
+    --slate-700: #e2e8f0;
+    --slate-600: #cbd5e1;
+    --slate-500: #94a3b8;
+    --slate-400: #64748b;
+    --slate-300: #475569;
+    --slate-200: #334155;
+    --slate-100: #1e293b;
+    --slate-50: #0f172a;
+    
+    background-color: #0b0f19 !important;
+    color: #f1f5f9 !important;
+    color-scheme: dark;
+}
+
+/* Base Body Elements in Dark Mode */
+body.dark-theme {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9 !important;
+}
+
+/* Smooth Transitions for Theme Switch */
+body,
+.app-header,
+.account-hub-card,
+.omni-search-bar,
+.listing-card,
+.shop-card,
+.detail-hero-card {
+    transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+
+/* =========================================================
+   1. APP HEADER & NAVBAR
+   ========================================================= */
+body.dark-theme .app-header {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-theme .brand-logo-text,
+body.dark-theme .header-brand {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .brand-logo-text span {
+    color: #60a5fa !important;
+}
+
+/* Header Avatar & Profile Trigger */
+body.dark-theme .user-avatar-btn {
+    background: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-theme .user-avatar-btn:hover,
+body.dark-theme .user-avatar-btn:active,
+body.dark-theme .user-avatar-btn:focus {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .user-profile-trigger {
+    background: transparent !important;
+    outline: none !important;
+    border: none !important;
+}
+
+body.dark-theme .header-user-img {
+    border: 2px solid #334155 !important;
+}
+
+body.dark-theme .user-profile-trigger:hover .header-user-img,
+body.dark-theme .user-profile-trigger:active .header-user-img,
+body.dark-theme .user-profile-trigger:focus .header-user-img {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35) !important;
+}
+
+body.dark-theme .header-ticker-bar .lb-ticker-text-item {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .header-ticker-bar .lb-ticker-sep {
+    color: #64748b !important;
+}
+
+/* =========================================================
+   2. HOMEPAGE HERO & OMNI-SEARCH (SEAMLESS UNIFIED BAR)
+   ========================================================= */
+body.dark-theme .brand-title {
+    color: #ffffff !important;
+}
+
+body.dark-theme .brand-title span {
+    color: #3b82f6 !important;
+}
+
+body.dark-theme .brand-tagline {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .hero-headline {
+    color: #ffffff !important;
+}
+
+body.dark-theme .hero-headline span {
+    color: #60a5fa !important;
+}
+
+body.dark-theme .hero-subtitle {
+    color: #94a3b8 !important;
+}
+
+/* Unified Search Bar Pill */
+body.dark-theme .omni-search-bar {
+    background: #1e293b !important;
+    border: 1.5px solid #334155 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.dark-theme .omni-search-bar:hover {
+    border-color: #475569 !important;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7) !important;
+}
+
+body.dark-theme .omni-search-bar:focus-within {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 16px 45px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Search Segments & Inner Inputs - Completely Transparent Background */
+body.dark-theme .omni-segment {
+    background: transparent !important;
+    border: none !important;
+}
+
+body.dark-theme .omni-search-bar input,
+body.dark-theme .omni-segment input,
+body.dark-theme #cityInput,
+body.dark-theme #queryInput {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #f8fafc !important;
+    font-size: 0.95rem !important;
+}
+
+body.dark-theme .omni-search-bar input::placeholder,
+body.dark-theme .omni-segment input::placeholder {
+    color: #64748b !important;
+}
+
+/* Prevent Chrome/Safari Autocomplete from injecting yellow/white background */
+body.dark-theme .omni-search-bar input:-webkit-autofill,
+body.dark-theme .omni-search-bar input:-webkit-autofill:hover,
+body.dark-theme .omni-search-bar input:-webkit-autofill:focus,
+body.dark-theme .omni-search-bar input:-webkit-autofill:active {
+    -webkit-text-fill-color: #f8fafc !important;
+    -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+body.dark-theme .omni-separator {
+    background: #334155 !important;
+}
+
+body.dark-theme .segment-icon {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .omni-submit-btn {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4) !important;
+}
+
+body.dark-theme .omni-submit-btn:hover {
+    background: #1d4ed8 !important;
+}
+
+/* Autocomplete Popovers */
+body.dark-theme .omni-suggestions-popover {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .omni-sugg-header {
+    background: transparent !important;
+    border-bottom: 1px solid #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .omni-sugg-item {
+    color: #f8fafc !important;
+    background: transparent !important;
+    border-color: transparent !important;
+}
+
+body.dark-theme .omni-sugg-item:hover {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+body.dark-theme .omni-sugg-title {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .omni-sugg-meta-details {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .omni-pin-pill {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #60a5fa !important;
+}
+
+body.dark-theme .omni-popular-tag {
+    background: #1e3a8a !important;
+    color: #93c5fd !important;
+}
+
+body.dark-theme .omni-sugg-action-arrow {
+    color: #64748b !important;
+}
+
+/* Quick Category Chips */
+body.dark-theme .category-chip-item {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .category-chip-item:hover {
+    background: #283548 !important;
+    border-color: #3b82f6 !important;
+    color: #60a5fa !important;
+}
+
+/* =========================================================
+   3. ACCOUNT HUB (MAIN SCREEN & ALL ROWS)
+   ========================================================= */
+body.dark-theme.account-hub-body,
+body.dark-theme .account-hub-main {
+    background: #0b0f19 !important;
+}
+
+body.dark-theme .account-hub-card {
+    background: #0f172a !important;
+    border: 1px solid #1e293b !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Profile Header Section */
+body.dark-theme .account-profile-header {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .account-profile-header .user-display-name {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .account-profile-header .user-display-email {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .account-profile-header .member-since-chip {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .profile-avatar-circle {
+    border-color: #1e293b !important;
+}
+
+/* Menu List Items - Dark Highlight on Click/Hover, NO WHITE BACKGROUND */
+body.dark-theme .menu-list-row {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .menu-list-row:hover,
+body.dark-theme .menu-list-row:active,
+body.dark-theme .menu-list-row:focus {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .menu-row-info strong {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .menu-row-info span {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .menu-chevron {
+    color: #64748b !important;
+}
+
+body.dark-theme .menu-list-row:hover .menu-chevron {
+    color: #60a5fa !important;
+}
+
+/* Sub-screen Top Bars */
+body.dark-theme .account-sub-top-bar {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .account-sub-title {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .account-sub-desc {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .account-sub-back-btn {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .account-sub-back-btn:hover {
+    background: #283548 !important;
+    border-color: #475569 !important;
+}
+
+body.dark-theme .sub-screen-content {
+    background: #0f172a !important;
+}
+
+/* Profile Edit Subscreen */
+body.dark-theme .profile-info-banner {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-theme .profile-info-text {
+    color: #93c5fd !important;
+}
+
+body.dark-theme .profile-field-label {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .profile-field-input,
+body.dark-theme .profile-field-select {
+    background: #0b0f19 !important;
+    border: 1.5px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .profile-field-input:focus,
+body.dark-theme .profile-field-select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+body.dark-theme .profile-select-arrow {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .profile-field-input.disabled {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #64748b !important;
+}
+
+/* Saved Places */
+body.dark-theme .saved-place-card {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .saved-place-name {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .saved-place-meta {
+    color: #94a3b8 !important;
+}
+
+/* =========================================================
+   4. FORM INPUTS ACROSS PLATFORM (EXCLUDING OMNI-SEARCH)
+   ========================================================= */
+body.dark-theme input:not(.omni-segment input):not(.omni-search-bar input):not([type="checkbox"]):not([type="radio"]),
+body.dark-theme select:not(.omni-segment select),
+body.dark-theme textarea {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme input:not(.omni-segment input):not(.omni-search-bar input)::placeholder,
+body.dark-theme textarea::placeholder {
+    color: #64748b !important;
+}
+
+body.dark-theme input:not(.omni-segment input):not(.omni-search-bar input):focus,
+body.dark-theme select:not(.omni-segment select):focus,
+body.dark-theme textarea:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Ensure Omni-search bar input stays transparent ALWAYS */
+body.dark-theme .omni-search-bar input,
+body.dark-theme .omni-segment input,
+body.dark-theme #cityInput,
+body.dark-theme #queryInput {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* =========================================================
+   5. EXPLORE & LISTING PAGES
+   ========================================================= */
+body.dark-theme.explore-body,
+body.dark-theme .explore-container,
+body.dark-theme .explore-main {
+    background: #0b0f19 !important;
+}
+
+body.dark-theme .explore-header-minimal {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .explore-search-pill {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-theme .explore-search-pill input {
+    background: transparent !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .explore-filter-bar {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .filter-pill,
+body.dark-theme .filter-select,
+body.dark-theme .sort-select {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .filter-pill.active {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .listing-card,
+body.dark-theme .shop-card,
+body.dark-theme .explore-card {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark-theme .listing-card:hover,
+body.dark-theme .shop-card:hover {
+    border-color: #475569 !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+body.dark-theme .shop-title,
+body.dark-theme .listing-title,
+body.dark-theme .listing-name {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .shop-cat,
+body.dark-theme .listing-address,
+body.dark-theme .shop-address {
+    color: #94a3b8 !important;
+}
+
+/* =========================================================
+   6. LISTING DETAIL & PRODUCT DETAIL
+   ========================================================= */
+body.dark-theme.detail-body {
+    background: #0b0f19 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .detail-top-nav {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .detail-back-btn {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .detail-hero-card,
+body.dark-theme .detail-content-card,
+body.dark-theme .detail-card,
+body.dark-theme .detail-info-card {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-theme .detail-store-name,
+body.dark-theme .section-heading,
+body.dark-theme .detail-heading {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .detail-meta-row,
+body.dark-theme .detail-address,
+body.dark-theme .detail-desc {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .detail-tab-bar {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+body.dark-theme .detail-tab-btn {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .detail-tab-btn.active {
+    color: #60a5fa !important;
+    border-bottom-color: #60a5fa !important;
+    background: #1e293b !important;
+}
+
+/* =========================================================
+   7. MODALS, POPOVERS & ALERTS
+   ========================================================= */
+body.dark-theme .lb-auth-modal-card,
+body.dark-theme .claim-modal,
+body.dark-theme .alert-modal-card {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .lb-auth-modal-title,
+body.dark-theme .alert-modal-title {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .lb-auth-modal-desc,
+body.dark-theme .alert-modal-msg {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .lb-auth-modal-header,
+body.dark-theme .lb-auth-modal-footer {
+    border-color: #334155 !important;
+}
+
+body.dark-theme .perk-item {
+    color: #cbd5e1 !important;
+}
+
+/* =========================================================
+   8. FOOTER
+   ========================================================= */
+body.dark-theme .app-footer {
+    background: #080c14 !important;
+    border-top: 1px solid #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .app-footer a {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .app-footer a:hover {
+    color: #60a5fa !important;
+}
+
+body.dark-theme .footer-brand-title {
+    color: #f8fafc !important;
+}
