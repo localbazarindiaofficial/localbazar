@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, isTrustBadgeActive } from '@/types';
+import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, CategoryItem, isTrustBadgeActive } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
@@ -49,6 +49,7 @@ export default function ShopDetailPage() {
 
   // Empty store fallback banners from admin
   const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -225,6 +226,13 @@ export default function ShopDetailPage() {
         setEmptyStoreBanners(cloudSlots);
       }
     }).catch(() => {});
+
+    // 6. Load global Admin categories from Cloud Firestore for dynamic in-store categories
+    cloudSync.pullCategories().then((cats) => {
+      if (cats && Array.isArray(cats)) {
+        setAllCategories(cats);
+      }
+    }).catch(() => {});
   }, [shopId]);
 
   // Gallery & Cover Image
@@ -245,17 +253,43 @@ export default function ShopDetailPage() {
   const todaySchedule = shop?.dailySchedule?.[todayName];
   const isOpenToday = todaySchedule ? todaySchedule.isOpen : (shop?.openDays?.includes(todayName) ?? true);
 
-  // Store Categories List
+  // Store Categories List (Strictly Admin & Listing In-Store Subcategories, Zero Dummies)
   const storeCategories: StoreCategoryItem[] = useMemo(() => {
     let rawCats: any[] = [];
+
+    // 1. If listing has its own storeCategories defined:
     if (shop?.storeCategories && shop.storeCategories.length > 0) {
-      rawCats = shop.storeCategories as any[];
-    } else if (shop?.products && shop.products.length > 0) {
-      // Auto-extract in-store categories from store products if listing has no explicit categories set
-      const prodCats = Array.from(new Set(shop.products.map((p) => p.storeCategory || p.category).filter(Boolean)));
-      if (prodCats.length > 0) {
-        rawCats = prodCats;
+      rawCats = [...shop.storeCategories];
+    }
+
+    // 2. Look up matching Admin Category from Firestore for this store's category
+    const storeMainCat = (shop?.category || '').trim().toLowerCase();
+    const matchedAdminCat = allCategories.find((c) => {
+      const cName = (c.name || '').trim().toLowerCase();
+      return cName === storeMainCat || cName.includes(storeMainCat) || storeMainCat.includes(cName);
+    });
+
+    if (rawCats.length === 0 && matchedAdminCat) {
+      if (Array.isArray(matchedAdminCat.storeCategories) && matchedAdminCat.storeCategories.length > 0) {
+        rawCats = [...matchedAdminCat.storeCategories];
+      } else if (Array.isArray(matchedAdminCat.subcategories) && matchedAdminCat.subcategories.length > 0) {
+        rawCats = [...matchedAdminCat.subcategories];
       }
+    }
+
+    // 3. Also include any distinct in-store categories assigned to store products
+    if (shop?.products && shop.products.length > 0) {
+      const prodCats = Array.from(new Set(shop.products.map((p) => p.storeCategory || p.category).filter(Boolean)));
+      prodCats.forEach((pc) => {
+        const pcStr = typeof pc === 'string' ? pc.trim() : ((pc as any).label || (pc as any).name);
+        const exists = rawCats.some((rc) => {
+          const rcStr = typeof rc === 'string' ? rc.trim() : (rc.label || rc.name || rc.tag);
+          return rcStr && rcStr.toLowerCase() === pcStr?.toLowerCase();
+        });
+        if (!exists && pcStr) {
+          rawCats.push(pc);
+        }
+      });
     }
 
     if (rawCats.length > 0) {
@@ -264,20 +298,18 @@ export default function ShopDetailPage() {
           return { label: c, tag: String(c).toLowerCase().replace(/\s+/g, '-'), icon: resolveCatEmoji(c) };
         }
         return {
-          label: c.label || '',
-          tag: c.tag || String(c.label || '').toLowerCase().replace(/\s+/g, '-'),
-          icon: c.icon || resolveCatEmoji(c.label)
+          label: c.label || c.name || '',
+          tag: c.tag || String(c.label || c.name || '').toLowerCase().replace(/\s+/g, '-'),
+          icon: c.icon || resolveCatEmoji(c.label || c.name)
         };
       });
     }
 
+    // Fallback only if this category has zero subcategories anywhere
     return [
-      { label: 'Popular', tag: 'popular', icon: '🔥' },
-      { label: 'Special Deals', tag: 'deals', icon: '⭐' },
-      { label: 'Best Sellers', tag: 'best-sellers', icon: '🏷️' },
-      { label: 'All Items', tag: 'all-items', icon: '📦' }
+      { label: shop?.category || 'General', tag: 'general', icon: resolveCatEmoji(shop?.category) }
     ];
-  }, [shop]);
+  }, [shop, allCategories]);
 
   // 16:9 Banner Carousel Images (Trust Badge Exclusive: Trust stores show custom banners; Free stores show Admin default banners)
   const bannersList = useMemo(() => {
