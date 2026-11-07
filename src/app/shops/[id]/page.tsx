@@ -39,6 +39,7 @@ export default function ShopDetailPage() {
   // Bottom Navigation Active Tab ('home' | 'reviews')
   const [bottomTab, setBottomTab] = useState<'home' | 'reviews'>('home');
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
+  const isManualScrollingRef = useRef(false);
 
   // Search Filter in store
   const [searchQuery, setSearchQuery] = useState('');
@@ -376,9 +377,15 @@ export default function ShopDetailPage() {
   // Scroll listener to update bottom navbar active state ('home' vs 'reviews')
   useEffect(() => {
     const handleScroll = () => {
+      if (isManualScrollingRef.current) return;
       if (!reviewsSectionRef.current) return;
+
       const rect = reviewsSectionRef.current.getBoundingClientRect();
-      if (rect.top <= 260) {
+      const windowHeight = window.innerHeight || 800;
+      const isNearBottom = window.innerHeight + window.scrollY >= (document.documentElement.scrollHeight - 140);
+      const isReviewsInView = rect.top <= windowHeight * 0.55;
+
+      if (isNearBottom || isReviewsInView) {
         setBottomTab('reviews');
       } else {
         setBottomTab('home');
@@ -1427,7 +1434,11 @@ export default function ShopDetailPage() {
           id="tabListingHome"
           onClick={() => {
             setBottomTab('home');
+            isManualScrollingRef.current = true;
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+              isManualScrollingRef.current = false;
+            }, 850);
           }}
           title="Store Overview"
         >
@@ -1442,7 +1453,11 @@ export default function ShopDetailPage() {
           id="tabListingReviews"
           onClick={() => {
             setBottomTab('reviews');
+            isManualScrollingRef.current = true;
             reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => {
+              isManualScrollingRef.current = false;
+            }, 850);
           }}
           title="Ratings & Customer Reviews"
         >
