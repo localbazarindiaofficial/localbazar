@@ -296,16 +296,20 @@ function ProductDetailPageContent() {
   // Share Product Link
   const handleShareProduct = () => {
     if (!product || !shop) return;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const priceText = product.price ? ` (${product.price.startsWith('₹') ? product.price : `₹${product.price}`})` : '';
     const shareData = {
-      title: `${product.name} | ${shop.name}`,
-      text: `Check out ${product.name} (${product.price || ''}) from ${shop.name} on LocalBazar!`,
-      url: window.location.href
+      title: `${product.name} - ${shop.name} | LocalBazar`,
+      text: `Check out "${product.name}"${priceText} at ${shop.name}, ${shop.city || ''} on LocalBazar!`,
+      url: shareUrl
     };
     if (navigator.share) {
       navigator.share(shareData).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Product link copied to clipboard!');
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl);
+        alert('Product link copied to clipboard!');
+      }
     }
   };
 
