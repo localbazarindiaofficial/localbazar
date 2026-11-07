@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import Script from 'next/script';
 import '@/styles/style.css';
 import '@/styles/explore.css';
@@ -10,6 +11,7 @@ import '@/styles/admin.css';
 import '@/styles/pwa.css';
 import '@/styles/dark-theme.css';
 import PwaInstallManager from '@/components/PwaInstallManager';
+import NavigationProgressBar from '@/components/NavigationProgressBar';
 
 export const viewport: Viewport = {
   themeColor: '#ffffff',
@@ -90,6 +92,9 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <NavigationProgressBar />
+        </Suspense>
         <script
           dangerouslySetInnerHTML={{
             __html: `

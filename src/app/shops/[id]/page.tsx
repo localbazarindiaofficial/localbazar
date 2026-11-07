@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, isTrustBadgeActive } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
@@ -906,20 +907,19 @@ export default function ShopDetailPage() {
               <div className="store-cats-track">
                 {storeCategories.map((cat, idx) => {
                   return (
-                    <button
+                    <Link
                       key={cat.tag || idx}
-                      type="button"
+                      href={`/shops/${encodeURIComponent(shop.id)}/catalog?cat=${encodeURIComponent(cat.tag)}`}
+                      prefetch={true}
                       className="store-cat-item"
-                      onClick={() => {
-                        router.push(`/shops/${encodeURIComponent(shop.id)}/catalog?cat=${encodeURIComponent(cat.tag)}`);
-                      }}
+                      style={{ textDecoration: 'none', color: 'inherit' }}
                       title={`Browse ${cat.label} in ${shop.name}`}
                     >
                       <div className="store-cat-icon-circle">
                         <span className="cat-emoji">{cat.icon || resolveCatEmoji(cat.label)}</span>
                       </div>
                       <span>{cat.label}</span>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -1054,12 +1054,12 @@ export default function ShopDetailPage() {
                     ? prod.images
                     : [prod.image || coverImg];
                   return (
-                    <div
+                    <Link
                       key={prod.id || idx}
+                      href={`/shops/${encodeURIComponent(shop.id)}/product/${encodeURIComponent(prod.id || prod.name)}`}
+                      prefetch={true}
                       className="shelf-prod-card"
-                      onClick={() => {
-                        router.push(`/shops/${encodeURIComponent(shop.id)}/product/${encodeURIComponent(prod.id || prod.name)}`);
-                      }}
+                      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
                       title="Click to view product details & photos"
                     >
                       <div className="shelf-prod-thumb-box" style={{ position: 'relative' }}>
@@ -1078,7 +1078,7 @@ export default function ShopDetailPage() {
                         <span className="shelf-prod-name">{prod.name}</span>
                         <span className="shelf-prod-price">{prod.price || '₹999'}</span>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

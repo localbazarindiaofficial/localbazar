@@ -2144,5 +2144,46 @@ a.lb-ticker-text-item:hover {
     background: #1d4ed8;
 }
 
+/* ============================================================
+   HIGH-SPEED INSTANT RESPONSIVENESS & TOUCH FEEDBACK
+   Zero-lag click feedback, hardware-accelerated animations
+   ============================================================ */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, 
+button, 
+.listing-card, 
+.jd-app-btn-box, 
+.app-nav-tab, 
+.filter-chip, 
+.user-avatar-btn,
+.category-card,
+.city-pill,
+.jd-app-score-pill,
+.pdp-btn-write-review,
+.btn-open-address-sheet,
+.btn-open-schedule-sheet {
+  touch-action: manipulation;
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), opacity 0.12s ease;
+  will-change: transform;
+}
+
+a:active, 
+button:active, 
+.listing-card:active, 
+.jd-app-btn-box:active,
+.category-card:active,
+.filter-chip:active {
+  transform: scale(0.975);
+  opacity: 0.92;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+
 
 
