@@ -167,11 +167,22 @@ export default function HomePage() {
   const [modalTargetText, setModalTargetText] = useState('Local Stores');
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const bannerTouchStartX = useRef<number | null>(null);
 
   const cityRef = useRef<HTMLDivElement>(null);
   const queryRef = useRef<HTMLDivElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-slide home banners every 4 seconds if > 1 banner
+  useEffect(() => {
+    if (homeSlideBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % homeSlideBanners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [homeSlideBanners.length]);
 
   // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
@@ -739,25 +750,131 @@ export default function HomePage() {
             </button>
           </form>
 
-          {/* Home Slide Banners */}
+          {/* Home Slide Banners (Full-width, auto-sliding, zero gap, clean display) */}
           {homeSlideBanners.length > 0 && (
-            <div style={{ marginTop: '2.5rem', width: '100%', maxWidth: 760 }}>
-              <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
-                {homeSlideBanners.map((b: any, idx: number) => (
-                  <div
-                    key={b.id || idx}
-                    style={{ flex: '0 0 auto', width: '320px', height: '140px', borderRadius: '16px', overflow: 'hidden', scrollSnapAlign: 'start', position: 'relative', border: '1px solid #e2e8f0', background: '#0f172a', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={b.imageUrl} alt={b.title || 'Banner'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    {b.title && (
-                      <div style={{ position: 'absolute', bottom: 0, insetInline: 0, padding: '6px 12px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', color: '#fff', fontSize: '0.84rem', fontWeight: 700 }}>
-                        {b.title}
-                      </div>
-                    )}
-                  </div>
-                ))}
+            <div
+              style={{
+                marginTop: '2rem',
+                width: '100%',
+                maxWidth: 760,
+                position: 'relative',
+                borderRadius: '18px',
+                overflow: 'hidden',
+                boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #e2e8f0',
+                background: '#f8fafc',
+              }}
+              onTouchStart={(e) => {
+                bannerTouchStartX.current = e.touches[0].clientX;
+              }}
+              onTouchEnd={(e) => {
+                if (bannerTouchStartX.current === null || homeSlideBanners.length <= 1) return;
+                const touchEndX = e.changedTouches[0].clientX;
+                const diff = bannerTouchStartX.current - touchEndX;
+                if (Math.abs(diff) > 40) {
+                  if (diff > 0) {
+                    setActiveBannerIndex((prev) => (prev + 1) % homeSlideBanners.length);
+                  } else {
+                    setActiveBannerIndex((prev) => (prev - 1 + homeSlideBanners.length) % homeSlideBanners.length);
+                  }
+                }
+                bannerTouchStartX.current = null;
+              }}
+            >
+              {/* Carousel Track */}
+              <div
+                style={{
+                  display: 'flex',
+                  width: `${homeSlideBanners.length * 100}%`,
+                  transform: `translateX(-${(activeBannerIndex * 100) / homeSlideBanners.length}%)`,
+                  transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
+                }}
+              >
+                {homeSlideBanners.map((b: any, idx: number) => {
+                  const bannerLink = b.link || b.url || b.actionUrl;
+                  const slideContent = (
+                    <div
+                      key={b.id || idx}
+                      style={{
+                        width: `${100 / homeSlideBanners.length}%`,
+                        position: 'relative',
+                        aspectRatio: '2.3 / 1',
+                        minHeight: '150px',
+                        maxHeight: '330px',
+                        overflow: 'hidden',
+                        background: '#f1f5f9',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={b.imageUrl}
+                        alt={b.title || 'LocalBazar Banner'}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                  );
+
+                  return bannerLink ? (
+                    <Link
+                      key={b.id || idx}
+                      href={bannerLink}
+                      style={{
+                        display: 'block',
+                        width: `${100 / homeSlideBanners.length}%`,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {slideContent}
+                    </Link>
+                  ) : (
+                    slideContent
+                  );
+                })}
               </div>
+
+              {/* Indicator Dots (Only if > 1 banner) */}
+              {homeSlideBanners.length > 1 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: '6px',
+                    alignItems: 'center',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    padding: '4px 8px',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 2,
+                  }}
+                >
+                  {homeSlideBanners.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveBannerIndex(idx)}
+                      aria-label={`Go to banner ${idx + 1}`}
+                      style={{
+                        width: activeBannerIndex === idx ? '18px' : '6px',
+                        height: '6px',
+                        borderRadius: '3px',
+                        border: 'none',
+                        padding: 0,
+                        background: activeBannerIndex === idx ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
