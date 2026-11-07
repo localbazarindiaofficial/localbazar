@@ -293,23 +293,83 @@ function ProductDetailPageContent() {
     }
   };
 
-  // Share Product Link
-  const handleShareProduct = () => {
+  // Share Product Link (With instant 1st image attachment in native share sheet)
+  const handleShareProduct = async () => {
     if (!product || !shop) return;
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
     const priceText = product.price ? ` (${product.price.startsWith('₹') ? product.price : `₹${product.price}`})` : '';
-    const shareData = {
-      title: `${product.name} - ${shop.name} | LocalBazar`,
-      text: `Check out "${product.name}"${priceText} at ${shop.name}, ${shop.city || ''} on LocalBazar!`,
-      url: shareUrl
-    };
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {});
-    } else {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        navigator.clipboard.writeText(shareUrl);
-        alert('Product link copied to clipboard!');
+    const title = `${product.name} - ${shop.name} | LocalBazar`;
+    const text = `Check out "${product.name}"${priceText} at ${shop.name}, ${shop.city || ''} on LocalBazar!`;
+
+    // 1. Resolve product's 1st image URL
+    const rawImg =
+      (product.images && product.images.length > 0 && product.images[0]) ||
+      product.image ||
+      product.img ||
+      shop.image ||
+      '';
+
+    let fileToShare: File | null = null;
+
+    // 2. Non-blocking image conversion (Fast 350ms abort timeout so share sheet pops up instantly)
+    if (rawImg && typeof navigator !== 'undefined' && typeof (navigator as any).canShare === 'function') {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 350);
+
+        const res = await fetch(rawImg, { signal: controller.signal, mode: 'cors' });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const cleanName = (product.name || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 30);
+          const ext = blob.type.includes('png') ? 'png' : 'jpg';
+          const file = new File([blob], `${cleanName}.${ext}`, { type: blob.type || 'image/jpeg' });
+
+          if ((navigator as any).canShare({ files: [file] })) {
+            fileToShare = file;
+          }
+        }
+      } catch {
+        fileToShare = null;
       }
+    }
+
+    // 3. Trigger native share sheet with image file if supported
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        if (fileToShare) {
+          await navigator.share({
+            files: [fileToShare],
+            title,
+            text: `${text}\n${shareUrl}`,
+            url: shareUrl,
+          });
+          return;
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+
+      // 4. Safe fallback: native text & URL share
+      try {
+        await navigator.share({
+          title,
+          text,
+          url: shareUrl,
+        });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    // 5. Desktop fallback: Clipboard copy
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Product link copied to clipboard!');
+      } catch {}
     }
   };
 
