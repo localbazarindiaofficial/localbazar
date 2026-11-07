@@ -212,8 +212,8 @@ export default function AccountPage() {
     buttonText: 'Understood',
   });
 
-  // Theme State
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+  // Default Clean Light Theme (Dark Mode permanently removed for 100% UI consistency)
+  const [themeMode] = useState<'light' | 'dark'>('light');
 
   // Claim My Listing States
   const [claimTab, setClaimTab] = useState<'form' | 'myClaims'>('form');
@@ -332,27 +332,6 @@ export default function AccountPage() {
       return false;
     }).length;
   }, [userMails, currentUser]);
-
-  const handleSelectTheme = (targetTheme: 'light' | 'dark') => {
-    setThemeMode(targetTheme);
-    if (targetTheme === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.body.classList.add('dark-theme');
-      localStorage.setItem('lb_theme', 'dark');
-      showToast('Dark Mode activated site-wide', 'info');
-    } else {
-      document.documentElement.classList.remove('dark-theme');
-      document.documentElement.removeAttribute('data-theme');
-      document.body.classList.remove('dark-theme');
-      localStorage.setItem('lb_theme', 'light');
-      showToast('Light Mode activated site-wide', 'info');
-    }
-  };
-
-  const toggleTheme = () => {
-    handleSelectTheme(themeMode === 'light' ? 'dark' : 'light');
-  };
 
   const handleClearAppCache = () => {
     try {
@@ -609,20 +588,12 @@ export default function AccountPage() {
 
     setAuthChecked(true);
 
-    // Sync theme on initial account load
+    // Purge any legacy theme setting to keep clean light theme
     try {
-      const savedTheme = localStorage.getItem('lb_theme');
-      if (savedTheme === 'dark') {
-        setThemeMode('dark');
-        document.documentElement.classList.add('dark-theme');
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
-      } else {
-        setThemeMode('light');
-        document.documentElement.classList.remove('dark-theme');
-        document.documentElement.removeAttribute('data-theme');
-        document.body.classList.remove('dark-theme');
-      }
+      localStorage.removeItem('lb_theme');
+      document.documentElement.classList.remove('dark-theme');
+      document.documentElement.removeAttribute('data-theme');
+      document.body.classList.remove('dark-theme');
     } catch {}
 
     // Check live auth.currentUser immediately if already initialized
@@ -2436,7 +2407,7 @@ export default function AccountPage() {
                   </div>
                   <div className="menu-row-info">
                     <strong>Settings</strong>
-                    <span>Display theme, cache & sign out</span>
+                    <span>Cache, storage & account session</span>
                   </div>
                 </div>
                 <i className="fa-solid fa-chevron-right menu-chevron"></i>
@@ -6478,7 +6449,7 @@ export default function AccountPage() {
               </button>
               <div className="account-sub-title-wrap">
                 <h2 className="account-sub-title">Settings & Preferences</h2>
-                <span className="account-sub-desc">Display theme, cache & account session</span>
+                <span className="account-sub-desc">Cache, storage & account session</span>
               </div>
             </div>
 
@@ -6493,7 +6464,7 @@ export default function AccountPage() {
                       fontWeight: 800,
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
-                      color: themeMode === 'dark' ? '#94a3b8' : '#64748b',
+                      color: '#64748b',
                       marginBottom: '0.65rem',
                       display: 'flex',
                       alignItems: 'center',
@@ -6508,9 +6479,9 @@ export default function AccountPage() {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '0.95rem 1.1rem',
-                      background: themeMode === 'dark' ? '#1e293b' : '#f8fafc',
+                      background: '#f8fafc',
                       borderRadius: '14px',
-                      border: `1.5px solid ${themeMode === 'dark' ? '#3b82f6' : '#bfdbfe'}`,
+                      border: '1.5px solid #bfdbfe',
                       boxShadow: '0 4px 14px rgba(37, 99, 235, 0.08)',
                       gap: '1rem'
                     }}>
@@ -6529,10 +6500,10 @@ export default function AccountPage() {
                           <img src="/app-logo-hd-192.png" alt="App" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'contain' }} />
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <strong style={{ fontSize: '0.92rem', color: themeMode === 'dark' ? '#f8fafc' : '#0f172a', display: 'block' }}>
+                          <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
                             Install LocalBazar App
                           </strong>
-                          <div style={{ fontSize: '0.78rem', color: themeMode === 'dark' ? '#94a3b8' : '#64748b', marginTop: '2px', lineHeight: 1.25 }}>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px', lineHeight: 1.25 }}>
                             Fast, 1-tap home screen access & app experience
                           </div>
                         </div>
@@ -6564,154 +6535,14 @@ export default function AccountPage() {
                   </div>
                 )}
 
-                {/* 1. APPEARANCE & THEME SECTION */}
+                {/* 2. DATA & PERFORMANCE (STORAGE & CACHE CLEANER) */}
                 <div>
                   <div style={{
                     fontSize: '0.8rem',
                     fontWeight: 800,
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
-                    color: themeMode === 'dark' ? '#94a3b8' : '#64748b',
-                    marginBottom: '0.65rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <i className="fa-solid fa-circle-half-stroke" style={{ color: '#2563eb' }}></i>
-                    <span>Appearance & Theme</span>
-                  </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '0.65rem'
-                  }}>
-                    {/* Light Mode Card */}
-                    <div
-                      onClick={() => handleSelectTheme('light')}
-                      style={{
-                        padding: '0.85rem 0.75rem',
-                        borderRadius: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        border: themeMode === 'light'
-                          ? '2px solid #2563eb'
-                          : (themeMode === 'dark' ? '1.5px solid #334155' : '1.5px solid #e2e8f0'),
-                        background: themeMode === 'light'
-                          ? '#ffffff'
-                          : (themeMode === 'dark' ? '#0f172a' : '#f8fafc'),
-                        boxShadow: themeMode === 'light'
-                          ? '0 4px 16px rgba(37, 99, 235, 0.12)'
-                          : 'none',
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.55rem' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          background: '#fef3c7',
-                          color: '#d97706',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1.1rem'
-                        }}>
-                          <i className="fa-solid fa-sun"></i>
-                        </div>
-                        {themeMode === 'light' && (
-                          <span style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            padding: '2px 6px',
-                            borderRadius: '12px',
-                            background: '#2563eb',
-                            color: '#ffffff',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
-                            <i className="fa-solid fa-check"></i> Active
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: themeMode === 'dark' ? '#f8fafc' : '#0f172a' }}>
-                        Light Mode
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', lineHeight: 1.25 }}>
-                        Clean & bright
-                      </div>
-                    </div>
-
-                    {/* Dark Mode Card */}
-                    <div
-                      onClick={() => handleSelectTheme('dark')}
-                      style={{
-                        padding: '0.85rem 0.75rem',
-                        borderRadius: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        border: themeMode === 'dark'
-                          ? '2px solid #3b82f6'
-                          : '1.5px solid #e2e8f0',
-                        background: themeMode === 'dark'
-                          ? '#1e293b'
-                          : '#ffffff',
-                        boxShadow: themeMode === 'dark'
-                          ? '0 4px 16px rgba(59, 130, 246, 0.2)'
-                          : 'none',
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.55rem' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          background: '#1e1b4b',
-                          color: '#818cf8',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1.1rem'
-                        }}>
-                          <i className="fa-solid fa-moon"></i>
-                        </div>
-                        {themeMode === 'dark' && (
-                          <span style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            padding: '2px 6px',
-                            borderRadius: '12px',
-                            background: '#3b82f6',
-                            color: '#ffffff',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
-                            <i className="fa-solid fa-check"></i> Active
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: themeMode === 'dark' ? '#f8fafc' : '#0f172a' }}>
-                        Dark Mode
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px', lineHeight: 1.25 }}>
-                        Sleek & eye ease
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. DATA & PERFORMANCE (REPLACING DUMMIES) */}
-                <div>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: themeMode === 'dark' ? '#94a3b8' : '#64748b',
+                    color: '#64748b',
                     marginBottom: '0.65rem',
                     display: 'flex',
                     alignItems: 'center',

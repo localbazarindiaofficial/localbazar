@@ -723,7 +723,8 @@ export function cleanupLegacyLocalStorage(): void {
       'lb_category_requests',
       'lb_cities',
       'lb_categories',
-      'lb_news'
+      'lb_news',
+      'lb_theme'
     ];
     keysToRemove.forEach((k) => {
       try { localStorage.removeItem(k); } catch {}

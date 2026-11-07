@@ -9,7 +9,6 @@ import '@/styles/auth.css';
 import '@/styles/account.css';
 import '@/styles/admin.css';
 import '@/styles/pwa.css';
-import '@/styles/dark-theme.css';
 import PwaInstallManager from '@/components/PwaInstallManager';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 
@@ -50,11 +49,11 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var saved = localStorage.getItem('lb_theme');
-                  if (saved === 'dark') {
-                    document.documentElement.classList.add('dark-theme');
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                  }
+                  try {
+                    localStorage.removeItem('lb_theme');
+                    document.documentElement.classList.remove('dark-theme');
+                    document.documentElement.removeAttribute('data-theme');
+                  } catch(e) {}
                   // Auto-clean heavy legacy localStorage keys, leaving ONLY active user session & theme
                   var heavyKeys = [
                     'lb_listings', 'lb_users', 'lb_user_listings', 'lb_empty_store_banners',
@@ -104,20 +103,6 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <NavigationProgressBar />
         </Suspense>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('lb_theme');
-                  if (saved === 'dark') {
-                    document.body.classList.add('dark-theme');
-                  }
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
         {children}
         <PwaInstallManager />
         <Script id="register-sw" strategy="afterInteractive">
