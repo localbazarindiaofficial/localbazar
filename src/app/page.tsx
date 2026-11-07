@@ -166,6 +166,7 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [modalTargetText, setModalTargetText] = useState('Local Stores');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const cityRef = useRef<HTMLDivElement>(null);
   const queryRef = useRef<HTMLDivElement>(null);
@@ -326,8 +327,19 @@ export default function HomePage() {
       })()
     : [];
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSearching) return;
+
+    // 1. Immediately dismiss mobile virtual keyboard
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    // 2. Immediately close suggestions
+    setShowCitySugg(false);
+    setShowCatSugg(false);
+
     const city = cityInput.trim();
     const query = queryInput.trim();
 
@@ -360,6 +372,10 @@ export default function HomePage() {
       setShowAuthModal(true);
       return;
     }
+
+    // 3. Instant 0ms visual feedback: button turns to spinner immediately
+    setIsSearching(true);
+    setTimeout(() => setIsSearching(false), 6000);
 
     const params = new URLSearchParams();
     params.set('city', city);
@@ -637,12 +653,14 @@ export default function HomePage() {
                           setQueryInput(cat.name);
                           setShowCatSugg(false);
                           setQueryError('');
+                          queryInputRef.current?.blur();
                         }}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           setQueryInput(cat.name);
                           setShowCatSugg(false);
                           setQueryError('');
+                          queryInputRef.current?.blur();
                         }}
                       >
                         <div className="omni-sugg-icon-badge cat-badge">
@@ -677,8 +695,24 @@ export default function HomePage() {
             </div>
 
             {/* Search Action */}
-            <button type="submit" className="omni-submit-btn" aria-label="Search">
-              <i className="fa-solid fa-arrow-right"></i>
+            <button
+              type="submit"
+              className="omni-submit-btn"
+              aria-label="Search"
+              disabled={isSearching}
+              onPointerDown={(e) => {
+                // Instant mobile touch trigger on 1st tap (no double tap needed)
+                if (cityInput.trim() && queryInput.trim() && !isSearching) {
+                  e.preventDefault();
+                  handleSearchSubmit();
+                }
+              }}
+            >
+              {isSearching ? (
+                <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: '1.15rem' }}></i>
+              ) : (
+                <i className="fa-solid fa-arrow-right"></i>
+              )}
             </button>
           </form>
 
