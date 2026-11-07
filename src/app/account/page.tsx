@@ -7,7 +7,6 @@ import { cloudSync, uploadImageToCloud, formatLBUserId, auth, db } from '@/lib/f
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Listing, UserProfile, CategoryItem, CityItem, ProductItem, DoctorItem, DailyScheduleDay, EmptyStoreBannerSlot, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, MailItem, MailAttachment, MailReplyItem, isTrustBadgeActive, getTrustBadgeDaysRemaining } from '@/types';
-import { DEFAULT_LISTINGS } from '@/lib/shopData';
 
 type AccountScreen =
   | 'viewMainMenu'
@@ -701,14 +700,11 @@ export default function AccountPage() {
     if (u.name) setTrustApplicantName(u.name);
     if (u.phone) setTrustPhone(u.phone);
 
-    // 2. Load Listings & Filter for current user + Robust Saved Places (Online Cloud First)
+    // 2. Load Listings & Filter for current user + Robust Saved Places (Online Cloud First, Zero Demo Data)
     const applyListingsData = (items: Listing[]) => {
-      const cIds = new Set(items.map((l) => String(l.id).toLowerCase()));
-      const missingDefaults = DEFAULT_LISTINGS.filter((dl) => !cIds.has(String(dl.id).toLowerCase()));
-      const allList = [...items, ...missingDefaults];
-      setAllListings(allList);
+      setAllListings(items);
 
-      const mine = allList.filter(
+      const mine = items.filter(
         (l) =>
           l.ownerId === u?.id ||
           (u?.uid && l.ownerId === u.uid) ||
@@ -724,21 +720,23 @@ export default function AccountPage() {
         cloudSync.pullUserSavedPlaces(u.id || u.uid).then((savedIds) => {
           if (Array.isArray(savedIds)) {
             const setIds = new Set(savedIds.map((s) => String(s).trim().toLowerCase()));
-            const matched = allList.filter((l) => setIds.has(String(l.id).trim().toLowerCase()));
+            const matched = items.filter((l) => setIds.has(String(l.id).trim().toLowerCase()));
             setSavedPlaces(matched);
           }
         }).catch(() => {});
       }
     };
 
-    // Load initial listings from memory defaults, then pull live from Cloud Firestore
-    applyListingsData(DEFAULT_LISTINGS);
-
+    // Load purely live from Cloud Firestore
     cloudSync.pullListings().then((cloudItems) => {
       if (cloudItems && Array.isArray(cloudItems)) {
         applyListingsData(cloudItems);
+      } else {
+        applyListingsData([]);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      applyListingsData([]);
+    });
 
     cloudSync.pullCategories().then((cats) => cats && setCategories(cats)).catch(() => {});
     cloudSync.pullCities().then((cts) => cts && setCities(cts)).catch(() => {});

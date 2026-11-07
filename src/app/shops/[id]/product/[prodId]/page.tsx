@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Listing, ProductItem, ReviewItem, UserProfile } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { DEMO_GROCERY_PRODUCTS, DEFAULT_LISTINGS } from '@/lib/shopData';
 import '@/styles/listing-detail.css';
 import '@/styles/product-detail.css';
 
@@ -108,17 +107,17 @@ function ProductDetailPageContent() {
       if (foundShop) {
         setShop(foundShop);
 
-        // Find product
+        // Find product (Zero demo data)
         const prods = (foundShop.products && foundShop.products.length > 0)
           ? foundShop.products
-          : DEMO_GROCERY_PRODUCTS;
+          : [];
 
         const foundProd = prods.find((p) => {
           const pId = String(p.id || '').toLowerCase();
           const pName = String(p.name || '').toLowerCase();
           const target = prodId.toLowerCase();
           return pId === target || pName === target || encodeURIComponent(pName) === target;
-        }) || prods[0];
+        }) || null;
 
         setProduct(foundProd);
 
@@ -144,21 +143,17 @@ function ProductDetailPageContent() {
       setLoading(false);
     }
 
-    // Check in-memory DEFAULT_LISTINGS first
-    const defShop = DEFAULT_LISTINGS.find((dl) => String(dl.id).toLowerCase() === shopId.toLowerCase());
-    if (defShop) {
-      resolveData([defShop]);
-    }
-
-    // Fetch live listing from Cloud Firestore
+    // Fetch live listing from Cloud Firestore (Zero demo data)
+    setLoading(true);
     cloudSync.getListingById(shopId).then((cloudItem) => {
       if (cloudItem) {
         resolveData([cloudItem]);
-      } else if (!defShop) {
+      } else {
         setLoading(false);
       }
-    }).catch(() => {
-      if (!defShop) setLoading(false);
+    }).catch((err) => {
+      console.error('Error fetching product shop:', err);
+      setLoading(false);
     });
   }, [shopId, prodId]);
 
@@ -369,8 +364,8 @@ function ProductDetailPageContent() {
     discountTag = '20% OFF';
   }
 
-  // Other products from this store
-  const otherProducts = ((shop.products && shop.products.length > 0 ? shop.products : DEMO_GROCERY_PRODUCTS))
+  // Other products from this store (Zero demo data)
+  const otherProducts = ((shop.products && shop.products.length > 0 ? shop.products : []))
     .filter((p) => p.name !== product.name)
     .slice(0, 6);
 

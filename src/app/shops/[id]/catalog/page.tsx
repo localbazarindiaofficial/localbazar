@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Listing, ProductItem, StoreCategoryItem, EmptyStoreBannerSlot } from '@/types';
 import { cloudSync } from '@/lib/firebase';
-import { DEMO_GROCERY_PRODUCTS, DEFAULT_LISTINGS } from '@/lib/shopData';
 import '@/styles/listing-detail.css';
 import '@/styles/store-category.css';
 import '@/styles/pwa.css';
@@ -86,23 +85,19 @@ function StoreCategoryCatalogContent() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'customer' | 'store'; text: string; time: string; product?: ProductItem | null }>>([]);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
-  // 1. Load listing data directly from Cloud Firestore
+  // 1. Load listing data directly from Cloud Firestore (Zero demo data)
   useEffect(() => {
     if (!listingId) return;
 
-    const defMatch = DEFAULT_LISTINGS.find((dl) => dl && String(dl.id).toLowerCase() === listingId.toLowerCase()) || null;
-    if (defMatch) {
-      setListing(defMatch);
-      setLoading(false);
-    }
-
+    setLoading(true);
     cloudSync.getListingById(listingId).then((cloudItem) => {
       if (cloudItem) {
         setListing(cloudItem);
       }
       setLoading(false);
-    }).catch(() => {
-      if (!defMatch) setLoading(false);
+    }).catch((err) => {
+      console.error('Error fetching listing catalog:', err);
+      setLoading(false);
     });
   }, [listingId]);
 
@@ -147,7 +142,7 @@ function StoreCategoryCatalogContent() {
     if (!listing) return [];
     const prods = (Array.isArray(listing.products) && listing.products.length > 0)
       ? listing.products
-      : DEMO_GROCERY_PRODUCTS;
+      : [];
 
     const catTargetTag = (activeCategory?.tag || '').toLowerCase();
     const catTargetLabel = (activeCategory?.label || '').toLowerCase();

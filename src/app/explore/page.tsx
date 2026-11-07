@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
-import { DEFAULT_LISTINGS } from '@/lib/shopData';
 
 // Smart Category Matching Helper
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
@@ -123,19 +122,20 @@ function ExploreContent() {
       }
     } catch {}
 
-    // Load initial listings purely in memory, then pull live from Cloud Firestore
-    const initialListings = [...DEFAULT_LISTINGS];
-    setListings(initialListings);
-    setLoading(false);
-
+    // Load listings purely live from Cloud Firestore (Zero demo data)
+    setLoading(true);
     cloudSync.pullListings().then((cloudItems) => {
-      if (cloudItems && cloudItems.length > 0) {
-        const cIds = new Set(cloudItems.map((c) => String(c.id)));
-        const combined = [...cloudItems, ...DEFAULT_LISTINGS.filter((dl) => !cIds.has(String(dl.id)))];
-        setListings(combined);
+      if (cloudItems && Array.isArray(cloudItems)) {
+        setListings(cloudItems);
+      } else {
+        setListings([]);
       }
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((err) => {
+      console.error('Error loading live listings:', err);
+      setListings([]);
+      setLoading(false);
+    });
   }, []);
 
   const toggleBookmark = (e: React.MouseEvent, id: string) => {

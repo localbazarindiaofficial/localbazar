@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, isTrustBadgeActive } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { DEFAULT_GROCERY_CATS, DEMO_GROCERY_PRODUCTS, DEFAULT_LISTINGS } from '@/lib/shopData';
 
 // Helper to resolve an emoji / icon for store categories
 function resolveCatEmoji(label?: string): string {
@@ -170,25 +169,19 @@ export default function ShopDetailPage() {
     ) || null;
   }, [currentUser, reviews]);
 
-  // Load shop data directly from Cloud Firestore
+  // Load shop data directly from Cloud Firestore (Zero demo data)
   useEffect(() => {
     if (!shopId) return;
 
-    // 1. Initial fallback to DEFAULT_LISTINGS in memory
-    const foundShop = DEFAULT_LISTINGS.find((dl) => String(dl.id).trim().toLowerCase() === shopId.toLowerCase());
-    if (foundShop) {
-      setShop(foundShop);
-      setLoading(false);
-    }
-
-    // 2. Fetch live listing from Firebase Firestore
+    setLoading(true);
     cloudSync.getListingById(shopId).then((cloudListing) => {
       if (cloudListing) {
         setShop(cloudListing);
       }
       setLoading(false);
-    }).catch(() => {
-      if (!foundShop) setLoading(false);
+    }).catch((err) => {
+      console.error('Error fetching shop:', err);
+      setLoading(false);
     });
 
     // 3. Load reviews directly from Cloud Firestore
@@ -263,11 +256,6 @@ export default function ShopDetailPage() {
           icon: c.icon || resolveCatEmoji(c.label)
         };
       });
-    }
-
-    const catLow = (shop?.category || '').toLowerCase();
-    if (catLow.includes('grocery') || catLow.includes('kirana') || catLow.includes('supermarket')) {
-      return DEFAULT_GROCERY_CATS;
     }
 
     return [
@@ -360,13 +348,9 @@ export default function ShopDetailPage() {
     setTouchStartX(null);
   };
 
-  // Combined Products Pool: Merchant custom products + Category demo products
+  // Store Products Pool: Merchant custom products ONLY (Zero demo products)
   const allStoreProducts = useMemo(() => {
-    const customProds = shop?.products || [];
-    if (customProds.length > 0) {
-      return customProds;
-    }
-    return DEMO_GROCERY_PRODUCTS;
+    return shop?.products || [];
   }, [shop?.products]);
 
   // Top Picks: Only products marked as isTop or isTopProduct (or first 4-6 featured products)
