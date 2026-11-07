@@ -72,6 +72,15 @@ export default function RootLayout({
                       try { localStorage.removeItem(k); } catch(e) {}
                     }
                   }
+                  if ('caches' in window) {
+                    caches.keys().then(function(keys) {
+                      keys.forEach(function(k) {
+                        if (k !== 'localbazar-pwa-v105') {
+                          caches.delete(k);
+                        }
+                      });
+                    }).catch(function() {});
+                  }
                 } catch(e) {}
               })();
             `,
@@ -115,7 +124,9 @@ export default function RootLayout({
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function() {});
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                  try { reg.update(); } catch(e) {}
+                }).catch(function() {});
               });
             }
           `}

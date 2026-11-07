@@ -1,11 +1,9 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v90
-const CACHE_NAME = 'localbazar-pwa-v90';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v105
+const CACHE_NAME = 'localbazar-pwa-v105';
 
-// Next.js Production Core Assets (All legacy .html/.js prototype references removed)
+// Only static shell assets & PWA icons (Dynamic pages like /explore and /account are NEVER pre-cached)
 const STATIC_ASSETS = [
   '/',
-  '/explore',
-  '/account',
   '/manifest.json',
   '/app-logo-hd-192.png',
   '/app-logo-hd-512.png',
@@ -27,14 +25,14 @@ self.addEventListener('install', (event) => {
         try {
           await cache.add(asset);
         } catch (e) {
-          // Soft-fail for dynamic routes during build
+          // Soft-fail
         }
       }
     })
   );
 });
 
-// Activate: Immediately purge all legacy cache versions and claim clients
+// Activate: Immediately purge all legacy cache versions (v90, etc.) and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -50,23 +48,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Cloudflare, Next.js & Mobile Safe Routing
+// Fetch: Pure Network-First with Live Fresh Search
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // 1. Bypass all server APIs completely (Never cache auth, upload, or dynamic admin endpoints)
-  if (url.pathname.startsWith('/api/')) {
+  // 1. Bypass all server APIs and Next.js internal chunks
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) {
     return;
   }
 
-  // 2. Bypass webpack hot-module reload during development
-  if (url.pathname.includes('/_next/webpack-hmr')) {
-    return;
-  }
-
-  // 3. Bypass Firebase, Firestore, Google Auth/APIs, and external image CDNs
+  // 2. Bypass Firebase, Firestore, Google Auth/APIs, and external image CDNs
   if (
     url.origin.includes('firestore.googleapis.com') ||
     url.origin.includes('firebaseio.com') ||
@@ -80,12 +73,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Page Navigation (HTML Routes): Network-first with instant offline fallback
+  // 3. Dynamic Pages (/explore, /shops, /account, /admin): ALWAYS fresh network, NEVER hijacked by cache
+  if (
+    url.pathname.startsWith('/explore') ||
+    url.pathname.startsWith('/shops') ||
+    url.pathname.startsWith('/account') ||
+    url.pathname.startsWith('/admin')
+  ) {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        // If device is completely offline, return offline fallback
+        const home = await caches.match('/');
+        return home || new Response('Offline. Please reconnect to access LocalBazar.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      })
+    );
+    return;
+  }
+
+  // 4. Page Navigation (HTML Root /): Network-first with offline fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && networkResponse.status === 200 && url.pathname === '/') {
             const copy = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, copy);
@@ -94,15 +107,9 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(async () => {
-          // If offline, try cached version of the requested page
-          const cached = await caches.match(event.request, { ignoreSearch: true });
-          if (cached) return cached;
-
-          // Fallback to cached home shell
           const home = await caches.match('/');
           if (home) return home;
-
-          return new Response('You are offline. Please reconnect to access LocalBazar.', {
+          return new Response('Offline. Please reconnect to access LocalBazar.', {
             status: 503,
             headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
@@ -111,23 +118,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Static Assets (Next.js Chunks, CSS, Icons, Fonts): Stale-While-Revalidate
+  // 5. Static Assets (PWA Icons, Manifest, Favicon): Cache First with Network Fallback
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-              const copy = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, copy);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedResponse);
-
-        return cachedResponse || fetchPromise;
+      caches.match(event.request).then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
       })
     );
   }
@@ -153,10 +148,15 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon,
-    badge: data.badge,
-    data: { url: data.url },
-    vibrate: [100, 50, 100]
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
+    data: {
+      url: data.url || '/'
+    },
+    vibrate: [100, 50, 100],
+    actions: [
+      { action: 'open', title: 'Open LocalBazar' }
+    ]
   };
 
   event.waitUntil(
@@ -164,14 +164,15 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Notification Click Handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes('localbazar') && 'focus' in client) {
-          client.navigate(targetUrl);
+        if (client.url === targetUrl && 'focus' in client) {
           return client.focus();
         }
       }

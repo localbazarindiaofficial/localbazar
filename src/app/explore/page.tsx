@@ -44,20 +44,18 @@ const matchCity = (listingCity: string, searchCity: string, listingAddress?: str
   const lCity = (listingCity || '').trim().toLowerCase();
   const lAddr = (listingAddress || '').trim().toLowerCase();
 
-  // If a listing has no city information, it does NOT match the requested city
-  if (!lCity && !lAddr) return false;
+  // If a listing has an explicit city assigned:
+  if (lCity) {
+    if (lCity === sCity) return true;
+    if (lCity.includes(sCity) || sCity.includes(lCity)) return true;
+    return false; // Strict isolation: listings stay strictly in their assigned city
+  }
 
-  // 1. Exact city name match
-  if (lCity === sCity) return true;
-
-  // 2. City name contained in city field (e.g., "Kolkata, WB" matches "Kolkata")
-  if (lCity.includes(sCity) || sCity.includes(lCity)) return true;
-
-  // 3. Address match only if the city explicitly appears in address
+  // Fallback to address only if listing has no explicit city defined
   if (lAddr) {
     const cleanAddr = lAddr.replace(/[^a-z0-9\s]/g, ' ');
     const addrTokens = cleanAddr.split(/\s+/).filter(Boolean);
-    if (addrTokens.includes(sCity) || lAddr.includes(sCity)) return true;
+    if (addrTokens.includes(sCity)) return true;
   }
 
   return false;

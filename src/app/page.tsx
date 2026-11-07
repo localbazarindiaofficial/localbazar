@@ -498,6 +498,15 @@ export default function HomePage() {
                       <div
                         key={c.name}
                         className="omni-sugg-item"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          setCityInput(c.name);
+                          setShowCitySugg(false);
+                          setCityError('');
+                          setTimeout(() => {
+                            queryInputRef.current?.focus();
+                          }, 40);
+                        }}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           setCityInput(c.name);
@@ -594,6 +603,12 @@ export default function HomePage() {
                       <div
                         key={cat.name}
                         className="omni-sugg-item"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          setQueryInput(cat.name);
+                          setShowCatSugg(false);
+                          setQueryError('');
+                        }}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           setQueryInput(cat.name);
