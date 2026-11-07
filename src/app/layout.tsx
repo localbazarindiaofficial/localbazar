@@ -2,12 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import '@/styles/style.css';
-import '@/styles/explore.css';
-import '@/styles/listing-detail.css';
-import '@/styles/store-category.css';
-import '@/styles/auth.css';
-import '@/styles/account.css';
-import '@/styles/admin.css';
 import '@/styles/pwa.css';
 import PwaInstallManager from '@/components/PwaInstallManager';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
@@ -54,32 +48,38 @@ export default function RootLayout({
                     document.documentElement.classList.remove('dark-theme');
                     document.documentElement.removeAttribute('data-theme');
                   } catch(e) {}
-                  // Auto-clean heavy legacy localStorage keys, leaving ONLY active user session & theme
-                  var heavyKeys = [
-                    'lb_listings', 'lb_users', 'lb_user_listings', 'lb_empty_store_banners',
-                    'lb_home_banners', 'lb_target_news_banners', 'lb_news_ticker',
-                    'lb_listing_claims', 'lb_trust_requests', 'lb_trust_badge_settings',
-                    'lb_mail', 'lb_city_requests', 'lb_category_requests', 'lb_cities',
-                    'lb_categories', 'lb_news'
-                  ];
-                  for (var i = 0; i < heavyKeys.length; i++) {
-                    try { localStorage.removeItem(heavyKeys[i]); } catch(e) {}
-                  }
-                  for (var j = localStorage.length - 1; j >= 0; j--) {
-                    var k = localStorage.key(j);
-                    if (k && (k.indexOf('lb_reviews_') === 0 || k.indexOf('lb_store_inbox_') === 0 || k.indexOf('lb_prod_reviews_') === 0)) {
-                      try { localStorage.removeItem(k); } catch(e) {}
-                    }
-                  }
-                  if ('caches' in window) {
-                    caches.keys().then(function(keys) {
-                      keys.forEach(function(k) {
-                        if (k !== 'localbazar-pwa-v106') {
-                          caches.delete(k);
+
+                  // Defer heavy storage/cache cleanup to idle time so first paint is instant (0ms)
+                  var deferCleanup = window.requestIdleCallback || function(cb) { setTimeout(cb, 1500); };
+                  deferCleanup(function() {
+                    try {
+                      var heavyKeys = [
+                        'lb_listings', 'lb_users', 'lb_user_listings', 'lb_empty_store_banners',
+                        'lb_home_banners', 'lb_target_news_banners', 'lb_news_ticker',
+                        'lb_listing_claims', 'lb_trust_requests', 'lb_trust_badge_settings',
+                        'lb_mail', 'lb_city_requests', 'lb_category_requests', 'lb_cities',
+                        'lb_categories', 'lb_news'
+                      ];
+                      for (var i = 0; i < heavyKeys.length; i++) {
+                        try { localStorage.removeItem(heavyKeys[i]); } catch(e) {}
+                      }
+                      for (var j = localStorage.length - 1; j >= 0; j--) {
+                        var k = localStorage.key(j);
+                        if (k && (k.indexOf('lb_reviews_') === 0 || k.indexOf('lb_store_inbox_') === 0 || k.indexOf('lb_prod_reviews_') === 0)) {
+                          try { localStorage.removeItem(k); } catch(e) {}
                         }
-                      });
-                    }).catch(function() {});
-                  }
+                      }
+                      if ('caches' in window) {
+                        caches.keys().then(function(keys) {
+                          keys.forEach(function(k) {
+                            if (k !== 'localbazar-pwa-v107') {
+                              caches.delete(k);
+                            }
+                          });
+                        }).catch(function() {});
+                      }
+                    } catch(e) {}
+                  });
                 } catch(e) {}
               })();
             `,
@@ -110,7 +110,9 @@ export default function RootLayout({
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                  try { reg.update(); } catch(e) {}
+                  setTimeout(function() {
+                    try { reg.update(); } catch(e) {}
+                  }, 3500);
                 }).catch(function() {});
               });
             }

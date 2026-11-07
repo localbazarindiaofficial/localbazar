@@ -7,6 +7,7 @@ import { cloudSync, uploadImageToCloud, formatLBUserId, auth, db } from '@/lib/f
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Listing, UserProfile, CategoryItem, CityItem, ProductItem, DoctorItem, DailyScheduleDay, EmptyStoreBannerSlot, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, MailItem, MailAttachment, MailReplyItem, isTrustBadgeActive, getTrustBadgeDaysRemaining } from '@/types';
+import '@/styles/account.css';
 
 type AccountScreen =
   | 'viewMainMenu'

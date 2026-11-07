@@ -173,63 +173,62 @@ export default function HomePage() {
   const cityInputRef = useRef<HTMLInputElement>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
 
-  // Load User, Cities & Categories + Prefetch Core Routes
+  // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
-    try {
-      router.prefetch('/account');
-      router.prefetch('/auth');
-      router.prefetch('/explore');
-    } catch {}
-
-    // Only load logged-in user auth from localStorage
+    // 1. Instant local user auth load
     try {
       const rawUser = localStorage.getItem('lb_current_user');
       if (rawUser) setCurrentUser(JSON.parse(rawUser));
     } catch {}
 
-    // Pull real-time data directly from Cloud Firestore (no local storage clutter)
-    cloudSync.pullCities().then((c) => {
-      if (c && c.length) {
-        const enriched = c.map((city) => {
-          const def = DEFAULT_CITIES.find((dc) => dc.name.toLowerCase() === (city.name || '').toLowerCase());
-          return {
-            ...city,
-            district: city.district || def?.district || '',
-            state: city.state || def?.state || 'India',
-            pinCode: city.pinCode || city.pincode || def?.pinCode || ''
-          };
-        });
-        setCities(enriched);
-      }
-    });
+    // 2. Prefetch explore route only after browser is completely idle (prevents network contention)
+    const idlePrefetchTimer = setTimeout(() => {
+      try {
+        router.prefetch('/explore');
+      } catch {}
+    }, 2500);
 
-    cloudSync.pullCategories().then((cat) => {
-      if (cat && cat.length) {
-        const enrichedCats = cat.map((ct) => {
-          const def = DEFAULT_CATEGORIES.find((d) => d.name.toLowerCase() === (ct.name || '').toLowerCase());
-          return {
-            ...ct,
-            alternativeName: ct.alternativeName || def?.alternativeName || '',
-            icon: ct.icon || def?.icon || 'fa-store',
-            storeCategories: (ct.storeCategories && ct.storeCategories.length > 0) ? ct.storeCategories : (def?.storeCategories || []),
-            subcategories: (ct.subcategories && ct.subcategories.length > 0) ? ct.subcategories : (def?.subcategories || [])
-          };
-        });
-        setCategories(enrichedCats);
-      }
-    });
+    // 3. Defer Firestore network pulls by 60ms so browser paints the UI immediately at 0ms
+    const cloudSyncTimer = setTimeout(() => {
+      cloudSync.pullCities().then((c) => {
+        if (c && c.length) {
+          const enriched = c.map((city) => {
+            const def = DEFAULT_CITIES.find((dc) => dc.name.toLowerCase() === (city.name || '').toLowerCase());
+            return {
+              ...city,
+              district: city.district || def?.district || '',
+              state: city.state || def?.state || 'India',
+              pinCode: city.pinCode || city.pincode || def?.pinCode || ''
+            };
+          });
+          setCities(enriched);
+        }
+      });
 
-    cloudSync.pullNewsTicker().then((t) => {
-      if (t) {
-        setHomeNewsTicker(t);
-      }
-    });
+      cloudSync.pullCategories().then((cat) => {
+        if (cat && cat.length) {
+          const enrichedCats = cat.map((ct) => {
+            const def = DEFAULT_CATEGORIES.find((d) => d.name.toLowerCase() === (ct.name || '').toLowerCase());
+            return {
+              ...ct,
+              alternativeName: ct.alternativeName || def?.alternativeName || '',
+              icon: ct.icon || def?.icon || 'fa-store',
+              storeCategories: (ct.storeCategories && ct.storeCategories.length > 0) ? ct.storeCategories : (def?.storeCategories || []),
+              subcategories: (ct.subcategories && ct.subcategories.length > 0) ? ct.subcategories : (def?.subcategories || [])
+            };
+          });
+          setCategories(enrichedCats);
+        }
+      });
 
-    cloudSync.pullHomeBanners().then((banners) => {
-      if (banners && banners.length) {
-        setHomeSlideBanners(banners);
-      }
-    });
+      cloudSync.pullNewsTicker().then((t) => {
+        if (t) setHomeNewsTicker(t);
+      });
+
+      cloudSync.pullHomeBanners().then((banners) => {
+        if (banners && banners.length) setHomeSlideBanners(banners);
+      });
+    }, 60);
 
     // Real-time Auth sync: instant update of Google profile avatar and status
     const unsubAuth = onAuthStateChanged(auth, (u) => {
@@ -268,6 +267,8 @@ export default function HomePage() {
     };
     document.addEventListener('click', handleOutsideClick);
     return () => {
+      clearTimeout(idlePrefetchTimer);
+      clearTimeout(cloudSyncTimer);
       unsubAuth();
       document.removeEventListener('click', handleOutsideClick);
     };

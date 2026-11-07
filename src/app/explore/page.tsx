@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
+import '@/styles/explore.css';
 
 // Smart Category Matching Helper (Strictly category-accurate, no loose bleeding)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {

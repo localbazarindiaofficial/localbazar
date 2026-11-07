@@ -7,6 +7,7 @@ import { auth, cloudSync, db, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { UserProfile } from '@/types';
+import '@/styles/auth.css';
 
 export default function AuthPage() {
   const router = useRouter();

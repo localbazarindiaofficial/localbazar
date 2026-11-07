@@ -1,18 +1,12 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v106
-const CACHE_NAME = 'localbazar-pwa-v106';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v107
+const CACHE_NAME = 'localbazar-pwa-v107';
 
-// Only static shell assets & PWA icons (Dynamic pages like /explore and /account are NEVER pre-cached)
+// Only lightweight critical shell assets (Giant 512px icons are loaded on-demand, not blocking install)
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/app-logo-hd-192.png',
-  '/app-logo-hd-512.png',
-  '/icon-maskable-192.png',
-  '/icon-maskable-512.png',
   '/icon-192.png',
-  '/icon-512.png',
   '/favicon.png',
-  '/favicon.ico',
   '/apple-touch-icon.png'
 ];
 
@@ -98,27 +92,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Page Navigation (HTML Root /): Network-first with offline fallback
-  if (event.request.mode === 'navigate') {
+  // 4. Page Navigation (HTML Root /): Stale-While-Revalidate for ultra-fast instant 0.05s launch & refresh
+  if (event.request.mode === 'navigate' && url.pathname === '/') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && url.pathname === '/') {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, copy);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const home = await caches.match('/');
-          if (home) return home;
-          return new Response('Offline. Please reconnect to access LocalBazar.', {
-            status: 503,
-            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        })
+      caches.match('/').then((cached) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const copy = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, copy);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => cached);
+
+        // Instant launch from local cache (0.05s) if available, while network updates in background
+        return cached || fetchPromise;
+      })
     );
     return;
   }

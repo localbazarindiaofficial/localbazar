@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, CategoryItem, isTrustBadgeActive } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import '@/styles/listing-detail.css';
+import '@/styles/store-category.css';
 
 // Helper to resolve an emoji / icon for store categories
 function resolveCatEmoji(label?: string): string {
