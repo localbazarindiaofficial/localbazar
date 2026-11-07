@@ -247,8 +247,19 @@ export default function ShopDetailPage() {
 
   // Store Categories List
   const storeCategories: StoreCategoryItem[] = useMemo(() => {
+    let rawCats: any[] = [];
     if (shop?.storeCategories && shop.storeCategories.length > 0) {
-      return (shop.storeCategories as any[]).map((c: any) => {
+      rawCats = shop.storeCategories as any[];
+    } else if (shop?.products && shop.products.length > 0) {
+      // Auto-extract in-store categories from store products if listing has no explicit categories set
+      const prodCats = Array.from(new Set(shop.products.map((p) => p.storeCategory || p.category).filter(Boolean)));
+      if (prodCats.length > 0) {
+        rawCats = prodCats;
+      }
+    }
+
+    if (rawCats.length > 0) {
+      return rawCats.map((c: any) => {
         if (typeof c === 'string') {
           return { label: c, tag: String(c).toLowerCase().replace(/\s+/g, '-'), icon: resolveCatEmoji(c) };
         }

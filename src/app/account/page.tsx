@@ -8445,25 +8445,56 @@ export default function AccountPage() {
                 />
               </div>
 
-              {/* Field 2: Category */}
+              {/* Field 2: In-Store Category */}
               <div className="m-prod-modal-field">
-                <label className="m-prod-modal-label">Category *</label>
+                <label className="m-prod-modal-label">In-Store Category *</label>
                 {(() => {
-                  const catOptions = Array.from(
+                  // 1. Find matching category configured by Admin in Firestore
+                  const storeMainCat = (activePortalListing?.category || '').trim().toLowerCase();
+                  const matchedAdminCat = categories.find((c) => {
+                    const cName = (c.name || '').trim().toLowerCase();
+                    return cName === storeMainCat || cName.includes(storeMainCat) || storeMainCat.includes(cName);
+                  });
+
+                  // 2. Extract in-store subcategories configured by Admin
+                  const adminStoreCats = Array.isArray(matchedAdminCat?.storeCategories)
+                    ? matchedAdminCat.storeCategories
+                        .map((sc: any) => (typeof sc === 'string' ? sc : sc.label || sc.name))
+                        .filter(Boolean)
+                    : [];
+                  const adminSubCats = Array.isArray(matchedAdminCat?.subcategories)
+                    ? matchedAdminCat.subcategories.filter(Boolean)
+                    : [];
+
+                  // 3. Extract any custom in-store categories on the listing itself
+                  const listingCustomCats = Array.isArray(activePortalListing?.storeCategories)
+                    ? activePortalListing.storeCategories
+                        .map((sc: any) => (typeof sc === 'string' ? sc : sc.label || sc.name))
+                        .filter(Boolean)
+                    : [];
+
+                  // 4. Extract categories already assigned to products in this store
+                  const existingProductCats = Array.isArray(activePortalListing?.products)
+                    ? activePortalListing.products
+                        .map((p: any) => p.storeCategory || p.category)
+                        .filter(Boolean)
+                    : [];
+
+                  // 5. Build clean, unified, deduplicated list (Zero dummy / fake categories)
+                  let catOptions = Array.from(
                     new Set([
-                      ...(activePortalListing?.storeCategories?.map((c: any) => c.label || c.name || c.tag) || []),
-                      ...(activePortalListing?.products?.map((p: any) => p.storeCategory || p.category) || []),
-                      activePortalListing?.category,
-                      'Medicines',
-                      'Baby & Mother',
-                      'Health & Nutrition',
-                      'Grocery & Staples',
-                      'Personal Care',
-                      'Beverages & Snacks',
-                      'Services',
+                      ...adminStoreCats,
+                      ...adminSubCats,
+                      ...listingCustomCats,
+                      ...existingProductCats,
                       prodCategory,
                     ].filter(Boolean) as string[])
                   );
+
+                  // Fallback if this specific category has no subcategories configured yet
+                  if (catOptions.length === 0) {
+                    catOptions = [activePortalListing?.category || 'General', 'Featured Products'];
+                  }
 
                   return (
                     <select
