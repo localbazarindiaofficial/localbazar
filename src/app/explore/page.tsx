@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
 
-// Smart Category Matching Helper
+// Smart Category Matching Helper (Strictly category-accurate, no loose bleeding)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
   if (!listingCat) return false;
@@ -14,50 +14,53 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   const lCat = listingCat.trim().toLowerCase();
   const sCat = searchCat.trim().toLowerCase();
 
-  // 1. Direct equality or substring
-  if (lCat === sCat || lCat.includes(sCat) || sCat.includes(lCat)) return true;
+  // 1. Direct equality
+  if (lCat === sCat) return true;
 
-  // 2. Significant word overlap (e.g. "grocery" in "Grocery Store" and "Grocery & Supermarket")
-  const stopWords = new Set(['and', '&', 'the', 'for', 'of', 'in', 'store', 'shop', 'centre', 'center']);
-  const lWords = lCat.split(/[\s&,/+-]+/).map((w) => w.trim()).filter((w) => w.length > 2 && !stopWords.has(w));
-  const sWords = sCat.split(/[\s&,/+-]+/).map((w) => w.trim()).filter((w) => w.length > 2 && !stopWords.has(w));
-
-  const hasWordMatch = lWords.some((lw) => sWords.some((sw) => lw === sw || lw.startsWith(sw) || sw.startsWith(lw)));
-  if (hasWordMatch) return true;
+  // 2. Direct containment (e.g. "Grocery" matches "Grocery Store" or "Grocery & Supermarket")
+  if (lCat.includes(sCat) || sCat.includes(lCat)) return true;
 
   // 3. Synonym / Taxonomy match through categories definition
   const matchedDef = categoriesList.find((c) => {
-    const cName = (c.name || '').toLowerCase();
-    const cAlt = (c.alternativeName || '').toLowerCase();
+    const cName = (c.name || '').trim().toLowerCase();
+    const cAlt = (c.alternativeName || '').trim().toLowerCase();
     const subList = (c.storeCategories || []).map((sc) => (typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()));
     if (Array.isArray(c.subcategories)) {
       c.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
     }
 
-    const matchesL = cName === lCat || cName.includes(lCat) || lCat.includes(cName) || cAlt.includes(lCat) || subList.some((s) => s === lCat || s.includes(lCat) || lCat.includes(s));
-    const matchesS = cName === sCat || cName.includes(sCat) || sCat.includes(cName) || cAlt.includes(sCat) || subList.some((s) => s === sCat || s.includes(sCat) || sCat.includes(s));
-
+    const matchesL = cName === lCat || cAlt === lCat || subList.includes(lCat);
+    const matchesS = cName === sCat || cAlt === sCat || subList.includes(sCat);
     return matchesL && matchesS;
   });
 
   return Boolean(matchedDef);
 };
 
-// Smart City Matching Helper
+// Smart City Matching Helper (Strict city separation - never bleeds into other cities)
 const matchCity = (listingCity: string, searchCity: string, listingAddress?: string): boolean => {
   if (!searchCity || searchCity === 'all' || searchCity === 'all cities') return true;
   const sCity = searchCity.trim().toLowerCase();
   const lCity = (listingCity || '').trim().toLowerCase();
   const lAddr = (listingAddress || '').trim().toLowerCase();
 
-  if (!lCity && !lAddr) return true;
+  // If a listing has no city information, it does NOT match the requested city
+  if (!lCity && !lAddr) return false;
 
-  if (lCity === sCity || lCity.includes(sCity) || sCity.includes(lCity)) return true;
-  if (lAddr && (lAddr.includes(sCity) || sCity.includes(lAddr))) return true;
+  // 1. Exact city name match
+  if (lCity === sCity) return true;
 
-  const sWords = sCity.split(/[\s,/-]+/).map((w) => w.trim()).filter((w) => w.length > 2);
-  const lWords = `${lCity} ${lAddr}`.split(/[\s,/-]+/).map((w) => w.trim()).filter((w) => w.length > 2);
-  return sWords.some((sw) => lWords.some((lw) => lw === sw || lw.startsWith(sw) || sw.startsWith(lw)));
+  // 2. City name contained in city field (e.g., "Kolkata, WB" matches "Kolkata")
+  if (lCity.includes(sCity) || sCity.includes(lCity)) return true;
+
+  // 3. Address match only if the city explicitly appears in address
+  if (lAddr) {
+    const cleanAddr = lAddr.replace(/[^a-z0-9\s]/g, ' ');
+    const addrTokens = cleanAddr.split(/\s+/).filter(Boolean);
+    if (addrTokens.includes(sCity) || lAddr.includes(sCity)) return true;
+  }
+
+  return false;
 };
 
 function ExploreContent() {
@@ -199,15 +202,9 @@ function ExploreContent() {
 
   sortListingsByTrustAndRating(filtered);
 
-  // If city specific search had 0 results, check if category has results in other cities
-  const categoryOnlyMatches = (filtered.length === 0 && catQuery)
-    ? sortListingsByTrustAndRating(listings.filter((l) => {
-        if (l.status?.toLowerCase() === 'rejected') return false;
-        return matchCategory(l.category || '', catQuery, categories);
-      }))
-    : [];
-
-  const totalListings = filtered.length > 0 ? filtered : categoryOnlyMatches;
+  // STRICT DIRECTORY RULE: Listings stay STRICTLY in their own city and category.
+  // Never bleed or show listings from another city when a city search returns 0 results.
+  const totalListings = filtered;
   const hasMore = visibleCount < totalListings.length;
   const displayedListings = totalListings.slice(0, visibleCount);
 
@@ -317,14 +314,6 @@ function ExploreContent() {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Nearby Fallback Alert if this specific city had 0 results */}
-          {filtered.length === 0 && categoryOnlyMatches.length > 0 && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.65rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.86rem', color: '#1e40af' }}>
-              <i className="fa-solid fa-circle-info" style={{ color: '#2563eb' }}></i>
-              <span>No places registered in <strong>{cityParam}</strong> yet. Showing verified <strong>{catParam}</strong> places:</span>
             </div>
           )}
 
