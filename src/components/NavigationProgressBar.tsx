@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function NavigationProgressBar() {
@@ -9,26 +9,58 @@ export default function NavigationProgressBar() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // When route changes, complete the progress bar
+  // Managed timer references so no delayed timer can ever run after completion
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
+
+  const clearAllTimers = () => {
+    timersRef.current.forEach((t) => clearTimeout(t));
+    timersRef.current = [];
+  };
+
+  const finishNavigation = () => {
+    clearAllTimers();
+    setProgress(100);
+    const fadeTimer = setTimeout(() => {
+      setIsNavigating(false);
+      setProgress(0);
+    }, 220);
+    timersRef.current.push(fadeTimer);
+  };
+
+  const startNavigation = () => {
+    clearAllTimers();
+    setIsNavigating(true);
+    setProgress(35);
+
+    // Progressive increments
+    const t1 = setTimeout(() => {
+      setProgress((prev) => (prev > 0 && prev < 80 ? 68 : prev));
+    }, 150);
+
+    const t2 = setTimeout(() => {
+      setProgress((prev) => (prev > 0 && prev < 90 ? 84 : prev));
+    }, 350);
+
+    // Hard safety timeout: Automatically complete within 850ms so bar can NEVER get stuck on screen
+    const safetyTimer = setTimeout(() => {
+      finishNavigation();
+    }, 850);
+
+    timersRef.current.push(t1, t2, safetyTimer);
+  };
+
+  // When pathname or searchParams change, route has finished loading
   useEffect(() => {
-    if (isNavigating) {
-      setProgress(100);
-      const timer = setTimeout(() => {
-        setIsNavigating(false);
-        setProgress(0);
-      }, 250);
-      return () => clearTimeout(timer);
-    }
+    finishNavigation();
+    return () => clearAllTimers();
   }, [pathname, searchParams]);
 
-  // Global click & history navigation listener to trigger instant 0ms visual feedback
+  // Global click & history navigation listener
   useEffect(() => {
     // Intercept history.pushState so programmatic router.push() triggers instant progress bar
     const originalPushState = window.history.pushState;
     window.history.pushState = function (...args) {
-      setIsNavigating(true);
-      setProgress(35);
-      setTimeout(() => setProgress((p) => (p > 0 && p < 80 ? 72 : p)), 150);
+      startNavigation();
       return originalPushState.apply(this, args);
     };
 
@@ -47,12 +79,7 @@ export default function NavigationProgressBar() {
         !target.hasAttribute('download') &&
         (targetUrl.pathname !== currentUrl.pathname || targetUrl.search !== currentUrl.search)
       ) {
-        setIsNavigating(true);
-        setProgress(28);
-
-        // Progressive bump to show active loading
-        setTimeout(() => setProgress((p) => (p > 0 && p < 80 ? 68 : p)), 180);
-        setTimeout(() => setProgress((p) => (p > 0 && p < 90 ? 88 : p)), 450);
+        startNavigation();
       }
     };
 
@@ -60,6 +87,7 @@ export default function NavigationProgressBar() {
     return () => {
       document.removeEventListener('click', handleDocumentClick, { capture: true });
       window.history.pushState = originalPushState;
+      clearAllTimers();
     };
   }, []);
 
@@ -87,7 +115,7 @@ export default function NavigationProgressBar() {
           animation: 'lbProgressGlow 1.2s linear infinite',
           boxShadow: '0 0 10px rgba(37, 99, 235, 0.7), 0 0 5px rgba(56, 189, 248, 0.5)',
           borderRadius: '0 3px 3px 0',
-          transition: progress === 100 ? 'width 0.15s ease-out, opacity 0.2s ease-in' : 'width 0.35s cubic-bezier(0.1, 0.05, 0.2, 1)',
+          transition: progress === 100 ? 'width 0.15s ease-out, opacity 0.2s ease-in' : 'width 0.3s cubic-bezier(0.1, 0.05, 0.2, 1)',
           opacity: progress === 100 ? 0 : 1,
         }}
       />

@@ -66,7 +66,7 @@ export default function AuthPage() {
       localStorage.setItem('lb_current_user', JSON.stringify(userProfile));
       await cloudSync.saveUser(userProfile);
 
-      router.push('/account');
+      router.push('/');
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
       setErrorMsg(err.message || 'Failed to sign in with Google. Please try again.');

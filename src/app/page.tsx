@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cloudSync, auth, formatLBUserId, db } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { CityItem, CategoryItem, UserProfile } from '@/types';
 
@@ -230,6 +230,32 @@ export default function HomePage() {
       }
     });
 
+    // Real-time Auth sync: instant update of Google profile avatar and status
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        let existingUser: UserProfile | null = null;
+        try {
+          const raw = localStorage.getItem('lb_current_user');
+          if (raw) existingUser = JSON.parse(raw);
+        } catch {}
+
+        const stdId = formatLBUserId(u.email || u.uid);
+        const userProfile: UserProfile = {
+          ...(existingUser || {}),
+          id: stdId,
+          uid: u.uid,
+          name: u.displayName || existingUser?.name || 'Member User',
+          email: u.email || existingUser?.email || '',
+          photoURL: u.photoURL || existingUser?.photoURL || '',
+          role: existingUser?.role || 'user',
+        };
+        setCurrentUser(userProfile);
+      } else {
+        const raw = localStorage.getItem('lb_current_user');
+        if (!raw) setCurrentUser(null);
+      }
+    });
+
     // Close suggestions on outside click
     const handleOutsideClick = (e: MouseEvent) => {
       if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
@@ -240,7 +266,10 @@ export default function HomePage() {
       }
     };
     document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
+    return () => {
+      unsubAuth();
+      document.removeEventListener('click', handleOutsideClick);
+    };
   }, []);
 
   // Filtered Cities: ONLY words starting with the typed query
