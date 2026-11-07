@@ -135,28 +135,85 @@ export function formatLBUserId(seedOrEmail?: string): string {
   return 'LB' + (100000 + Math.abs(hash % 900000));
 }
 
+// In-Memory SWR High-Speed Cache (0ms Instant Page Transitions like Amazon/Flipkart)
+const memoryCache = {
+  listings: null as Listing[] | null,
+  listingsTimestamp: 0,
+  listingById: new Map<string, Listing>(),
+  categories: null as CategoryItem[] | null,
+  cities: null as CityItem[] | null,
+  banners: null as any[] | null,
+  targetBanners: null as any[] | null,
+  newsTicker: null as string | null,
+};
+
 // ================= CLOUD SYNC SERVICES =================
 export const cloudSync = {
+  // Invalidate entire cache (e.g. for Admin or explicit full sync)
+  invalidateCache: () => {
+    memoryCache.listings = null;
+    memoryCache.listingsTimestamp = 0;
+    memoryCache.listingById.clear();
+    memoryCache.categories = null;
+    memoryCache.cities = null;
+    memoryCache.banners = null;
+    memoryCache.targetBanners = null;
+    memoryCache.newsTicker = null;
+  },
+
   // Listings
   saveListing: async (listing: Listing): Promise<void> => {
     if (!listing || !listing.id) return;
     const docRef = doc(db, 'listings', String(listing.id));
     await setDoc(docRef, listing, { merge: true });
+
+    // Update in-memory cache instantly
+    if (memoryCache.listings) {
+      const idx = memoryCache.listings.findIndex((l) => l.id === listing.id);
+      if (idx >= 0) memoryCache.listings[idx] = listing;
+      else memoryCache.listings.unshift(listing);
+    }
+    memoryCache.listingById.set(String(listing.id), listing);
   },
 
   deleteListing: async (listingId: string): Promise<void> => {
     if (!listingId) return;
     const docRef = doc(db, 'listings', String(listingId));
     await deleteDoc(docRef);
+
+    if (memoryCache.listings) {
+      memoryCache.listings = memoryCache.listings.filter((l) => l.id !== listingId);
+    }
+    memoryCache.listingById.delete(String(listingId));
   },
 
-  pullListings: async (limitCount?: number): Promise<Listing[]> => {
-    const colRef = collection(db, 'listings');
-    const q = limitCount && limitCount > 0 ? query(colRef, limit(limitCount)) : query(colRef);
-    const snap = await getDocs(q);
-    const list: Listing[] = [];
-    snap.forEach((d) => list.push(d.data() as Listing));
-    return list;
+  pullListings: async (limitCount?: number, forceRefresh = false): Promise<Listing[]> => {
+    // 0ms instant cache hit (3-minute TTL)
+    if (!forceRefresh && memoryCache.listings && Date.now() - memoryCache.listingsTimestamp < 180000) {
+      return limitCount && limitCount > 0 ? memoryCache.listings.slice(0, limitCount) : memoryCache.listings;
+    }
+
+    try {
+      const colRef = collection(db, 'listings');
+      const q = limitCount && limitCount > 0 ? query(colRef, limit(limitCount)) : query(colRef);
+      const snap = await getDocs(q);
+      const list: Listing[] = [];
+      snap.forEach((d) => {
+        const item = d.data() as Listing;
+        list.push(item);
+        if (item && item.id) {
+          memoryCache.listingById.set(String(item.id), item);
+        }
+      });
+      if (!limitCount || limitCount >= list.length) {
+        memoryCache.listings = list;
+        memoryCache.listingsTimestamp = Date.now();
+      }
+      return list;
+    } catch (err) {
+      if (memoryCache.listings) return memoryCache.listings;
+      throw err;
+    }
   },
 
   // Real Database-Level Cursor Pagination for Extreme Scale (10,000+ businesses)
@@ -202,16 +259,39 @@ export const cloudSync = {
     }
   },
 
-  getListingById: async (id: string): Promise<Listing | null> => {
+  getListingById: async (id: string, forceRefresh = false): Promise<Listing | null> => {
     if (!id) return null;
-    const docRef = doc(db, 'listings', String(id));
+    const strId = String(id);
+
+    // 0ms instant cache hit if already loaded in session (e.g. from search results)
+    if (!forceRefresh) {
+      if (memoryCache.listingById.has(strId)) {
+        return memoryCache.listingById.get(strId)!;
+      }
+      if (memoryCache.listings) {
+        const found = memoryCache.listings.find((l) => String(l.id).toLowerCase() === strId.toLowerCase());
+        if (found) {
+          memoryCache.listingById.set(strId, found);
+          return found;
+        }
+      }
+    }
+
+    const docRef = doc(db, 'listings', strId);
     const snap = await getDoc(docRef);
-    if (snap.exists()) return snap.data() as Listing;
+    if (snap.exists()) {
+      const data = snap.data() as Listing;
+      memoryCache.listingById.set(strId, data);
+      return data;
+    }
     return null;
   },
 
   // Cities
-  pullCities: async (): Promise<CityItem[]> => {
+  pullCities: async (forceRefresh = false): Promise<CityItem[]> => {
+    if (!forceRefresh && memoryCache.cities) {
+      return memoryCache.cities;
+    }
     const colRef = collection(db, 'cities');
     const snap = await getDocs(colRef);
     const cities: CityItem[] = [];
@@ -220,6 +300,7 @@ export const cloudSync = {
       if (data && data.name) cities.push(data);
     });
     cities.sort((a, b) => a.name.localeCompare(b.name));
+    memoryCache.cities = cities;
     return cities;
   },
 
@@ -236,7 +317,10 @@ export const cloudSync = {
   },
 
   // Categories
-  pullCategories: async (): Promise<CategoryItem[]> => {
+  pullCategories: async (forceRefresh = false): Promise<CategoryItem[]> => {
+    if (!forceRefresh && memoryCache.categories) {
+      return memoryCache.categories;
+    }
     const colRef = collection(db, 'categories');
     const snap = await getDocs(colRef);
     const cats: CategoryItem[] = [];
@@ -245,6 +329,7 @@ export const cloudSync = {
       if (data && data.name) cats.push(data);
     });
     cats.sort((a, b) => a.name.localeCompare(b.name));
+    memoryCache.categories = cats;
     return cats;
   },
 
@@ -252,12 +337,14 @@ export const cloudSync = {
     if (!category || !category.name) return;
     const docId = category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await setDoc(doc(db, 'categories', docId), category, { merge: true });
+    memoryCache.categories = null; // Invalidate
   },
 
   deleteCategory: async (categoryName: string): Promise<void> => {
     if (!categoryName) return;
     const docId = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await deleteDoc(doc(db, 'categories', docId));
+    memoryCache.categories = null; // Invalidate
   },
 
   // Users

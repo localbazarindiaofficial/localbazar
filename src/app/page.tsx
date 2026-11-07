@@ -671,6 +671,9 @@ export default function HomePage() {
                           setShowCatSugg(false);
                           setQueryError('');
                           queryInputRef.current?.blur();
+                          if (cityInput.trim()) {
+                            try { router.prefetch(`/explore?city=${encodeURIComponent(cityInput.trim())}&category=${encodeURIComponent(cat.name)}`); } catch {}
+                          }
                         }}
                         onMouseDown={(e) => {
                           e.preventDefault();
@@ -678,6 +681,9 @@ export default function HomePage() {
                           setShowCatSugg(false);
                           setQueryError('');
                           queryInputRef.current?.blur();
+                          if (cityInput.trim()) {
+                            try { router.prefetch(`/explore?city=${encodeURIComponent(cityInput.trim())}&category=${encodeURIComponent(cat.name)}`); } catch {}
+                          }
                         }}
                       >
                         <div className="omni-sugg-icon-badge cat-badge">

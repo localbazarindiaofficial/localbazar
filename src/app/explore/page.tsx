@@ -318,25 +318,25 @@ function ExploreContent() {
 
           {/* Listings Feed */}
           {loading ? (
-            <div className="listings-empty-state" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  border: '3.5px solid #e2e8f0',
-                  borderTopColor: '#1a73e8',
-                  borderRadius: '50%',
-                  margin: '0 auto 1.25rem',
-                  animation: 'lbSpin 0.75s linear infinite',
-                }}
-              ></div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>
-                Searching Verified Places...
-              </h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                Connecting to verified local records in {cityParam || 'your area'}...
-              </p>
-              <style>{`@keyframes lbSpin { to { transform: rotate(360deg); } }`}</style>
+            <div className="listings-cards-list">
+              {[1, 2, 3, 4, 5].map((idx) => (
+                <div key={idx} className="listing-row-card" style={{ pointerEvents: 'none', background: '#ffffff', opacity: 0.95 }}>
+                  <div className="listing-row-left">
+                    <div className="lb-skeleton" style={{ width: 68, height: 68, borderRadius: 12, flexShrink: 0 }}></div>
+                    <div className="listing-row-info" style={{ width: '100%' }}>
+                      <div className="lb-skeleton" style={{ height: 18, width: '60%', marginBottom: 8, borderRadius: 6 }}></div>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                        <div className="lb-skeleton" style={{ height: 16, width: 75, borderRadius: 12 }}></div>
+                        <div className="lb-skeleton" style={{ height: 16, width: 45, borderRadius: 12 }}></div>
+                      </div>
+                      <div className="lb-skeleton" style={{ height: 13, width: '45%', borderRadius: 4 }}></div>
+                    </div>
+                  </div>
+                  <div className="listing-row-right">
+                    <div className="lb-skeleton" style={{ width: 65, height: 28, borderRadius: 20 }}></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : displayedListings.length === 0 ? (
             <div className="listings-empty-state" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
@@ -496,9 +496,11 @@ export default function ExplorePage() {
   return (
     <Suspense
       fallback={
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
-          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#2563eb' }}></i>
-          <p style={{ marginTop: '1rem', fontWeight: 600 }}>Loading LocalBazar Explore...</p>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '1rem' }}>
+          <div className="lb-skeleton" style={{ height: 48, width: '100%', borderRadius: 12, marginBottom: '1.5rem' }}></div>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="lb-skeleton" style={{ height: 86, width: '100%', borderRadius: 14, marginBottom: '0.75rem' }}></div>
+          ))}
         </div>
       }
     >

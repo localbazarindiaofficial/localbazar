@@ -653,11 +653,30 @@ export default function ShopDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <div style={{ width: '46px', height: '46px', border: '4px solid #e2e8f0', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'lbSpin 0.75s linear infinite' }}></div>
-        <div style={{ marginTop: '1.15rem', fontWeight: 700, color: '#0f172a', fontSize: '1.05rem' }}>Loading Store Details...</div>
-        <div style={{ marginTop: '0.35rem', color: '#64748b', fontSize: '0.86rem' }}>Connecting to verified local records...</div>
-        <style>{`@keyframes lbSpin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: '5rem' }}>
+        {/* Cover Banner Skeleton */}
+        <div className="lb-skeleton" style={{ width: '100%', height: '220px', borderRadius: 0 }}></div>
+        <div style={{ maxWidth: 840, margin: '-50px auto 0', padding: '0 1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div className="lb-skeleton" style={{ width: 72, height: 72, borderRadius: 16, flexShrink: 0 }}></div>
+              <div style={{ flex: 1 }}>
+                <div className="lb-skeleton" style={{ height: 22, width: '60%', marginBottom: 10, borderRadius: 6 }}></div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="lb-skeleton" style={{ height: 16, width: 80, borderRadius: 12 }}></div>
+                  <div className="lb-skeleton" style={{ height: 16, width: 60, borderRadius: 12 }}></div>
+                </div>
+              </div>
+            </div>
+            <div className="lb-skeleton" style={{ height: 16, width: '75%', marginTop: 16, borderRadius: 6 }}></div>
+            <div className="lb-skeleton" style={{ height: 40, width: '100%', marginTop: 16, borderRadius: 10 }}></div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="lb-skeleton" style={{ flex: 1, height: 120, borderRadius: 14 }}></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
