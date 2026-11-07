@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining } from '@/types';
+import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem } from '@/types';
 import { cloudSync, uploadImageToCloud, formatLBUserId } from '@/lib/firebase';
 import '@/styles/admin.css';
 
@@ -116,10 +116,20 @@ export default function SuperAdminPage() {
   const [trustDocPreview, setTrustDocPreview] = useState<{ name: string; url: string; type: string } | null>(null);
   const [cityRequests, setCityRequests] = useState<CityRequestItem[]>([]);
   const [catRequests, setCatRequests] = useState<CategoryRequestItem[]>([]);
-  // News & Banner States (Home / Target / Empty Store)
-  const [newsTab, setNewsTab] = useState<'home' | 'target' | 'empty_store'>('home');
+  // News & Banner States (Home / Target / Empty Store / Product Promotion)
+  const [newsTab, setNewsTab] = useState<'home' | 'target' | 'empty_store' | 'product_promotion'>('home');
   const [newsTicker, setNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
   
+  // Product Promotion States
+  const [promotedProducts, setPromotedProducts] = useState<PromotedProductItem[]>([]);
+  const [promoCityInput, setPromoCityInput] = useState('');
+  const [promoCatInput, setPromoCatInput] = useState('');
+  const [promoListingQuery, setPromoListingQuery] = useState('');
+  const [selectedPromoListing, setSelectedPromoListing] = useState<Listing | null>(null);
+  const [showPromoCitySugg, setShowPromoCitySugg] = useState(false);
+  const [showPromoCatSugg, setShowPromoCatSugg] = useState(false);
+  const [showPromoListingSugg, setShowPromoListingSugg] = useState(false);
+
   // Home Banners
   const [homeBanners, setHomeBanners] = useState<SlideBannerItem[]>([]);
   const [isHomeBannerModalOpen, setIsHomeBannerModalOpen] = useState(false);
@@ -259,7 +269,8 @@ export default function SuperAdminPage() {
         cloudHomeBanners,
         cloudTargets,
         cloudEmptyStore,
-        cloudTicker
+        cloudTicker,
+        cloudPromos
       ] = await Promise.all([
         cloudSync.pullListings().catch(() => []),
         cloudSync.pullUsers().catch(() => []),
@@ -274,7 +285,8 @@ export default function SuperAdminPage() {
         cloudSync.pullHomeBanners().catch(() => []),
         cloudSync.pullTargetNewsBanners().catch(() => []),
         cloudSync.pullEmptyStoreBanners().catch(() => []),
-        cloudSync.pullNewsTicker().catch(() => null)
+        cloudSync.pullNewsTicker().catch(() => null),
+        cloudSync.pullPromotedProducts().catch(() => [])
       ]);
 
       if (Array.isArray(cloudListings) && cloudListings.length > 0) {
@@ -336,6 +348,10 @@ export default function SuperAdminPage() {
 
       if (cloudTicker) {
         setNewsTicker(cloudTicker);
+      }
+
+      if (Array.isArray(cloudPromos)) {
+        setPromotedProducts(cloudPromos);
       }
     } catch (err) {
       console.warn('Error refreshing admin data:', err);
@@ -1371,7 +1387,43 @@ export default function SuperAdminPage() {
 
   const handleSaveAllEmptyStoreBanners = async () => {
     await cloudSync.saveEmptyStoreBanners(emptyStoreBanners).catch(() => {});
-    alert('All 4 Empty Store fallback banners have been updated & saved successfully!');
+    alert('All 3 Empty Store fallback banners have been updated & saved successfully!');
+  };
+
+  // 4. Product Promotion Handlers
+  const handleToggleProductPromotion = async (prod: ProductItem, shop: Listing) => {
+    if (!prod || !shop) return;
+    const prodKey = String(prod.id || prod.name || '').trim();
+    const existingIdx = promotedProducts.findIndex((p) => p.shopId === shop.id && p.productId === prodKey);
+
+    let updatedList: PromotedProductItem[];
+    if (existingIdx >= 0) {
+      updatedList = promotedProducts.filter((_, i) => i !== existingIdx);
+    } else {
+      const rawImg = (prod.images && prod.images.length > 0 && prod.images[0]) || prod.image || prod.img || shop.image || '';
+      const newItem: PromotedProductItem = {
+        id: `promo_${shop.id}_${prodKey}_${Date.now()}`,
+        shopId: shop.id,
+        shopName: shop.name,
+        shopCity: shop.city || '',
+        shopCategory: shop.category || '',
+        productId: prodKey,
+        productName: prod.name,
+        price: prod.price || '',
+        image: rawImg,
+        addedAt: Date.now(),
+      };
+      updatedList = [newItem, ...promotedProducts];
+    }
+
+    setPromotedProducts(updatedList);
+    await cloudSync.savePromotedProducts(updatedList).catch(() => {});
+  };
+
+  const handleRemovePromotedProduct = async (promoId: string) => {
+    const updatedList = promotedProducts.filter((p) => p.id !== promoId);
+    setPromotedProducts(updatedList);
+    await cloudSync.savePromotedProducts(updatedList).catch(() => {});
   };
 
   // Change Admin Credentials in Settings
@@ -4707,7 +4759,33 @@ export default function SuperAdminPage() {
                   }}
                 >
                   <i className="fa-solid fa-store"></i>
-                  <span>EMPTY STORE (4 BANNERS)</span>
+                  <span>EMPTY STORE (3 BANNERS)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewsTab('product_promotion')}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: 10,
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    border: newsTab === 'product_promotion' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                    background: newsTab === 'product_promotion' ? '#eff6ff' : '#fff',
+                    color: newsTab === 'product_promotion' ? '#2563eb' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <i className="fa-solid fa-bullhorn"></i>
+                  <span>PRODUCT PROMOTION</span>
+                  {promotedProducts.length > 0 && (
+                    <span style={{ background: newsTab === 'product_promotion' ? '#2563eb' : '#e2e8f0', color: newsTab === 'product_promotion' ? '#fff' : '#475569', borderRadius: 10, padding: '1px 7px', fontSize: '0.72rem' }}>
+                      {promotedProducts.length}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -5149,6 +5227,420 @@ export default function SuperAdminPage() {
                         );
                       })}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ================= TAB 4: PRODUCT PROMOTION ================= */}
+              {newsTab === 'product_promotion' && (
+                <div style={{ display: 'grid', gap: '1.5rem', maxWidth: 1100 }}>
+                  {/* Info / Description Card */}
+                  <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                        <i className="fa-solid fa-bullhorn"></i>
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Home Page Product Promotion
+                        </h3>
+                        <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                          Select any store by City &amp; Category &rarr; Tick products to feature them on the Home Page under the slide banner as square cards.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Filter / Search Form */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginTop: '1.25rem', background: '#f8fafc', padding: '1.25rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                      {/* 1. City Auto-Suggest */}
+                      <div style={{ position: 'relative' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          <i className="fa-solid fa-location-dot" style={{ color: '#2563eb', marginRight: 4 }}></i> 1. Select / Type City
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder="Type 1st letter of City..."
+                            value={promoCityInput}
+                            onChange={(e) => {
+                              setPromoCityInput(e.target.value);
+                              setShowPromoCitySugg(true);
+                              setSelectedPromoListing(null);
+                            }}
+                            onFocus={() => setShowPromoCitySugg(true)}
+                            style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                          />
+                          {promoCityInput && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPromoCityInput('');
+                                setShowPromoCitySugg(false);
+                                setSelectedPromoListing(null);
+                              }}
+                              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          )}
+                        </div>
+
+                        {showPromoCitySugg && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: '1px solid #cbd5e1', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: 200, overflowY: 'auto' }}>
+                            {cities
+                              .filter((c) => !promoCityInput || (c.name || '').toLowerCase().includes(promoCityInput.toLowerCase()))
+                              .map((c) => (
+                                <div
+                                  key={c.name}
+                                  onClick={() => {
+                                    setPromoCityInput(c.name);
+                                    setShowPromoCitySugg(false);
+                                    setSelectedPromoListing(null);
+                                  }}
+                                  style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                                >
+                                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.district || c.state}</span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Category Auto-Suggest */}
+                      <div style={{ position: 'relative' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          <i className="fa-solid fa-layer-group" style={{ color: '#2563eb', marginRight: 4 }}></i> 2. Select / Type Category
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder="Type 1st letter of Category..."
+                            value={promoCatInput}
+                            onChange={(e) => {
+                              setPromoCatInput(e.target.value);
+                              setShowPromoCatSugg(true);
+                              setSelectedPromoListing(null);
+                            }}
+                            onFocus={() => setShowPromoCatSugg(true)}
+                            style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                          />
+                          {promoCatInput && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPromoCatInput('');
+                                setShowPromoCatSugg(false);
+                                setSelectedPromoListing(null);
+                              }}
+                              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          )}
+                        </div>
+
+                        {showPromoCatSugg && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: '1px solid #cbd5e1', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: 200, overflowY: 'auto' }}>
+                            {categories
+                              .filter((cat) => !promoCatInput || (cat.name || '').toLowerCase().includes(promoCatInput.toLowerCase()))
+                              .map((cat) => (
+                                <div
+                                  key={cat.name}
+                                  onClick={() => {
+                                    setPromoCatInput(cat.name);
+                                    setShowPromoCatSugg(false);
+                                    setSelectedPromoListing(null);
+                                  }}
+                                  style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                                >
+                                  <i className={`fa-solid ${cat.icon || 'fa-tag'}`} style={{ color: '#2563eb', fontSize: '0.8rem' }}></i>
+                                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{cat.name}</span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. Listing Search Auto-Suggest */}
+                      <div style={{ position: 'relative' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          <i className="fa-solid fa-shop" style={{ color: '#2563eb', marginRight: 4 }}></i> 3. Select Store / Listing
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder="Type store name..."
+                            value={promoListingQuery}
+                            onChange={(e) => {
+                              setPromoListingQuery(e.target.value);
+                              setShowPromoListingSugg(true);
+                            }}
+                            onFocus={() => setShowPromoListingSugg(true)}
+                            style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                          />
+                          {promoListingQuery && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPromoListingQuery('');
+                                setShowPromoListingSugg(false);
+                                setSelectedPromoListing(null);
+                              }}
+                              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          )}
+                        </div>
+
+                        {showPromoListingSugg && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: '1px solid #cbd5e1', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: 240, overflowY: 'auto' }}>
+                            {listings
+                              .filter((l) => {
+                                const cityMatch = !promoCityInput || (l.city || '').toLowerCase() === promoCityInput.toLowerCase().trim();
+                                const catMatch = !promoCatInput || (l.category || '').toLowerCase() === promoCatInput.toLowerCase().trim();
+                                const queryMatch = !promoListingQuery || (l.name || '').toLowerCase().includes(promoListingQuery.toLowerCase().trim());
+                                return cityMatch && catMatch && queryMatch;
+                              })
+                              .map((l) => (
+                                <div
+                                  key={l.id}
+                                  onClick={() => {
+                                    setSelectedPromoListing(l);
+                                    setPromoListingQuery(l.name);
+                                    setShowPromoListingSugg(false);
+                                  }}
+                                  style={{ padding: '0.6rem 0.85rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                                >
+                                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem', marginTop: 2 }}>
+                                    <span><i className="fa-solid fa-location-dot"></i> {l.city || 'Any City'}</span>
+                                    <span>&bull;</span>
+                                    <span><i className="fa-solid fa-tag"></i> {l.category || 'Any Category'}</span>
+                                    <span>&bull;</span>
+                                    <span>{(l.products || []).length} Products</span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Selected Store & Product Checklist */}
+                    {selectedPromoListing && (
+                      <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', background: '#eff6ff', padding: '0.85rem 1rem', borderRadius: 10, border: '1px solid #bfdbfe' }}>
+                          <div>
+                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1e3a8a' }}>
+                              <i className="fa-solid fa-store" style={{ marginRight: 6 }}></i>
+                              {selectedPromoListing.name}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#3b82f6', marginTop: 2 }}>
+                              {selectedPromoListing.city} &bull; {selectedPromoListing.category} &bull; {(selectedPromoListing.products || []).length} Total Products
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '0.8rem', background: '#2563eb', color: '#fff', padding: '4px 10px', borderRadius: 6, fontWeight: 700 }}>
+                            Tick checkbox to promote / unpromote
+                          </span>
+                        </div>
+
+                        {(!selectedPromoListing.products || selectedPromoListing.products.length === 0) ? (
+                          <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: 10, color: '#64748b' }}>
+                            <i className="fa-solid fa-box-open" style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#94a3b8' }}></i>
+                            <div style={{ fontWeight: 700 }}>No products found in this store</div>
+                            <div style={{ fontSize: '0.8rem' }}>Add products to this listing under the Listings tab to promote them here.</div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                            {selectedPromoListing.products.map((prod, idx) => {
+                              const prodKey = String(prod.id || prod.name || idx).trim();
+                              const isPromoted = promotedProducts.some((p) => p.shopId === selectedPromoListing.id && p.productId === prodKey);
+                              const prodImg = (prod.images && prod.images[0]) || prod.image || prod.img || selectedPromoListing.image || '';
+
+                              return (
+                                <div
+                                  key={prodKey}
+                                  onClick={() => handleToggleProductPromotion(prod, selectedPromoListing)}
+                                  style={{
+                                    border: isPromoted ? '2px solid #10b981' : '1px solid #e2e8f0',
+                                    borderRadius: 12,
+                                    padding: '0.85rem',
+                                    background: isPromoted ? '#f0fdf4' : '#fff',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.5rem',
+                                    position: 'relative',
+                                  }}
+                                >
+                                  {/* Checkbox indicator */}
+                                  <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+                                    {isPromoted ? (
+                                      <span style={{ background: '#10b981', color: '#fff', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
+                                        <i className="fa-solid fa-check"></i>
+                                      </span>
+                                    ) : (
+                                      <span style={{ background: '#f1f5f9', color: '#94a3b8', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', border: '1px solid #cbd5e1' }}>
+                                        <i className="fa-solid fa-plus"></i>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Product Square Image */}
+                                  <div style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 8, overflow: 'hidden', background: '#f1f5f9' }}>
+                                    {prodImg ? (
+                                      /* eslint-disable-next-line @next/next/no-img-element */
+                                      <img src={prodImg} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                        <i className="fa-solid fa-image" style={{ fontSize: '1.5rem' }}></i>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Product Info */}
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {prod.name}
+                                    </div>
+                                    {prod.price && (
+                                      <div style={{ color: '#059669', fontWeight: 800, fontSize: '0.88rem', marginTop: 2 }}>
+                                        ₹{prod.price}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Button indicator */}
+                                  <button
+                                    type="button"
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.45rem',
+                                      borderRadius: 8,
+                                      border: 'none',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      background: isPromoted ? '#10b981' : '#2563eb',
+                                      color: '#fff',
+                                    }}
+                                  >
+                                    {isPromoted ? '✓ Promoted' : '+ Promote to Home'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Active Promoted Products List (Currently on Home Page) */}
+                  <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                          Currently Promoted Products on Home ({promotedProducts.length})
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                          These appear as square (1:1) cards in the auto-sliding row directly below the slide banner on the Home Page.
+                        </p>
+                      </div>
+                    </div>
+
+                    {promotedProducts.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        <i className="fa-solid fa-rectangle-ad" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#cbd5e1' }}></i>
+                        <div style={{ fontWeight: 700, color: '#475569' }}>No products currently promoted on Home Page</div>
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 4 }}>
+                          Select a city, category and store above, then tick products to feature them.
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                        {promotedProducts.map((p) => (
+                          <div
+                            key={p.id}
+                            style={{
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 12,
+                              padding: '0.85rem',
+                              background: '#fff',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.5rem',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                            }}
+                          >
+                            {/* Square Image */}
+                            <div style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 8, overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
+                              {p.image ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={p.image} alt={p.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                  <i className="fa-solid fa-image" style={{ fontSize: '1.5rem' }}></i>
+                                </div>
+                              )}
+                              <span style={{ position: 'absolute', top: 6, left: 6, background: '#10b981', color: '#fff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                                Live on Home
+                              </span>
+                            </div>
+
+                            {/* Info */}
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {p.productName}
+                              </div>
+                              {p.price && (
+                                <div style={{ color: '#059669', fontWeight: 800, fontSize: '0.85rem' }}>
+                                  ₹{p.price}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <i className="fa-solid fa-store" style={{ marginRight: 4 }}></i>
+                                {p.shopName} ({p.shopCity})
+                              </div>
+                            </div>
+
+                            {/* Remove Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePromotedProduct(p.id)}
+                              style={{
+                                marginTop: 'auto',
+                                width: '100%',
+                                padding: '0.45rem',
+                                borderRadius: 8,
+                                border: '1px solid #fecaca',
+                                background: '#fef2f2',
+                                color: '#ef4444',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.35rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-trash-can"></i>
+                              Remove from Home
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

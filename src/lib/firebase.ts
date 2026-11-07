@@ -16,7 +16,7 @@ import {
   Firestore
 } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
-import { Listing, UserProfile, CategoryItem, CityItem, MailItem, ClaimItem, TrustRequest, TrustBadgeSettings, NewsItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, ReviewItem } from '@/types';
+import { Listing, UserProfile, CategoryItem, CityItem, MailItem, ClaimItem, TrustRequest, TrustBadgeSettings, NewsItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, ReviewItem, PromotedProductItem } from '@/types';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyB8TjyRJ7uCx-YaaxPFYanv6nEWFowt4Vo",
@@ -628,6 +628,21 @@ export const cloudSync = {
 
   saveEmptyStoreBanners: async (slots: EmptyStoreBannerSlot[]): Promise<void> => {
     await setDoc(doc(db, 'settings', 'empty_store_banners'), { slots, updatedAt: Date.now() }, { merge: true });
+  },
+
+  // Promoted Products (Featured on Home Page)
+  pullPromotedProducts: async (): Promise<PromotedProductItem[]> => {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'promoted_products'));
+      if (snap.exists() && Array.isArray(snap.data()?.items)) {
+        return snap.data()?.items as PromotedProductItem[];
+      }
+    } catch {}
+    return [];
+  },
+
+  savePromotedProducts: async (items: PromotedProductItem[]): Promise<void> => {
+    await setDoc(doc(db, 'settings', 'promoted_products'), { items, updatedAt: Date.now() }, { merge: true });
   },
 
   pullNewsTicker: async (): Promise<string | null> => {

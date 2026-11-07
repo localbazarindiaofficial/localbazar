@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { cloudSync, auth, formatLBUserId, db } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { CityItem, CategoryItem, UserProfile } from '@/types';
+import { CityItem, CategoryItem, UserProfile, PromotedProductItem } from '@/types';
 
 // Default enriched cities with district, state, pin code
 const DEFAULT_CITIES: CityItem[] = [
@@ -154,6 +154,9 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [homeNewsTicker, setHomeNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>([]);
+  const [promotedProducts, setPromotedProducts] = useState<PromotedProductItem[]>([]);
+  const promoRowRef = useRef<HTMLDivElement>(null);
+  const [promoPaused, setPromoPaused] = useState(false);
 
   const [showCitySugg, setShowCitySugg] = useState(false);
   const [showCatSugg, setShowCatSugg] = useState(false);
@@ -183,6 +186,23 @@ export default function HomePage() {
     }, 4000);
     return () => clearInterval(interval);
   }, [homeSlideBanners.length]);
+
+  // Auto-slide promoted products row horizontally when items overflow
+  useEffect(() => {
+    if (promotedProducts.length <= 1 || promoPaused) return;
+    const interval = setInterval(() => {
+      const el = promoRowRef.current;
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 0) return;
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: 160, behavior: 'smooth' });
+      }
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [promotedProducts.length, promoPaused]);
 
   // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
@@ -238,6 +258,10 @@ export default function HomePage() {
 
       cloudSync.pullHomeBanners().then((banners) => {
         if (banners && banners.length) setHomeSlideBanners(banners);
+      });
+
+      cloudSync.pullPromotedProducts().then((p) => {
+        if (p && p.length) setPromotedProducts(p);
       });
     }, 60);
 
@@ -873,6 +897,198 @@ export default function HomePage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Promoted Products (Square Cards, Side-by-Side Auto-Sliding Row) */}
+          {promotedProducts.length > 0 && (
+            <div
+              style={{
+                marginTop: '1.75rem',
+                width: '100%',
+                maxWidth: 760,
+                textAlign: 'left',
+              }}
+              onMouseEnter={() => setPromoPaused(true)}
+              onMouseLeave={() => setPromoPaused(false)}
+              onTouchStart={() => setPromoPaused(true)}
+              onTouchEnd={() => {
+                setTimeout(() => setPromoPaused(false), 2000);
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '0.65rem',
+                  padding: '0 0.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.72rem',
+                    }}
+                  >
+                    <i className="fa-solid fa-fire"></i>
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.95rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Featured Products
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                  Swipe to explore &rarr;
+                </span>
+              </div>
+
+              {/* Horizontal Square Card Track */}
+              <div
+                ref={promoRowRef}
+                style={{
+                  display: 'flex',
+                  gap: '0.85rem',
+                  overflowX: 'auto',
+                  paddingBottom: '0.5rem',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollSnapType: 'x mandatory',
+                }}
+              >
+                {promotedProducts.map((p) => {
+                  const targetUrl = `/shops/${encodeURIComponent(p.shopId)}/product/${encodeURIComponent(p.productId)}`;
+                  return (
+                    <Link
+                      key={p.id}
+                      href={targetUrl}
+                      style={{
+                        flex: '0 0 148px',
+                        width: '148px',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        scrollSnapAlign: 'start',
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: '#fff',
+                          borderRadius: 14,
+                          overflow: 'hidden',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(0,0,0,0.04)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        {/* 1:1 Exact Square Product Image */}
+                        <div
+                          style={{
+                            width: '100%',
+                            aspectRatio: '1 / 1',
+                            position: 'relative',
+                            background: '#f8fafc',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {p.image ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={p.image}
+                              alt={p.productName}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                display: 'block',
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#cbd5e1',
+                                fontSize: '1.75rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-box"></i>
+                            </div>
+                          )}
+
+                          {p.price && (
+                            <span
+                              style={{
+                                position: 'absolute',
+                                bottom: 6,
+                                right: 6,
+                                background: 'rgba(15, 23, 42, 0.85)',
+                                color: '#10b981',
+                                backdropFilter: 'blur(4px)',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              ₹{p.price}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title & Store info */}
+                        <div style={{ padding: '0.55rem 0.65rem' }}>
+                          <div
+                            style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              lineHeight: 1.25,
+                            }}
+                            title={p.productName}
+                          >
+                            {p.productName}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.7rem',
+                              color: '#64748b',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}
+                          >
+                            {p.shopName}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

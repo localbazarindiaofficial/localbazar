@@ -1,3 +1,16 @@
+export interface PromotedProductItem {
+  id: string;
+  shopId: string;
+  shopName: string;
+  shopCity: string;
+  shopCategory: string;
+  productId: string;
+  productName: string;
+  price?: string;
+  image?: string;
+  addedAt?: number;
+}
+
 export interface ProductItem {
   id?: string;
   name: string;
