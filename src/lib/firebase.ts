@@ -557,24 +557,88 @@ export const cloudSync = {
     await setDoc(doc(db, 'settings', 'news_ticker'), { ticker, updatedAt: Date.now() }, { merge: true });
   },
 
-  // Product & Store Reviews Sync
-  saveProductReview: async (shopId: string, review: ReviewItem): Promise<void> => {
+  // Store Reviews Sync (Strictly for Shop / Business Home)
+  saveStoreReview: async (shopId: string, review: ReviewItem): Promise<void> => {
     if (!shopId || !review || !review.id) return;
     try {
+      const payload: ReviewItem = {
+        ...review,
+        type: 'store'
+      };
       const revRef = doc(db, 'reviews', String(shopId), 'items', String(review.id));
-      await setDoc(revRef, review, { merge: true });
+      await setDoc(revRef, payload, { merge: true });
     } catch (err) {
-      console.warn('Could not save review to cloud:', err);
+      console.warn('Could not save store review to cloud:', err);
     }
   },
 
-  pullProductReviews: async (shopId: string): Promise<ReviewItem[]> => {
+  pullStoreReviews: async (shopId: string): Promise<ReviewItem[]> => {
     if (!shopId) return [];
     try {
       const colRef = collection(db, 'reviews', String(shopId), 'items');
       const snap = await getDocs(colRef);
       const list: ReviewItem[] = [];
-      snap.forEach((d) => list.push(d.data() as ReviewItem));
+      snap.forEach((d) => {
+        const item = d.data() as ReviewItem;
+        if (!item) return;
+        // Strictly Store Reviews: type === 'store' or legacy reviews without a productId
+        if ((!item.type || item.type === 'store') && !item.productId) {
+          list.push(item);
+        }
+      });
+      list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      return list;
+    } catch {
+      return [];
+    }
+  },
+
+  deleteStoreReview: async (shopId: string, reviewId: string): Promise<void> => {
+    if (!shopId || !reviewId) return;
+    try {
+      const revRef = doc(db, 'reviews', String(shopId), 'items', String(reviewId));
+      await deleteDoc(revRef);
+    } catch (err) {
+      console.warn('Could not delete store review from cloud:', err);
+    }
+  },
+
+  // Product Reviews Sync (Strictly for each individual product)
+  saveProductReview: async (shopId: string, productId: string, review: ReviewItem): Promise<void> => {
+    if (!shopId || !productId || !review || !review.id) return;
+    try {
+      const cleanProdId = String(productId).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const payload: ReviewItem = {
+        ...review,
+        type: 'product',
+        productId: cleanProdId
+      };
+      const revRef = doc(db, 'reviews', String(shopId), 'items', String(review.id));
+      await setDoc(revRef, payload, { merge: true });
+    } catch (err) {
+      console.warn('Could not save product review to cloud:', err);
+    }
+  },
+
+  pullProductReviews: async (shopId: string, productId?: string): Promise<ReviewItem[]> => {
+    if (!shopId) return [];
+    try {
+      const colRef = collection(db, 'reviews', String(shopId), 'items');
+      const snap = await getDocs(colRef);
+      const list: ReviewItem[] = [];
+      const cleanProdId = productId ? String(productId).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') : '';
+
+      snap.forEach((d) => {
+        const item = d.data() as ReviewItem;
+        if (!item) return;
+        // Strictly Product Reviews for THIS specific product
+        if (item.type === 'product' && item.productId) {
+          const itemProdId = String(item.productId).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          if (!cleanProdId || itemProdId === cleanProdId || item.productId === productId) {
+            list.push(item);
+          }
+        }
+      });
       list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       return list;
     } catch {
@@ -588,7 +652,7 @@ export const cloudSync = {
       const revRef = doc(db, 'reviews', String(shopId), 'items', String(reviewId));
       await deleteDoc(revRef);
     } catch (err) {
-      console.warn('Could not delete review from cloud:', err);
+      console.warn('Could not delete product review from cloud:', err);
     }
   },
 

@@ -184,8 +184,8 @@ export default function ShopDetailPage() {
       setLoading(false);
     });
 
-    // 3. Load reviews directly from Cloud Firestore
-    cloudSync.pullProductReviews(shopId).then((cloudRevs) => {
+    // 3. Load STORE reviews directly from Cloud Firestore (Strictly store reviews, zero product reviews)
+    cloudSync.pullStoreReviews(shopId).then((cloudRevs) => {
       if (Array.isArray(cloudRevs)) {
         const valids: ReviewItem[] = [];
         cloudRevs.forEach((r) => {
@@ -194,7 +194,7 @@ export default function ShopDetailPage() {
           } else {
             // Automatically purge fake or nameless review document from Firestore
             if (r.id) {
-              cloudSync.deleteProductReview(shopId, r.id);
+              cloudSync.deleteStoreReview(shopId, r.id);
             }
           }
         });
@@ -501,6 +501,7 @@ export default function ShopDetailPage() {
       // UPDATE EXISTING REVIEW (User cannot add a new separate rating, only update their existing one!)
       const updatedRev: ReviewItem = {
         ...existing,
+        type: 'store',
         userName: currentUser.name || existing.userName,
         userAvatar: currentUser.photoURL || existing.userAvatar,
         userEmail: currentUser.email || existing.userEmail,
@@ -510,11 +511,12 @@ export default function ShopDetailPage() {
         dateStr: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Updated)`
       };
       updatedList = reviews.map((r) => (r.id === existing.id ? updatedRev : r));
-      await cloudSync.saveProductReview(shopId, updatedRev);
+      await cloudSync.saveStoreReview(shopId, updatedRev);
     } else {
-      // FIRST TIME REVIEW FROM THIS ACCOUNT
+      // FIRST TIME STORE REVIEW FROM THIS ACCOUNT
       const newRev: ReviewItem = {
-        id: `rev_${currentUser.id || Date.now()}`,
+        id: `rev_store_${currentUser.id || Date.now()}`,
+        type: 'store',
         userId: currentUser.id,
         userEmail: currentUser.email,
         userName: currentUser.name || 'Verified User',
@@ -525,7 +527,7 @@ export default function ShopDetailPage() {
         dateStr: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       };
       updatedList = [newRev, ...reviews];
-      await cloudSync.saveProductReview(shopId, newRev);
+      await cloudSync.saveStoreReview(shopId, newRev);
     }
 
     setReviews(updatedList);
@@ -538,7 +540,7 @@ export default function ShopDetailPage() {
     if (!confirm('Are you sure you want to remove this review?')) return;
     const updated = reviews.filter((r) => r.id !== reviewId);
     setReviews(updated);
-    await cloudSync.deleteProductReview(shopId, reviewId);
+    await cloudSync.deleteStoreReview(shopId, reviewId);
   };
 
   // Check if current user is owner of this shop
@@ -563,6 +565,7 @@ export default function ShopDetailPage() {
     }
     const updatedRev: ReviewItem = {
       ...targetRev,
+      type: 'store',
       ownerReply: {
         text: ownerReplyText.trim(),
         timestamp: Date.now(),
@@ -571,7 +574,7 @@ export default function ShopDetailPage() {
     };
     const updatedList = reviews.map((r) => (r.id === reviewId ? updatedRev : r));
     setReviews(updatedList);
-    await cloudSync.saveProductReview(shopId, updatedRev);
+    await cloudSync.saveStoreReview(shopId, updatedRev);
     setReplyingReviewId(null);
     setOwnerReplyText('');
     setOwnerReplySubmitting(false);
@@ -582,11 +585,10 @@ export default function ShopDetailPage() {
     const targetRev = reviews.find((r) => r.id === reviewId);
     if (!targetRev) return;
     const { ownerReply, ...rest } = targetRev;
-    const updatedRev: ReviewItem = { ...rest };
+    const updatedRev: ReviewItem = { ...rest, type: 'store' };
     const updatedList = reviews.map((r) => (r.id === reviewId ? updatedRev : r));
     setReviews(updatedList);
-    await cloudSync.saveProductReview(shopId, updatedRev);
-    await cloudSync.saveProductReview(shopId, updatedRev);
+    await cloudSync.saveStoreReview(shopId, updatedRev);
   };
 
   const handleCopyShareLink = () => {

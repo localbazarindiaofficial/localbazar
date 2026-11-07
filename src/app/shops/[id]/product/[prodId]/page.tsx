@@ -121,9 +121,10 @@ function ProductDetailPageContent() {
 
         setProduct(foundProd);
 
-        // Load reviews for this product directly from Cloud Firestore
+        // Load reviews strictly for THIS specific product from Cloud Firestore (Zero mixing with other products or store)
         if (foundProd) {
-          cloudSync.pullProductReviews(foundShop.id).then((cloudRevs) => {
+          const targetProdKey = String(foundProd.id || prodId || '').trim();
+          cloudSync.pullProductReviews(foundShop.id, targetProdKey).then((cloudRevs) => {
             if (Array.isArray(cloudRevs)) {
               setReviewsList(cloudRevs.filter(isValidRealReview));
             } else if (foundProd.reviews && foundProd.reviews.length > 0) {
@@ -132,11 +133,7 @@ function ProductDetailPageContent() {
               setReviewsList([]);
             }
           }).catch(() => {
-            if (foundProd.reviews && foundProd.reviews.length > 0) {
-              setReviewsList(foundProd.reviews.filter(isValidRealReview));
-            } else {
-              setReviewsList([]);
-            }
+            setReviewsList([]);
           });
         }
       }
@@ -226,12 +223,14 @@ function ProductDetailPageContent() {
     setShowReviewModal(true);
   };
 
-  // Submit or Update Product Review (Strictly 1 review per account)
+  // Submit or Update Product Review (Strictly 1 review per account for this specific product)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !reviewComment.trim() || !product || !shop) return;
 
     setReviewSubmitting(true);
+
+    const targetProdKey = String(product.id || prodId || '').trim();
 
     const existing = reviewsList.find((r) =>
       (currentUser.email && r.userEmail && r.userEmail.toLowerCase() === currentUser.email.toLowerCase()) ||
@@ -241,9 +240,12 @@ function ProductDetailPageContent() {
     let updatedList: ReviewItem[];
 
     if (existing) {
-      // Update existing review (Strictly 1 review per account)
+      // Update existing review (Strictly 1 review per account for this specific product)
       const updatedRev: ReviewItem = {
         ...existing,
+        type: 'product',
+        productId: targetProdKey,
+        productName: product.name,
         userName: currentUser.name || existing.userName,
         userAvatar: currentUser.photoURL || existing.userAvatar,
         userEmail: currentUser.email || existing.userEmail,
@@ -253,11 +255,14 @@ function ProductDetailPageContent() {
         dateStr: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Updated)`
       };
       updatedList = reviewsList.map((r) => (r.id === existing.id ? updatedRev : r));
-      cloudSync.saveProductReview(shop.id, updatedRev);
+      cloudSync.saveProductReview(shop.id, targetProdKey, updatedRev);
     } else {
-      // First review from this account
+      // First review from this account for this product
       const newRev: ReviewItem = {
-        id: `rev-prod-${currentUser.id || Date.now()}`,
+        id: `rev_prod_${targetProdKey}_${currentUser.id || Date.now()}`,
+        type: 'product',
+        productId: targetProdKey,
+        productName: product.name,
         userId: currentUser.id,
         userEmail: currentUser.email,
         userName: currentUser.name || 'Verified Customer',
@@ -268,7 +273,7 @@ function ProductDetailPageContent() {
         dateStr: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       };
       updatedList = [newRev, ...reviewsList];
-      cloudSync.saveProductReview(shop.id, newRev);
+      cloudSync.saveProductReview(shop.id, targetProdKey, newRev);
     }
 
     setReviewsList(updatedList);

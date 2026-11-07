@@ -142,6 +142,9 @@ export interface ReviewItem {
   comment: string;
   timestamp: number;
   dateStr?: string;
+  type?: 'store' | 'product';
+  productId?: string;
+  productName?: string;
   ownerReply?: {
     text: string;
     timestamp: number;
