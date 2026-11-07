@@ -375,12 +375,28 @@ export default function HomePage() {
 
     // 3. Instant 0ms visual feedback: button turns to spinner immediately
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 6000);
+    setTimeout(() => setIsSearching(false), 5000);
 
     const params = new URLSearchParams();
     params.set('city', city);
     params.set('category', query);
-    router.push(`/explore?${params.toString()}`);
+    const targetUrl = `/explore?${params.toString()}`;
+
+    // Soft client transition
+    try {
+      router.push(targetUrl);
+    } catch {
+      window.location.assign(targetUrl);
+      return;
+    }
+
+    // Fail-safe bulletproof fallback: if router.push gets stuck (stale PWA socket, chunk hash mismatch, sleeping mobile browser)
+    // navigate directly after 750ms so user is 100% guaranteed to reach the explore page
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/explore')) {
+        window.location.assign(targetUrl);
+      }
+    }, 750);
   };
 
   const handleModalGoogleSignIn = async () => {

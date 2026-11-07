@@ -1,5 +1,5 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v105
-const CACHE_NAME = 'localbazar-pwa-v105';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v106
+const CACHE_NAME = 'localbazar-pwa-v106';
 
 // Only static shell assets & PWA icons (Dynamic pages like /explore and /account are NEVER pre-cached)
 const STATIC_ASSETS = [
@@ -73,21 +73,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Dynamic Pages (/explore, /shops, /account, /admin): ALWAYS fresh network, NEVER hijacked by cache
+  // 3. Dynamic Pages (/explore, /shops, /account, /admin): Direct network pass-through, NEVER poisoned by root cache
   if (
     url.pathname.startsWith('/explore') ||
     url.pathname.startsWith('/shops') ||
     url.pathname.startsWith('/account') ||
     url.pathname.startsWith('/admin')
   ) {
+    // If not a full browser HTML navigation (e.g. Next.js RSC fetch or background request), let browser handle natively
+    if (event.request.mode !== 'navigate') {
+      return;
+    }
     event.respondWith(
-      fetch(event.request).catch(async () => {
-        // If device is completely offline, return offline fallback
-        const home = await caches.match('/');
-        return home || new Response('Offline. Please reconnect to access LocalBazar.', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+      fetch(event.request).catch(() => {
+        return new Response(
+          '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Offline - LocalBazar</title><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fafc;color:#1e293b;text-align:center;padding:1.5rem}h2{font-size:1.4rem;margin-bottom:0.5rem}p{color:#64748b;margin-bottom:1.25rem}button{padding:0.75rem 1.5rem;background:#2563eb;color:#fff;border:none;border-radius:10px;font-weight:600;font-size:1rem;cursor:pointer}</style></head><body><div><h2>You are offline</h2><p>Please check your internet connection to continue browsing.</p><button onclick="window.location.reload()">Retry</button></div></body></html>',
+          {
+            status: 503,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+          }
+        );
       })
     );
     return;

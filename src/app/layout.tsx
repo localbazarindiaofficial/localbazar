@@ -74,7 +74,7 @@ export default function RootLayout({
                   if ('caches' in window) {
                     caches.keys().then(function(keys) {
                       keys.forEach(function(k) {
-                        if (k !== 'localbazar-pwa-v105') {
+                        if (k !== 'localbazar-pwa-v106') {
                           caches.delete(k);
                         }
                       });
