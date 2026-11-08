@@ -69,9 +69,33 @@ function ExploreContent() {
   const cityParam = searchParams.get('city') || '';
   const catParam = searchParams.get('category') || '';
 
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState<Listing[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_listings');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<CategoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_categories');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_listings');
+        if (raw && JSON.parse(raw).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
 
   // Progressive Infinite Scroll (Initial 10, then +5 on each scroll down)
   const INITIAL_LIMIT = 10;
@@ -108,7 +132,10 @@ function ExploreContent() {
     }).catch(() => {});
 
     cloudSync.pullCategories().then((cats) => {
-      if (cats && cats.length) setCategories(cats);
+      if (cats && cats.length) {
+        setCategories(cats);
+        try { localStorage.setItem('lb_cached_categories', JSON.stringify(cats)); } catch {}
+      }
     }).catch(() => {});
   }, []);
 
@@ -135,18 +162,17 @@ function ExploreContent() {
       }
     } catch {}
 
-    // Load listings purely live from Cloud Firestore (Zero demo data)
-    setLoading(true);
+    // Load listings purely live from Cloud Firestore with instant cache fallback (Zero demo data)
     cloudSync.pullListings().then((cloudItems) => {
       if (cloudItems && Array.isArray(cloudItems)) {
         setListings(cloudItems);
+        try { localStorage.setItem('lb_cached_listings', JSON.stringify(cloudItems)); } catch {}
       } else {
         setListings([]);
       }
       setLoading(false);
     }).catch((err) => {
       console.error('Error loading live listings:', err);
-      setListings([]);
       setLoading(false);
     });
   }, []);

@@ -190,6 +190,26 @@ export default function HomePage() {
   const queryRef = useRef<HTMLDivElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
+  const isNavigatedAwayRef = useRef(false);
+
+  // Clean reset of search inputs strictly upon returning to Home (pageshow / popstate)
+  useEffect(() => {
+    const handleReturnToHome = () => {
+      if (isNavigatedAwayRef.current) {
+        setCityInput('');
+        setQueryInput('');
+        setShowCitySugg(false);
+        setShowCatSugg(false);
+        isNavigatedAwayRef.current = false;
+      }
+    };
+    window.addEventListener('pageshow', handleReturnToHome);
+    window.addEventListener('popstate', handleReturnToHome);
+    return () => {
+      window.removeEventListener('pageshow', handleReturnToHome);
+      window.removeEventListener('popstate', handleReturnToHome);
+    };
+  }, []);
 
   // Auto-slide home banners every 4 seconds if > 1 banner
   useEffect(() => {
@@ -243,12 +263,12 @@ export default function HomePage() {
       setCurrentUser(null);
     }
 
-    // 2. Prefetch explore route only after browser is completely idle (prevents network contention)
+    // 2. Prefetch explore route early so searching transitions in 0ms
     const idlePrefetchTimer = setTimeout(() => {
       try {
         router.prefetch('/explore');
       } catch {}
-    }, 2500);
+    }, 350);
 
     // 3. Defer Firestore network pulls by 60ms so browser paints the UI immediately at 0ms
     const cloudSyncTimer = setTimeout(() => {
@@ -501,9 +521,8 @@ export default function HomePage() {
       router.prefetch(targetUrl);
     } catch {}
 
-    // Reset search inputs so returning to Home gives a fresh, clean search bar
-    setCityInput('');
-    setQueryInput('');
+    // Mark navigated away so returning via Back button resets cleanly
+    isNavigatedAwayRef.current = true;
     setShowCitySugg(false);
     setShowCatSugg(false);
 
@@ -572,8 +591,7 @@ export default function HomePage() {
         const params = new URLSearchParams();
         params.set('city', cityInput.trim());
         params.set('category', queryInput.trim());
-        setCityInput('');
-        setQueryInput('');
+        isNavigatedAwayRef.current = true;
         setShowCitySugg(false);
         setShowCatSugg(false);
         router.push(`/explore?${params.toString()}`);
