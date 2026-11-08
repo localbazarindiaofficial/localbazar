@@ -370,3 +370,31 @@ export function getTrustBadgeDaysRemaining(listing: Partial<Listing> | null | un
   if (diff <= 0) return 0;
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * Universal WhatsApp Chat Link Helper.
+ * Handles Indian numbers: prepends 91 to 10-digit mobile numbers, strips leading 0, removes non-digits.
+ */
+export function formatWhatsAppUrl(rawPhone: string | undefined | null, message: string = ''): string {
+  if (!rawPhone) return '#';
+  let cleaned = String(rawPhone).trim().replace(/\D/g, '');
+  if (!cleaned) return '#';
+  if (cleaned.length === 11 && cleaned.startsWith('0')) {
+    cleaned = cleaned.slice(1);
+  }
+  if (cleaned.length === 10) {
+    cleaned = '91' + cleaned;
+  }
+  const textParam = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${cleaned}${textParam}`;
+}
+
+/**
+ * Universal Click-to-Call Tel Link Helper.
+ * Strips spaces, dashes, parentheses to prevent mobile dialer issues.
+ */
+export function formatTelUrl(rawPhone: string | undefined | null): string {
+  if (!rawPhone) return '#';
+  const cleaned = String(rawPhone).trim().replace(/[^\d+]/g, '');
+  return cleaned ? `tel:${cleaned}` : '#';
+}

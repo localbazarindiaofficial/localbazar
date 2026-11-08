@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, CategoryItem, isTrustBadgeActive } from '@/types';
+import { Listing, ProductItem, ReviewItem, StoreCategoryItem, EmptyStoreBannerSlot, UserProfile, CategoryItem, isTrustBadgeActive, formatWhatsAppUrl, formatTelUrl } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import '@/styles/listing-detail.css';
@@ -91,6 +91,79 @@ export default function ShopDetailPage() {
   const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null);
   const [ownerReplyText, setOwnerReplyText] = useState('');
   const [ownerReplySubmitting, setOwnerReplySubmitting] = useState(false);
+
+  // Native App-Like Back Navigation (PWA Android Hardware Back Button Support)
+  const isAnyModalOpen = Boolean(
+    lightboxImg ||
+    activeViewerProduct ||
+    showScheduleSheet ||
+    showAddressSheet ||
+    showReviewModal ||
+    showShareModal
+  );
+  const isAnyModalOpenRef = useRef(false);
+  isAnyModalOpenRef.current = isAnyModalOpen;
+  const modalHistoryPushedRef = useRef(false);
+
+  // Sync open sheet/modal with browser history
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isAnyModalOpen) {
+      if (!modalHistoryPushedRef.current) {
+        window.history.pushState({ modalOpen: true }, '');
+        modalHistoryPushedRef.current = true;
+      }
+    } else {
+      modalHistoryPushedRef.current = false;
+    }
+  }, [isAnyModalOpen]);
+
+  // Intercept Android hardware back / popstate to dismiss open modals smoothly
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onPopState = () => {
+      if (isAnyModalOpenRef.current) {
+        setLightboxImg(null);
+        setActiveViewerProduct(null);
+        setShowScheduleSheet(false);
+        setShowAddressSheet(false);
+        setShowReviewModal(false);
+        setShowShareModal(false);
+        modalHistoryPushedRef.current = false;
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, []);
+
+  const closeAllModals = () => {
+    setLightboxImg(null);
+    setActiveViewerProduct(null);
+    setShowScheduleSheet(false);
+    setShowAddressSheet(false);
+    setShowReviewModal(false);
+    setShowShareModal(false);
+    if (modalHistoryPushedRef.current && typeof window !== 'undefined' && window.history.state?.modalOpen) {
+      modalHistoryPushedRef.current = false;
+      window.history.back();
+    }
+  };
+
+  const handleDetailBack = () => {
+    if (isAnyModalOpenRef.current) {
+      closeAllModals();
+      return;
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
 
   // Track Current User
   useEffect(() => {
@@ -708,7 +781,7 @@ export default function ShopDetailPage() {
             type="button"
             className="btn-detail-back"
             id="btnListingDetailBack"
-            onClick={() => router.back()}
+            onClick={handleDetailBack}
             title="Back"
           >
             <i className="fa-solid fa-arrow-left"></i>
@@ -824,7 +897,7 @@ export default function ShopDetailPage() {
             <div className="jd-app-action-grid">
               {/* 1. Call */}
               <a
-                href={shop.phone ? `tel:${shop.phone}` : '#'}
+                href={formatTelUrl(shop.phone)}
                 className="jd-app-btn-box"
                 title="Call Business Directly"
               >
@@ -836,7 +909,7 @@ export default function ShopDetailPage() {
 
               {/* 2. WhatsApp */}
               <a
-                href={shop.phone ? `https://wa.me/${shop.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I found ${shop.name} on LocalBazar.`)}` : '#'}
+                href={formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I found ${shop.name} on LocalBazar.`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="jd-app-btn-box"
@@ -1672,7 +1745,7 @@ export default function ShopDetailPage() {
             <div className="detail-product-modal-footer">
               {shop.phone && (
                 <a
-                  href={`tel:${shop.phone}`}
+                  href={formatTelUrl(shop.phone)}
                   className="btn-dpm-action call"
                   style={{ textDecoration: 'none' }}
                   title="Call Store Directly"
@@ -1681,9 +1754,9 @@ export default function ShopDetailPage() {
                 </a>
               )}
 
-              {shop.phone && (
+              {(shop.whatsapp || shop.phone) && (
                 <a
-                  href={`https://wa.me/${(shop.whatsapp || shop.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I am interested in purchasing "${activeViewerProduct.name}" (${activeViewerProduct.price || ''}) from ${shop.name} on LocalBazar. Is this in stock?`)}`}
+                  href={formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${activeViewerProduct.name}" (${activeViewerProduct.price || ''}) from ${shop.name} on LocalBazar. Is this in stock?`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-dpm-action whatsapp"
@@ -1795,7 +1868,7 @@ export default function ShopDetailPage() {
                 {shop.phone && (
                   <div className="addr-sheet-action-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
                     <a
-                      href={`tel:${shop.phone}`}
+                      href={formatTelUrl(shop.phone)}
                       className="btn-sheet-action call"
                       style={{
                         display: 'flex',
@@ -1814,7 +1887,7 @@ export default function ShopDetailPage() {
                       <i className="fa-solid fa-phone"></i> Call Now
                     </a>
                     <a
-                      href={`https://wa.me/${shop.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I am contacting you regarding ${shop.name} on LocalBazar.`)}`}
+                      href={formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am contacting you regarding ${shop.name} on LocalBazar.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-sheet-action wa"

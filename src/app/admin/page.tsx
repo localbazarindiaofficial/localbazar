@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem } from '@/types';
+import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl } from '@/types';
 import { cloudSync, uploadImageToCloud, formatLBUserId } from '@/lib/firebase';
 import '@/styles/admin.css';
 
@@ -90,17 +90,17 @@ export default function SuperAdminPage() {
 
   // Trust Badge Pricing & QR Scanner Settings State
   const [trustBadgeSettings, setTrustBadgeSettings] = useState<TrustBadgeSettings>({
-    originalPrice: 499,
-    offerPrice: 99,
+    originalPrice: 999,
+    offerPrice: 299,
     period: 'Year',
     upiId: 'localbazar@upi',
     upiName: 'LocalBazar Official',
     qrImageUrl: '',
-    instructions: 'Scan QR code via Google Pay, PhonePe, Paytm, or BHIM UPI, pay ₹99, and enter the 12-digit UTR/Reference number below.'
+    instructions: 'Scan QR code via Google Pay, PhonePe, Paytm, or BHIM UPI, pay ₹299, and enter the 12-digit UTR/Reference number below.'
   });
   const [showTrustSettingsModal, setShowTrustSettingsModal] = useState(false);
-  const [settingOrigPrice, setSettingOrigPrice] = useState('499');
-  const [settingOfferPrice, setSettingOfferPrice] = useState('99');
+  const [settingOrigPrice, setSettingOrigPrice] = useState('999');
+  const [settingOfferPrice, setSettingOfferPrice] = useState('299');
   const [settingUpiId, setSettingUpiId] = useState('localbazar@upi');
   const [settingUpiName, setSettingUpiName] = useState('LocalBazar Official');
   const [settingQrImage, setSettingQrImage] = useState('');
@@ -1035,8 +1035,8 @@ export default function SuperAdminPage() {
 
   const handleSaveTrustSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    const orig = parseFloat(settingOrigPrice) || 499;
-    const offer = parseFloat(settingOfferPrice) || 99;
+    const orig = parseFloat(settingOrigPrice) || 999;
+    const offer = parseFloat(settingOfferPrice) || 299;
     if (offer <= 0) {
       alert('Offer price must be greater than 0');
       return;
@@ -2790,7 +2790,7 @@ export default function SuperAdminPage() {
                             <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{claimantDisplayName}</div>
                             <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {claimantPhone && (
-                                <a href={`tel:${claimantPhone}`} style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <a href={formatTelUrl(claimantPhone)} style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                   <i className="fa-solid fa-phone" style={{ fontSize: '0.75rem' }}></i> {claimantPhone}
                                 </a>
                               )}
@@ -3082,16 +3082,16 @@ export default function SuperAdminPage() {
                   {/* Current Pricing Info Pill */}
                   <div style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '0.45rem 0.85rem', borderRadius: 8, fontSize: '0.82rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>Active Price:</span>
-                    <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>₹{trustBadgeSettings.originalPrice || 499}</span>
-                    <strong style={{ color: '#16a34a' }}>₹{trustBadgeSettings.offerPrice || 99}/Yr</strong>
+                    <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>₹{trustBadgeSettings.originalPrice || 999}</span>
+                    <strong style={{ color: '#16a34a' }}>₹{trustBadgeSettings.offerPrice || 299}/Yr</strong>
                   </div>
 
                   {/* Settings Button */}
                   <button
                     type="button"
                     onClick={() => {
-                      setSettingOrigPrice(String(trustBadgeSettings.originalPrice || 499));
-                      setSettingOfferPrice(String(trustBadgeSettings.offerPrice || 99));
+                      setSettingOrigPrice(String(trustBadgeSettings.originalPrice || 999));
+                      setSettingOfferPrice(String(trustBadgeSettings.offerPrice || 299));
                       setSettingUpiId(trustBadgeSettings.upiId || 'localbazar@upi');
                       setSettingUpiName(trustBadgeSettings.upiName || 'LocalBazar Official');
                       setSettingQrImage(trustBadgeSettings.qrImageUrl || '');
@@ -3310,7 +3310,7 @@ export default function SuperAdminPage() {
                             <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{tr.applicantName || tr.ownerName}</div>
                             <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: 3 }}>
                               {tr.phone && (
-                                <a href={`tel:${tr.phone}`} style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <a href={formatTelUrl(tr.phone)} style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                   <i className="fa-solid fa-phone" style={{ fontSize: '0.75rem' }}></i> {tr.phone}
                                 </a>
                               )}
@@ -3360,7 +3360,7 @@ export default function SuperAdminPage() {
                             </div>
 
                             <div style={{ fontSize: '0.84rem', color: '#78350f', marginBottom: '0.5rem' }}>
-                              Amount Paid: <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>₹{tr.amountPaid || 99}</strong>
+                              Amount Paid: <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>₹{tr.amountPaid || 299}</strong>
                             </div>
 
                             {/* Highlighted UTR Box with Copy */}
@@ -7190,11 +7190,11 @@ export default function SuperAdminPage() {
                             min="1"
                             value={settingOrigPrice}
                             onChange={(e) => setSettingOrigPrice(e.target.value)}
-                            placeholder="499"
+                            placeholder="999"
                             style={{ width: '100%', padding: '0.55rem 0.55rem 0.55rem 1.6rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
                           />
                         </div>
-                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, display: 'block' }}>e.g. ₹499 (crossed out)</span>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, display: 'block' }}>e.g. ₹999 (crossed out)</span>
                       </div>
 
                       <div>
@@ -7209,7 +7209,7 @@ export default function SuperAdminPage() {
                             min="1"
                             value={settingOfferPrice}
                             onChange={(e) => setSettingOfferPrice(e.target.value)}
-                            placeholder="99"
+                            placeholder="299"
                             style={{ width: '100%', padding: '0.55rem 0.55rem 0.55rem 1.6rem', borderRadius: 8, border: '1.5px solid #16a34a', fontSize: '0.9rem', fontWeight: 800, color: '#16a34a', boxSizing: 'border-box' }}
                           />
                         </div>
@@ -7303,7 +7303,7 @@ export default function SuperAdminPage() {
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
                               `upi://pay?pa=${settingUpiId || 'localbazar@upi'}&pn=${encodeURIComponent(
                                 settingUpiName || 'LocalBazar'
-                              )}&am=${settingOfferPrice || 99}&cu=INR`
+                              )}&am=${settingOfferPrice || 299}&cu=INR`
                             )}`}
                             alt="Dynamic UPI QR"
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
@@ -7365,7 +7365,7 @@ export default function SuperAdminPage() {
                   <div style={{ marginTop: 3 }}>Owner: <strong>{trustToApprove.applicantName || trustToApprove.ownerName}</strong> ({trustToApprove.phone})</div>
                   <div style={{ marginTop: 3 }}>
                     UTR Number: <strong style={{ fontFamily: 'monospace', color: '#b45309' }}>{trustToApprove.transactionId || 'N/A'}</strong>
-                    {' '}• Amount: <strong style={{ color: '#16a34a' }}>₹{trustToApprove.amountPaid || 99}</strong>
+                    {' '}• Amount: <strong style={{ color: '#16a34a' }}>₹{trustToApprove.amountPaid || 299}</strong>
                   </div>
                 </div>
 
@@ -7438,7 +7438,7 @@ export default function SuperAdminPage() {
                   <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                     {[
                       'Transaction ID / UTR could not be verified in bank statement.',
-                      'Amount paid does not match the ₹99 fee.',
+                      'Amount paid does not match the ₹299 fee.',
                       'Attached trade license / GST certificate is invalid or unreadable.',
                       'Contact number could not be verified.',
                     ].map((preset, idx) => (

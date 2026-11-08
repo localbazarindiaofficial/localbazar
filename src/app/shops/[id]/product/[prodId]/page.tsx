@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Listing, ProductItem, ReviewItem, UserProfile } from '@/types';
+import { Listing, ProductItem, ReviewItem, UserProfile, formatWhatsAppUrl, formatTelUrl } from '@/types';
 import { cloudSync, auth, formatLBUserId } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import '@/styles/listing-detail.css';
@@ -57,6 +57,58 @@ function ProductDetailPageContent() {
       )
     ) || null;
   }, [currentUser, reviewsList]);
+
+  // Native App-Like Back Navigation (PWA Android Hardware Back Button Support)
+  const isAnyModalOpen = Boolean(lightboxImg || showReviewModal);
+  const isAnyModalOpenRef = useRef(false);
+  isAnyModalOpenRef.current = isAnyModalOpen;
+  const modalHistoryPushedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isAnyModalOpen) {
+      if (!modalHistoryPushedRef.current) {
+        window.history.pushState({ modalOpen: true }, '');
+        modalHistoryPushedRef.current = true;
+      }
+    } else {
+      modalHistoryPushedRef.current = false;
+    }
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onPopState = () => {
+      if (isAnyModalOpenRef.current) {
+        setLightboxImg(null);
+        setShowReviewModal(false);
+        modalHistoryPushedRef.current = false;
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, []);
+
+  const handleProductBack = () => {
+    if (isAnyModalOpenRef.current) {
+      setLightboxImg(null);
+      setShowReviewModal(false);
+      if (modalHistoryPushedRef.current && typeof window !== 'undefined' && window.history.state?.modalOpen) {
+        modalHistoryPushedRef.current = false;
+        window.history.back();
+      }
+      return;
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(shop?.id ? `/shops/${shop.id}` : '/');
+    }
+  };
 
   // Auth observer
   useEffect(() => {
@@ -463,7 +515,7 @@ function ProductDetailPageContent() {
             <button
               type="button"
               className="pdp-back-btn"
-              onClick={() => router.back()}
+              onClick={handleProductBack}
               title="Back"
             >
               <i className="fa-solid fa-arrow-left"></i>
@@ -766,7 +818,7 @@ function ProductDetailPageContent() {
           {/* Call Button */}
           {shop.phone && (
             <a
-              href={`tel:${shop.phone}`}
+              href={formatTelUrl(shop.phone)}
               className="pdp-action-btn call"
               title="Call Store"
             >
@@ -775,9 +827,9 @@ function ProductDetailPageContent() {
           )}
 
           {/* WhatsApp Order Button */}
-          {shop.phone && (
+          {(shop.whatsapp || shop.phone) && (
             <a
-              href={`https://wa.me/${(shop.whatsapp || shop.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this in stock?`)}`}
+              href={formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this in stock?`)}
               target="_blank"
               rel="noopener noreferrer"
               className="pdp-action-btn whatsapp"
