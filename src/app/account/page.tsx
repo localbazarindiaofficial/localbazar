@@ -235,15 +235,26 @@ export default function AccountPage() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const claimFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Gold Trust Badge Settings & Application States
-  const [trustBadgeSettings, setTrustBadgeSettings] = useState<TrustBadgeSettings>({
-    originalPrice: 999,
-    offerPrice: 299,
-    period: 'Year',
-    upiId: 'localbazar@upi',
-    upiName: 'LocalBazar Official',
-    qrImageUrl: '',
-    instructions: 'Scan QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM), pay ₹299, and enter the 12-digit UTR/Reference number below.'
+  // Gold Trust Badge Settings & Application States (0ms instant cache paint)
+  const [trustBadgeSettings, setTrustBadgeSettings] = useState<TrustBadgeSettings>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_trust_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && parsed.offerPrice) return parsed;
+        }
+      } catch {}
+    }
+    return {
+      originalPrice: 999,
+      offerPrice: 299,
+      period: 'Year',
+      upiId: 'localbazar@upi',
+      upiName: 'LocalBazar Official',
+      qrImageUrl: '',
+      instructions: 'Scan QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM), pay amount, and enter the 12-digit UTR/Reference number below.'
+    };
   });
   const [trustViewMode, setTrustViewMode] = useState<'hero' | 'listings' | 'form'>('hero');
   const [trustTab, setTrustTab] = useState<'apply' | 'myRequests'>('apply');
@@ -4756,23 +4767,27 @@ export default function AccountPage() {
                           Build 100% confidence with local shoppers. Get the prestigious Gold Shield badge next to your store name and appear at the top of local search results.
                         </p>
 
-                        {/* 4 Benefits Pills */}
+                        {/* 5 Official Gold Trust Badge Benefits */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem', textAlign: 'left' }}>
-                          <div style={{ background: 'rgba(255,255,255,0.75)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700 }}>
-                            <i className="fa-solid fa-certificate" style={{ color: '#d97706' }}></i>
-                            Official Verified Gold Checkmark
+                          <div style={{ background: 'rgba(255,255,255,0.85)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700, border: '1px solid #fde68a' }}>
+                            <i className="fa-solid fa-certificate" style={{ color: '#d97706', fontSize: '0.95rem' }}></i>
+                            Official Verified Gold Trust Badge
                           </div>
-                          <div style={{ background: 'rgba(255,255,255,0.75)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700 }}>
-                            <i className="fa-solid fa-arrow-trend-up" style={{ color: '#16a34a' }}></i>
-                            Priority Top Ranking in City & Category
+                          <div style={{ background: 'rgba(255,255,255,0.85)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700, border: '1px solid #fde68a' }}>
+                            <i className="fa-solid fa-arrow-trend-up" style={{ color: '#16a34a', fontSize: '0.95rem' }}></i>
+                            Priority Top Ranking in City &amp; Category
                           </div>
-                          <div style={{ background: 'rgba(255,255,255,0.75)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700 }}>
-                            <i className="fa-solid fa-phone-volume" style={{ color: '#2563eb' }}></i>
-                            3x More Direct Customer Inquiries & Calls
+                          <div style={{ background: 'rgba(255,255,255,0.85)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700, border: '1px solid #fde68a' }}>
+                            <i className="fa-solid fa-boxes-stacked" style={{ color: '#2563eb', fontSize: '0.95rem' }}></i>
+                            Add Unlimited Products &amp; Services
                           </div>
-                          <div style={{ background: 'rgba(255,255,255,0.75)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700 }}>
-                            <i className="fa-solid fa-shield-check" style={{ color: '#d97706' }}></i>
-                            Digital Verification Trust Certificate
+                          <div style={{ background: 'rgba(255,255,255,0.85)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700, border: '1px solid #fde68a' }}>
+                            <i className="fa-solid fa-images" style={{ color: '#8b5cf6', fontSize: '0.95rem' }}></i>
+                            Add Store Slide Banners
+                          </div>
+                          <div style={{ background: 'rgba(255,255,255,0.85)', padding: '0.65rem 0.85rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#78350f', fontWeight: 700, border: '1px solid #fde68a' }}>
+                            <i className="fa-solid fa-reply-all" style={{ color: '#f59e0b', fontSize: '0.95rem' }}></i>
+                            Customer Review Reply by Owner
                           </div>
                         </div>
                       </div>
@@ -4901,7 +4916,7 @@ export default function AccountPage() {
                                   Select a store to apply for Gold Verified Badge
                                 </div>
                                 <div style={{ fontSize: '0.78rem', color: '#92400e' }}>
-                                  Official gold shield, top ranking in search & 3x more customer inquiries
+                                  Official gold badge, top ranking, unlimited products, store slide banners &amp; review replies
                                 </div>
                               </div>
                             </div>

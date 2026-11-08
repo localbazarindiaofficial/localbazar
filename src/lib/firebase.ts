@@ -144,6 +144,7 @@ const memoryCache = {
   cities: null as CityItem[] | null,
   banners: null as any[] | null,
   promotedProducts: null as PromotedProductItem[] | null,
+  trustBadgeSettings: null as TrustBadgeSettings | null,
   targetBanners: null as any[] | null,
   newsTicker: null as string | null,
 };
@@ -159,6 +160,7 @@ export const cloudSync = {
     memoryCache.cities = null;
     memoryCache.banners = null;
     memoryCache.promotedProducts = null;
+    memoryCache.trustBadgeSettings = null;
     memoryCache.targetBanners = null;
     memoryCache.newsTicker = null;
   },
@@ -518,17 +520,48 @@ export const cloudSync = {
     await deleteDoc(doc(db, 'trust_requests', String(id)));
   },
 
-  pullTrustBadgeSettings: async (): Promise<TrustBadgeSettings | null> => {
+  pullTrustBadgeSettings: async (forceRefresh = false): Promise<TrustBadgeSettings | null> => {
+    if (!forceRefresh && memoryCache.trustBadgeSettings) {
+      return memoryCache.trustBadgeSettings;
+    }
+    // Check localStorage fast cache (0ms instant paint)
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_trust_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            memoryCache.trustBadgeSettings = parsed;
+          }
+        }
+      } catch {}
+    }
     try {
       const snap = await getDoc(doc(db, 'settings', 'trust_badge'));
-      if (snap.exists()) return snap.data() as TrustBadgeSettings;
+      if (snap.exists()) {
+        const data = snap.data() as TrustBadgeSettings;
+        memoryCache.trustBadgeSettings = data;
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('lb_cached_trust_settings', JSON.stringify(data));
+          }
+        } catch {}
+        return data;
+      }
     } catch {}
+    if (memoryCache.trustBadgeSettings) return memoryCache.trustBadgeSettings;
     return null;
   },
 
   saveTrustBadgeSettings: async (settings: TrustBadgeSettings): Promise<void> => {
     if (!settings) return;
     await setDoc(doc(db, 'settings', 'trust_badge'), settings, { merge: true });
+    memoryCache.trustBadgeSettings = settings;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lb_cached_trust_settings', JSON.stringify(settings));
+      }
+    } catch {}
   },
 
   // City Requests
