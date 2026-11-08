@@ -514,13 +514,6 @@ export default function HomePage() {
       window.location.assign(targetUrl);
       return;
     }
-
-    // Safety fallback: only triggers after 4500ms if client thread genuinely hung (never premature 750ms!)
-    setTimeout(() => {
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/explore')) {
-        window.location.assign(targetUrl);
-      }
-    }, 4500);
   };
 
   const handleModalGoogleSignIn = async () => {
