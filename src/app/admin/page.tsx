@@ -1653,6 +1653,7 @@ export default function SuperAdminPage() {
         const updatedTicket: MailItem = {
           ...matchedTicket,
           status: 'replied',
+          userRead: false,
           replies: [...(matchedTicket.replies || []), replyObj],
         };
         await cloudSync.saveMail(updatedTicket).catch(() => {});

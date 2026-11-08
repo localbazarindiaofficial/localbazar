@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cloudSync, uploadImageToCloud, formatLBUserId, auth, db } from '@/lib/firebase';
@@ -288,6 +288,18 @@ export default function AccountPage() {
   const [helpSending, setHelpSending] = useState(false);
   const [allMails, setAllMails] = useState<MailItem[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [readTicketMap, setReadTicketMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const storageKey = `lb_read_tickets_${currentUser?.id || currentUser?.email || 'default'}`;
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        setReadTicketMap(JSON.parse(raw));
+      }
+    } catch {}
+  }, [currentUser]);
   const [ticketReplyText, setTicketReplyText] = useState('');
   const [ticketReplySending, setTicketReplySending] = useState(false);
   const [ticketReplyFiles, setTicketReplyFiles] = useState<MailAttachment[]>([]);
@@ -344,13 +356,40 @@ export default function AccountPage() {
     }).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }, [allMails, currentUser]);
 
+  const isTicketUnreadForUser = useCallback((m: MailItem): boolean => {
+    if (!currentUser) return false;
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
+    const userId = currentUser.id || '';
+    const isDirectToUser = (m.toEmail && (m.toEmail.toLowerCase() === userEmail || m.toEmail.toLowerCase() === userId.toLowerCase())) || m.from === 'admin';
+
+    if (isDirectToUser) {
+      if (m.userRead === true || m.read === true) return false;
+      if (readTicketMap[m.id]) return false;
+      return true;
+    }
+
+    const adminReplies = (m.replies || []).filter((r) => r.sender === 'admin');
+    const hasAdminReply = m.status === 'replied' || adminReplies.length > 0;
+
+    if (hasAdminReply) {
+      const latestAdminReplyTime = adminReplies.length > 0
+        ? Math.max(...adminReplies.map((r) => r.timestamp || 0))
+        : (m.timestamp || 0);
+
+      const userReadTime = readTicketMap[m.id] || (m.userRead ? (m.userLastReadAt || m.timestamp || 1) : 0);
+
+      if (userReadTime && userReadTime >= latestAdminReplyTime) {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }, [currentUser, readTicketMap]);
+
   const unreadMailsCount = useMemo(() => {
-    return userMails.filter((m) => {
-      if (m.toEmail?.toLowerCase() === currentUser?.email?.toLowerCase() && !m.read) return true;
-      if (m.status === 'replied') return true;
-      return false;
-    }).length;
-  }, [userMails, currentUser]);
+    return userMails.filter((m) => isTicketUnreadForUser(m)).length;
+  }, [userMails, isTicketUnreadForUser]);
 
   const handleClearAppCache = () => {
     try {
@@ -2121,6 +2160,54 @@ export default function AccountPage() {
     }
   };
 
+  const markTicketAsRead = useCallback((ticketId: string) => {
+    if (!ticketId) return;
+    const now = Date.now();
+
+    // 1. Update readTicketMap in state & localStorage
+    setReadTicketMap((prev) => {
+      const updated = { ...prev, [ticketId]: now };
+      try {
+        const storageKey = `lb_read_tickets_${currentUser?.id || currentUser?.email || 'default'}`;
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // 2. Update allMails in state
+    setAllMails((prevMails) => {
+      return prevMails.map((m) => {
+        if (m.id === ticketId) {
+          return {
+            ...m,
+            read: true,
+            userRead: true,
+            userLastReadAt: now,
+          };
+        }
+        return m;
+      });
+    });
+
+    // 3. Persist to Firestore
+    const target = allMails.find((m) => m.id === ticketId);
+    if (target && (!target.userRead || !target.read)) {
+      const updatedTicket: MailItem = {
+        ...target,
+        read: true,
+        userRead: true,
+        userLastReadAt: now,
+      };
+      cloudSync.saveMail(updatedTicket).catch(() => {});
+    }
+  }, [currentUser, allMails]);
+
+  useEffect(() => {
+    if (selectedTicketId) {
+      markTicketAsRead(selectedTicketId);
+    }
+  }, [selectedTicketId, markTicketAsRead]);
+
   const handleSendTicketReply = async (ticketId: string) => {
     if (!ticketReplyText.trim() && ticketReplyFiles.length === 0) {
       showToast('Please enter a reply message', 'error');
@@ -2154,6 +2241,8 @@ export default function AccountPage() {
         ...targetTicket,
         status: 'open',
         read: false,
+        userRead: true,
+        userLastReadAt: Date.now(),
         replies: [...(targetTicket.replies || []), replyObj],
         timestamp: Date.now(),
       };
@@ -2477,7 +2566,24 @@ export default function AccountPage() {
                     <span>Support inbox, messages & direct inquiries</span>
                   </div>
                 </div>
-                <i className="fa-solid fa-chevron-right menu-chevron"></i>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {unreadMailsCount > 0 && (
+                    <span
+                      style={{
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontWeight: 800,
+                        boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.25)',
+                      }}
+                    >
+                      {unreadMailsCount} new
+                    </span>
+                  )}
+                  <i className="fa-solid fa-chevron-right menu-chevron"></i>
+                </div>
               </button>
 
               {/* 8. Settings */}
@@ -6077,7 +6183,7 @@ export default function AccountPage() {
                 >
                   <i className="fa-solid fa-inbox" style={{ color: helpTab === 'inbox' ? '#16a34a' : '#94a3b8' }}></i>
                   Inbox
-                  {(unreadMailsCount > 0 || hasNewSentTicketNotification) ? (
+                  {(unreadMailsCount > 0 || hasNewSentTicketNotification) && (
                     <span
                       style={{
                         background: '#ef4444',
@@ -6095,11 +6201,7 @@ export default function AccountPage() {
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', display: 'inline-block' }}></span>
                       {unreadMailsCount > 0 ? unreadMailsCount : 'New'}
                     </span>
-                  ) : userMails.length > 0 ? (
-                    <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
-                      {userMails.length}
-                    </span>
-                  ) : null}
+                  )}
                 </button>
               </div>
 
@@ -6688,18 +6790,30 @@ export default function AccountPage() {
                             const isReplied = mail.status === 'replied' || (mail.replies && mail.replies.length > 0);
                             const hasAdminDirect = mail.from === 'admin';
                             const repliesCount = mail.replies ? mail.replies.length : 0;
+                            const isUnread = isTicketUnreadForUser(mail);
 
                             return (
                               <div
                                 key={mail.id}
-                                onClick={() => setSelectedTicketId(mail.id)}
+                                onClick={() => {
+                                  setSelectedTicketId(mail.id);
+                                  markTicketAsRead(mail.id);
+                                }}
                                 style={{
                                   background: '#ffffff',
-                                  border: isReplied ? '1.5px solid #bfdbfe' : '1px solid #e2e8f0',
+                                  border: isUnread
+                                    ? '1.5px solid #3b82f6'
+                                    : isReplied
+                                    ? '1.5px solid #bfdbfe'
+                                    : '1px solid #e2e8f0',
                                   borderRadius: '14px',
                                   padding: '1.1rem 1.25rem',
                                   cursor: 'pointer',
-                                  boxShadow: isReplied ? '0 2px 8px rgba(37,99,235,0.06)' : '0 2px 6px rgba(0,0,0,0.03)',
+                                  boxShadow: isUnread
+                                    ? '0 4px 14px rgba(59,130,246,0.12)'
+                                    : isReplied
+                                    ? '0 2px 8px rgba(37,99,235,0.06)'
+                                    : '0 2px 6px rgba(0,0,0,0.03)',
                                   transition: 'all 0.15s ease',
                                   display: 'flex',
                                   justifyContent: 'space-between',
@@ -6712,12 +6826,17 @@ export default function AccountPage() {
                                     <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.98rem' }}>
                                       {mail.subject || 'Support Message'}
                                     </span>
+                                    {isUnread && (
+                                      <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.68rem', padding: '0.1rem 0.45rem', borderRadius: '999px', fontWeight: 800 }}>
+                                        UNREAD
+                                      </span>
+                                    )}
                                     {isReplied ? (
-                                      <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: '0.72rem', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 800 }}>
+                                      <span style={{ background: isUnread ? '#dbeafe' : '#f1f5f9', color: isUnread ? '#1d4ed8' : '#475569', fontSize: '0.72rem', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 800 }}>
                                         Admin Replied 💬
                                       </span>
                                     ) : hasAdminDirect ? (
-                                      <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.72rem', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 800 }}>
+                                      <span style={{ background: isUnread ? '#dcfce7' : '#f1f5f9', color: isUnread ? '#15803d' : '#475569', fontSize: '0.72rem', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 800 }}>
                                         Direct from Admin 📩
                                       </span>
                                     ) : (

@@ -197,6 +197,8 @@ export interface MailItem {
   date?: string;
   timestamp?: number;
   read?: boolean;
+  userRead?: boolean;
+  userLastReadAt?: number;
   folder?: 'inbox' | 'sent';
   isSent?: boolean;
   attachments?: MailAttachment[];
