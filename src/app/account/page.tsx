@@ -2191,16 +2191,17 @@ export default function AccountPage() {
       // Save to Firebase Cloud
       await cloudSync.saveMail(newMail);
 
-      // Reset form & remain on Compose tab with notification on Inbox
+      // Reset form & view sent ticket in Support History
       setHelpSubject('');
       setHelpMessage('');
       setHelpAttachments([]);
       setSelectedTicketId(null);
-      setHasNewSentTicketNotification(true);
+      setHasNewSentTicketNotification(false);
+      setHelpTab('inbox');
 
       showAlert(
         'Message Sent Successfully! 📩',
-        'Your support message has been delivered to LocalBazar Admin Support. You can check all messages and replies anytime in your Inbox tab.',
+        'Your support message has been delivered to LocalBazar Admin Support. You can track this ticket and admin replies anytime in your Support History tab.',
         'success'
       );
     } catch (err) {
@@ -2614,7 +2615,7 @@ export default function AccountPage() {
                   </div>
                   <div className="menu-row-info">
                     <strong>Help & Support</strong>
-                    <span>Support inbox, messages & direct inquiries</span>
+                    <span>Support history, tickets & direct inquiries</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -6198,13 +6199,13 @@ export default function AccountPage() {
               <div className="account-sub-title-wrap">
                 <h2 className="account-sub-title">Help & Support</h2>
                 <span className="account-sub-desc">
-                  {selectedTicketId ? 'Support Conversation Thread' : (helpTab === 'compose' ? 'Submit New Ticket to Admin' : 'Admin Messages & Support Replies')}
+                  {selectedTicketId ? 'Support Conversation Thread' : (helpTab === 'compose' ? 'Submit New Ticket to Admin' : 'Support History & Admin Replies')}
                 </span>
               </div>
             </div>
 
             <div className="sub-screen-content" style={{ padding: '1.25rem', maxWidth: '720px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-              {/* 2 Tabs: Compose & Inbox */}
+              {/* 2 Tabs: Compose & Support History */}
               <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '12px', marginBottom: '1.25rem' }}>
                 <button
                   type="button"
@@ -6259,8 +6260,8 @@ export default function AccountPage() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <i className="fa-solid fa-inbox" style={{ color: helpTab === 'inbox' ? '#16a34a' : '#94a3b8' }}></i>
-                  Inbox
+                  <i className="fa-solid fa-clock-rotate-left" style={{ color: helpTab === 'inbox' ? '#16a34a' : '#94a3b8' }}></i>
+                  Support History
                   {(unreadMailsCount > 0 || hasNewSentTicketNotification) && (
                     <span
                       style={{
@@ -6307,7 +6308,7 @@ export default function AccountPage() {
                         LocalBazar Admin Support Center
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#3b82f6', marginTop: 2 }}>
-                        Send any question, technical issue, or account inquiry directly to the platform admin. Replies will appear in your Inbox tab.
+                        Send any question, technical issue, or account inquiry directly to the platform admin. Track your tickets and replies in your Support History tab.
                       </div>
                     </div>
                   </div>
@@ -6520,7 +6521,7 @@ export default function AccountPage() {
                         <div style={{ textAlign: 'center', padding: '2rem' }}>
                           <p>Ticket not found.</p>
                           <button type="button" onClick={() => setSelectedTicketId(null)} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer' }}>
-                            Back to Inbox
+                            Back to Support History
                           </button>
                         </div>
                       );
@@ -6530,7 +6531,7 @@ export default function AccountPage() {
 
                     return (
                       <div>
-                        {/* Back to Inbox Bar */}
+                        {/* Back to Support History Bar */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                           <button
                             type="button"
@@ -6549,7 +6550,7 @@ export default function AccountPage() {
                               gap: '0.4rem',
                             }}
                           >
-                            <i className="fa-solid fa-arrow-left"></i> Back to All Messages
+                            <i className="fa-solid fa-arrow-left"></i> Back to Support History
                           </button>
                           <span
                             style={{
@@ -6837,8 +6838,8 @@ export default function AccountPage() {
                     <div>
                       {userMails.length === 0 ? (
                         <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                          <i className="fa-solid fa-inbox" style={{ fontSize: '2.8rem', color: '#cbd5e1', marginBottom: '0.85rem', display: 'block' }}></i>
-                          <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>Your Support Inbox is Empty</h4>
+                          <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: '2.8rem', color: '#cbd5e1', marginBottom: '0.85rem', display: 'block' }}></i>
+                          <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>No Support History Yet</h4>
                           <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '1.25rem', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
                             You have not submitted any support tickets yet. Click the Compose tab to send a direct message to LocalBazar Admin.
                           </p>
