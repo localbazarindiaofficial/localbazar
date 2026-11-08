@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cloudSync, uploadImageToCloud, formatLBUserId, auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Listing, UserProfile, CategoryItem, CityItem, ProductItem, DoctorItem, DailyScheduleDay, EmptyStoreBannerSlot, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, MailItem, MailAttachment, MailReplyItem, isTrustBadgeActive, getTrustBadgeDaysRemaining } from '@/types';
 import '@/styles/account.css';
@@ -571,7 +571,7 @@ export default function AccountPage() {
     } catch {}
 
     if (!u) {
-      router.push('/auth');
+      router.replace('/auth');
       return;
     }
 
@@ -1189,9 +1189,14 @@ export default function AccountPage() {
     );
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('lb_current_user');
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem('lb_current_user');
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    }
+    window.location.assign('/');
   };
 
   const handleRemoveBookmark = (e: React.MouseEvent, id: string, name: string) => {

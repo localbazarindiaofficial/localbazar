@@ -90,6 +90,16 @@ function ExploreContent() {
   const [newsAds, setNewsAds] = useState<NewsItem[]>([]);
   const [targetCampaigns, setTargetCampaigns] = useState<TargetNewsBannerItem[]>([]);
 
+  // Auth gatekeeper: verify user session
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem('lb_current_user');
+      if (!rawUser) {
+        router.replace('/auth');
+      }
+    } catch {}
+  }, [router]);
+
   useEffect(() => {
     // Load categories & campaign banners directly from Cloud
     cloudSync.pullTargetNewsBanners().then((targets) => {

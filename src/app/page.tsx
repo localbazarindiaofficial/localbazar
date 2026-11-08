@@ -168,6 +168,7 @@ export default function HomePage() {
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [modalTargetText, setModalTargetText] = useState('Local Stores');
+  const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -210,7 +211,10 @@ export default function HomePage() {
     try {
       const rawUser = localStorage.getItem('lb_current_user');
       if (rawUser) setCurrentUser(JSON.parse(rawUser));
-    } catch {}
+      else setCurrentUser(null);
+    } catch {
+      setCurrentUser(null);
+    }
 
     // 2. Prefetch explore route only after browser is completely idle (prevents network contention)
     const idlePrefetchTimer = setTimeout(() => {
@@ -286,8 +290,10 @@ export default function HomePage() {
         };
         setCurrentUser(userProfile);
       } else {
-        const raw = localStorage.getItem('lb_current_user');
-        if (!raw) setCurrentUser(null);
+        setCurrentUser(null);
+        try {
+          localStorage.removeItem('lb_current_user');
+        } catch {}
       }
     });
 
@@ -483,10 +489,16 @@ export default function HomePage() {
 
       setShowAuthModal(false);
 
-      const params = new URLSearchParams();
-      params.set('city', cityInput.trim());
-      params.set('category', queryInput.trim());
-      router.push(`/explore?${params.toString()}`);
+      if (pendingRedirectUrl) {
+        const redir = pendingRedirectUrl;
+        setPendingRedirectUrl(null);
+        router.push(redir);
+      } else if (cityInput.trim() || queryInput.trim()) {
+        const params = new URLSearchParams();
+        params.set('city', cityInput.trim());
+        params.set('category', queryInput.trim());
+        router.push(`/explore?${params.toString()}`);
+      }
     } catch (err) {
       console.error('Google Sign In Error:', err);
     } finally {
@@ -977,6 +989,14 @@ export default function HomePage() {
                     <Link
                       key={p.id}
                       href={targetUrl}
+                      onClick={(e) => {
+                        if (!currentUser) {
+                          e.preventDefault();
+                          setPendingRedirectUrl(targetUrl);
+                          setModalTargetText(`${p.productName} by ${p.shopName}`);
+                          setShowAuthModal(true);
+                        }
+                      }}
                       style={{
                         flex: '0 0 148px',
                         width: '148px',

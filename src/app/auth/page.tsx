@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth, cloudSync, db, formatLBUserId } from '@/lib/firebase';
@@ -13,6 +13,15 @@ export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    // Intercept hardware Back button on Android mobile so it never exits the app, safely returning to '/'
+    const onPopState = () => {
+      window.location.assign('/');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -79,7 +88,31 @@ export default function AuthPage() {
   return (
     <div className="auth-body">
       <main className="auth-main">
-        <div className="auth-card">
+        <div className="auth-card" style={{ position: 'relative' }}>
+          {/* Close / Back to Home Button */}
+          <Link
+            href="/"
+            title="Back to Home"
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: '#f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b',
+              textDecoration: 'none',
+              fontSize: '1rem',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            }}
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </Link>
+
           {/* Brand Logo */}
           <div className="card-brand-header">
             <Link href="/" className="auth-brand-logo" title="LocalBazar Home">

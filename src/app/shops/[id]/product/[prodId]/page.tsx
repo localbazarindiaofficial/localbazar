@@ -90,6 +90,8 @@ function ProductDetailPageContent() {
         try {
           localStorage.setItem('lb_current_user', JSON.stringify(profile));
         } catch {}
+      } else {
+        setCurrentUser(null);
       }
     });
     return () => unsub();
