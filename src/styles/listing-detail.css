@@ -1237,8 +1237,8 @@ body.detail-body {
 
 /* 5 Quick Action Buttons */
 .jd-app-action-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
     gap: 0.5rem;
     padding-bottom: 0.55rem;
     margin-bottom: 0;
@@ -1326,7 +1326,7 @@ body.detail-body {
 
 @media (max-width: 420px) {
     .jd-app-action-grid {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(5, 1fr) !important;
         gap: 0.35rem;
     }
     .jd-app-icon-squircle {
@@ -3207,8 +3207,8 @@ body.detail-body {
 
     /* 2. 5 Quick Action Buttons */
     .jd-app-action-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
         gap: 0.35rem;
         padding-bottom: 0.45rem;
         margin-bottom: 0;
