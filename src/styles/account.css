@@ -8392,30 +8392,39 @@ body.dark-theme .profile-field-input.disabled {
     background: #ffffff !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 16px !important;
-    padding: 0.85rem 1rem !important;
+    padding: 0.9rem 1rem !important;
     display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 0.85rem !important;
-    margin-bottom: 0.75rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-bottom: 0.85rem !important;
     transition: all 0.15s ease !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
 
 .m-prod-card-row:hover {
     border-color: #cbd5e1 !important;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07) !important;
+}
+
+.m-prod-card-top {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
 }
 
 .m-prod-card-left {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     gap: 0.85rem !important;
+    width: 100% !important;
     min-width: 0 !important;
 }
 
 .m-prod-thumb-box {
-    width: 64px !important;
-    height: 64px !important;
+    width: 68px !important;
+    height: 68px !important;
     border-radius: 12px !important;
     overflow: hidden !important;
     position: relative !important;
@@ -8448,28 +8457,30 @@ body.dark-theme .profile-field-input.disabled {
 .m-prod-details-col {
     display: flex !important;
     flex-direction: column !important;
+    flex: 1 !important;
     min-width: 0 !important;
 }
 
 .m-prod-title-text {
-    font-size: 0.96rem !important;
+    font-size: 0.98rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
-    margin: 0 0 2px 0 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
 }
 
 .m-prod-meta-line {
     display: flex !important;
     align-items: center !important;
+    flex-wrap: wrap !important;
     gap: 0.5rem !important;
-    margin-bottom: 2px !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
 }
 
 .m-prod-price-text {
-    font-size: 0.9rem !important;
+    font-size: 0.92rem !important;
     font-weight: 800 !important;
     color: #2563eb !important;
 }
@@ -8479,6 +8490,8 @@ body.dark-theme .profile-field-input.disabled {
     font-weight: 800 !important;
     padding: 2px 8px !important;
     border-radius: 9999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
 }
 
 .m-prod-stock-badge.in {
@@ -8494,9 +8507,71 @@ body.dark-theme .profile-field-input.disabled {
 }
 
 .m-prod-cat-subtext {
-    font-size: 0.76rem !important;
+    font-size: 0.78rem !important;
     color: #64748b !important;
     margin: 0 !important;
+}
+
+/* Modern bottom action bar spanning beneath item details */
+.m-prod-actions-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
+    margin-top: 0.75rem !important;
+    padding-top: 0.65rem !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+
+.btn-prod-bar-action {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    padding: 0.45rem 0.25rem !important;
+    border-radius: 9px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+}
+
+.btn-prod-bar-action i {
+    font-size: 0.82rem !important;
+}
+
+.btn-prod-bar-action.star.active {
+    color: #b45309 !important;
+    background: #fef3c7 !important;
+    border-color: #fde68a !important;
+}
+
+.btn-prod-bar-action.star:hover {
+    color: #b45309 !important;
+    background: #fef3c7 !important;
+    border-color: #fcd34d !important;
+}
+
+.btn-prod-bar-action.view:hover {
+    color: #1d4ed8 !important;
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+}
+
+.btn-prod-bar-action.edit:hover {
+    color: #0369a1 !important;
+    background: #f0f9ff !important;
+    border-color: #bae6fd !important;
+}
+
+.btn-prod-bar-action.del:hover {
+    color: #b91c1c !important;
+    background: #fef2f2 !important;
+    border-color: #fecaca !important;
 }
 
 .m-prod-actions-row {

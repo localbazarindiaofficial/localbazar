@@ -431,6 +431,27 @@ export default function AccountPage() {
     }
   };
 
+  // Smooth direct navigation from Business Portal to Trust Badge without popstate conflict
+  const navigateToTrustBadgeFromPortal = () => {
+    const currentBiz = activePortalListingRef.current || activePortalListing;
+    setActivePortalListing(null);
+    activePortalListingRef.current = null;
+    setPortalDrawerOpen(false);
+    if (currentBiz) {
+      setSelectedTrustListing(currentBiz);
+    }
+    setTrustViewMode('hero');
+
+    const currentIdx = typeof window !== 'undefined' && window.history.state?.idx !== undefined
+      ? Number(window.history.state.idx)
+      : 1;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({ screen: 'viewTrustBadge', idx: currentIdx }, '', '/account#trust-badge');
+    }
+    setActiveScreen('viewTrustBadge');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   // App Back button handler (for both on-screen < button and phone hardware back)
   const handleAppBack = (fallback: AccountScreen | 'home' = 'viewMainMenu') => {
     // 0. If Business Portal is open, close it first!
@@ -7518,22 +7539,24 @@ export default function AccountPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          closeBusinessPortal();
-                          goToScreen('viewTrustBadge');
-                        }}
+                        onClick={navigateToTrustBadgeFromPortal}
                         style={{
                           background: '#d97706',
                           color: '#ffffff',
                           border: 'none',
-                          padding: '3px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.76rem',
+                          padding: '4px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
                           fontWeight: 800,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 6px rgba(217, 119, 6, 0.25)'
                         }}
                       >
-                        Upgrade to Trust Badge
+                        <i className="fa-solid fa-shield-halved" style={{ fontSize: '0.75rem' }}></i>
+                        <span>Upgrade to Trust Badge</span>
                       </button>
                     </div>
                   )}
@@ -7630,7 +7653,8 @@ export default function AccountPage() {
 
                           return (
                             <div key={originalIdx} className="m-prod-card-row">
-                              <div className="m-prod-card-left">
+                              {/* Top Part: Product Image & Full Details */}
+                              <div className="m-prod-card-top">
                                 <div className="m-prod-thumb-box">
                                   <img src={thumbUrl} alt={item.name} className="m-prod-thumb-img" />
                                   <span className="m-prod-cam-badge">
@@ -7638,51 +7662,84 @@ export default function AccountPage() {
                                   </span>
                                 </div>
                                 <div className="m-prod-details-col">
-                                  <span className="m-prod-title-text">{item.name}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', marginBottom: '2px' }}>
+                                    <span className="m-prod-title-text">{item.name}</span>
+                                    {isTop && (
+                                      <span style={{
+                                        fontSize: '0.66rem',
+                                        fontWeight: 800,
+                                        background: '#fef3c7',
+                                        color: '#b45309',
+                                        border: '1px solid #fde68a',
+                                        padding: '1px 6px',
+                                        borderRadius: '999px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        flexShrink: 0
+                                      }}>
+                                        <i className="fa-solid fa-star" style={{ color: '#eab308' }}></i> Top
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="m-prod-meta-line">
                                     <span className="m-prod-price-text">{item.price || 'On Request'}</span>
                                     <span className={`m-prod-stock-badge ${isInStock ? 'in' : 'out'}`}>
+                                      <span style={{
+                                        width: '6px',
+                                        height: '6px',
+                                        borderRadius: '50%',
+                                        background: isInStock ? '#16a34a' : '#dc2626',
+                                        display: 'inline-block',
+                                        marginRight: '4px'
+                                      }}></span>
                                       {isInStock ? 'In Stock' : 'Out of Stock'}
                                     </span>
                                   </div>
                                   <p className="m-prod-cat-subtext">
-                                    Category: {item.storeCategory || item.category || 'General'}
+                                    <i className="fa-solid fa-tag" style={{ marginRight: '4px', opacity: 0.7 }}></i>
+                                    {item.storeCategory || item.category || 'General'}
                                   </p>
                                 </div>
                               </div>
 
-                              <div className="m-prod-actions-row">
+                              {/* Bottom Action Bar: Positioned neatly underneath item details */}
+                              <div className="m-prod-actions-bar">
                                 <button
                                   type="button"
-                                  className={`btn-prod-action-btn star ${isTop ? 'active' : ''}`}
+                                  className={`btn-prod-bar-action star ${isTop ? 'active' : ''}`}
                                   onClick={() => handleToggleProductTop(originalIdx)}
                                   title={isTop ? 'Remove from Top Products' : 'Mark as Top Product'}
                                 >
                                   <i className={isTop ? 'fa-solid fa-star' : 'fa-regular fa-star'}></i>
+                                  <span>{isTop ? 'Top Pick' : 'Feature'}</span>
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn-prod-action-btn view"
+                                  className="btn-prod-bar-action view"
                                   onClick={() => setPreviewProduct(item)}
                                   title="Preview Product"
                                 >
                                   <i className="fa-solid fa-eye"></i>
+                                  <span>Preview</span>
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn-prod-action-btn edit"
+                                  className="btn-prod-bar-action edit"
                                   onClick={() => handleOpenEditProduct(originalIdx, item)}
                                   title="Edit Product"
                                 >
                                   <i className="fa-solid fa-pencil"></i>
+                                  <span>Edit</span>
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn-prod-action-btn del"
+                                  className="btn-prod-bar-action del"
                                   onClick={() => handleDeletePortalProduct(originalIdx)}
                                   title="Delete Product"
                                 >
-                                  <i className="fa-solid fa-trash"></i>
+                                  <i className="fa-solid fa-trash-can"></i>
+                                  <span>Delete</span>
                                 </button>
                               </div>
                             </div>
@@ -7801,10 +7858,7 @@ export default function AccountPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          closeBusinessPortal();
-                          goToScreen('viewTrustBadge');
-                        }}
+                        onClick={navigateToTrustBadgeFromPortal}
                         style={{
                           background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                           color: '#ffffff',
