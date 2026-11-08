@@ -23,7 +23,7 @@ export default function NavigationProgressBar() {
     const fadeTimer = setTimeout(() => {
       setIsNavigating(false);
       setProgress(0);
-    }, 220);
+    }, 120);
     timersRef.current.push(fadeTimer);
   };
 
@@ -35,20 +35,20 @@ export default function NavigationProgressBar() {
     // Progressive increments: realistic visual feedback while page chunks fetch
     const t1 = setTimeout(() => {
       setProgress((prev) => (prev > 0 && prev < 80 ? 68 : prev));
-    }, 120);
+    }, 80);
 
     const t2 = setTimeout(() => {
       setProgress((prev) => (prev > 0 && prev < 90 ? 84 : prev));
-    }, 320);
+    }, 200);
 
     const t3 = setTimeout(() => {
       setProgress((prev) => (prev > 0 && prev < 95 ? 92 : prev));
-    }, 750);
+    }, 450);
 
-    // Generous safety timeout: Dismiss after 6000ms if navigation was aborted
+    // Generous safety timeout: Dismiss after 4000ms if navigation was aborted
     const safetyTimer = setTimeout(() => {
       finishNavigation();
-    }, 6000);
+    }, 4000);
 
     timersRef.current.push(t1, t2, t3, safetyTimer);
   };
@@ -61,10 +61,21 @@ export default function NavigationProgressBar() {
 
   // Global click & history navigation listener
   useEffect(() => {
-    // Intercept history.pushState so programmatic router.push() triggers instant progress bar
+    // Intercept history.pushState so programmatic router.push() triggers instant progress bar only on real page change
     const originalPushState = window.history.pushState;
     window.history.pushState = function (...args) {
-      startNavigation();
+      try {
+        const url = args[2];
+        if (url && typeof url === 'string') {
+          const targetUrl = new URL(url, window.location.href);
+          if (
+            targetUrl.origin === window.location.origin &&
+            (targetUrl.pathname !== window.location.pathname || targetUrl.search !== window.location.search)
+          ) {
+            startNavigation();
+          }
+        }
+      } catch {}
       return originalPushState.apply(this, args);
     };
 

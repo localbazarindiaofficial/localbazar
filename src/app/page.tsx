@@ -8,23 +8,8 @@ import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebas
 import { doc, getDoc } from 'firebase/firestore';
 import { CityItem, CategoryItem, UserProfile, PromotedProductItem } from '@/types';
 
-// Default enriched cities with district, state, pin code
-const DEFAULT_CITIES: CityItem[] = [
-  { name: 'Kolkata', district: 'Kolkata', state: 'West Bengal', pinCode: '700001', popular: true },
-  { name: 'Howrah', district: 'Howrah', state: 'West Bengal', pinCode: '711101', popular: true },
-  { name: 'Durgapur', district: 'Paschim Bardhaman', state: 'West Bengal', pinCode: '713216', popular: true },
-  { name: 'Siliguri', district: 'Darjeeling', state: 'West Bengal', pinCode: '734001', popular: true },
-  { name: 'Asansol', district: 'Paschim Bardhaman', state: 'West Bengal', pinCode: '713301', popular: true },
-  { name: 'Bardhaman', district: 'Purba Bardhaman', state: 'West Bengal', pinCode: '713101' },
-  { name: 'Kharagpur', district: 'Paschim Medinipur', state: 'West Bengal', pinCode: '721301' },
-  { name: 'Malda', district: 'Malda', state: 'West Bengal', pinCode: '732101' },
-  { name: 'Berhampore', district: 'Murshidabad', state: 'West Bengal', pinCode: '742101' },
-  { name: 'Barasat', district: 'North 24 Parganas', state: 'West Bengal', pinCode: '700124' },
-  { name: 'Haldia', district: 'Purba Medinipur', state: 'West Bengal', pinCode: '721602' },
-  { name: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra', pinCode: '400001', popular: true },
-  { name: 'New Delhi', district: 'Central Delhi', state: 'Delhi', pinCode: '110001', popular: true },
-  { name: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka', pinCode: '560001', popular: true },
-];
+// Default categories list (Live cities pulled dynamically from cloud Firestore with localStorage cache)
+const DEFAULT_CITIES: CityItem[] = [];
 
 const DEFAULT_CATEGORIES: CategoryItem[] = [
   {
@@ -147,7 +132,15 @@ const matchStartsWithWord = (text: string, q: string): boolean => {
 export default function HomePage() {
   const router = useRouter();
 
-  const [cities, setCities] = useState<CityItem[]>(DEFAULT_CITIES);
+  const [cities, setCities] = useState<CityItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_cities');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
   const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
   const [cityInput, setCityInput] = useState('');
   const [queryInput, setQueryInput] = useState('');
@@ -261,16 +254,16 @@ export default function HomePage() {
     const cloudSyncTimer = setTimeout(() => {
       cloudSync.pullCities().then((c) => {
         if (c && c.length) {
-          const enriched = c.map((city) => {
-            const def = DEFAULT_CITIES.find((dc) => dc.name.toLowerCase() === (city.name || '').toLowerCase());
-            return {
-              ...city,
-              district: city.district || def?.district || '',
-              state: city.state || def?.state || 'India',
-              pinCode: city.pinCode || city.pincode || def?.pinCode || ''
-            };
-          });
+          const enriched = c.map((city) => ({
+            ...city,
+            district: city.district || '',
+            state: city.state || 'India',
+            pinCode: city.pinCode || city.pincode || ''
+          }));
           setCities(enriched);
+          try {
+            localStorage.setItem('lb_cached_cities', JSON.stringify(enriched));
+          } catch {}
         }
       });
 
@@ -366,7 +359,6 @@ export default function HomePage() {
       // 1. If Auth modal is open, close it
       if (showAuthModal) {
         setShowAuthModal(false);
-        if (isStandalone) window.history.pushState({ homeRoot: true }, '');
         return;
       }
 
@@ -374,12 +366,11 @@ export default function HomePage() {
       if (showCitySugg || showCatSugg) {
         setShowCitySugg(false);
         setShowCatSugg(false);
-        if (isStandalone) window.history.pushState({ homeRoot: true }, '');
         return;
       }
 
-      // 3. Double-back to exit safeguard
-      if (isStandalone) {
+      // 3. Double-back to exit safeguard (strictly on root home page)
+      if (isStandalone && typeof window !== 'undefined' && window.location.pathname === '/') {
         const now = Date.now();
         if (now - lastBackPressTimeRef.current < 2000) {
           window.history.back();
@@ -510,6 +501,12 @@ export default function HomePage() {
       router.prefetch(targetUrl);
     } catch {}
 
+    // Reset search inputs so returning to Home gives a fresh, clean search bar
+    setCityInput('');
+    setQueryInput('');
+    setShowCitySugg(false);
+    setShowCatSugg(false);
+
     // Smooth client-side Next.js route transition (zero white-screen reload)
     try {
       router.push(targetUrl);
@@ -582,6 +579,10 @@ export default function HomePage() {
         const params = new URLSearchParams();
         params.set('city', cityInput.trim());
         params.set('category', queryInput.trim());
+        setCityInput('');
+        setQueryInput('');
+        setShowCitySugg(false);
+        setShowCatSugg(false);
         router.push(`/explore?${params.toString()}`);
       }
     } catch (err) {
@@ -669,7 +670,8 @@ export default function HomePage() {
                   setShowCitySugg(val.trim().length > 0);
                   setShowCatSugg(false);
                 }}
-                onFocus={() => {
+                onFocus={(e) => {
+                  try { e.currentTarget.select(); } catch {}
                   setShowCitySugg(cityInput.trim().length > 0);
                   setShowCatSugg(false);
                 }}
@@ -677,6 +679,22 @@ export default function HomePage() {
                   if (e.key === 'Escape') setShowCitySugg(false);
                 }}
               />
+              {cityInput && (
+                <button
+                  type="button"
+                  className="omni-clear-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCityInput('');
+                    setShowCitySugg(false);
+                    cityInputRef.current?.focus();
+                  }}
+                  aria-label="Clear city"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              )}
               {cityError && (
                 <div className="omni-input-error-tip show" id="cityInputError">
                   {cityError}
@@ -774,7 +792,8 @@ export default function HomePage() {
                   setShowCatSugg(val.trim().length > 0);
                   setShowCitySugg(false);
                 }}
-                onFocus={() => {
+                onFocus={(e) => {
+                  try { e.currentTarget.select(); } catch {}
                   setShowCatSugg(queryInput.trim().length > 0);
                   setShowCitySugg(false);
                 }}
@@ -782,6 +801,22 @@ export default function HomePage() {
                   if (e.key === 'Escape') setShowCatSugg(false);
                 }}
               />
+              {queryInput && (
+                <button
+                  type="button"
+                  className="omni-clear-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQueryInput('');
+                    setShowCatSugg(false);
+                    queryInputRef.current?.focus();
+                  }}
+                  aria-label="Clear category"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              )}
               {queryError && (
                 <div className="omni-input-error-tip show" id="queryInputError">
                   {queryError}
