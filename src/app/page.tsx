@@ -153,8 +153,25 @@ export default function HomePage() {
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [homeNewsTicker, setHomeNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
-  const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>([]);
-  const [promotedProducts, setPromotedProducts] = useState<PromotedProductItem[]>([]);
+  const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_home_banners');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [promotedProducts, setPromotedProducts] = useState<PromotedProductItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_promoted_products');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [navigatingProdId, setNavigatingProdId] = useState<string | null>(null);
   const promoRowRef = useRef<HTMLDivElement>(null);
   const [promoPaused, setPromoPaused] = useState(false);
 
@@ -204,6 +221,21 @@ export default function HomePage() {
     }, 3500);
     return () => clearInterval(interval);
   }, [promotedProducts.length, promoPaused]);
+
+  // High-Speed Route Preloader: prefetch featured product detail routes into browser cache for 0ms transitions
+  useEffect(() => {
+    if (promotedProducts.length > 0) {
+      const timer = setTimeout(() => {
+        promotedProducts.slice(0, 10).forEach((p) => {
+          const targetUrl = `/shops/${encodeURIComponent(p.shopId)}/product/${encodeURIComponent(p.productId)}`;
+          try {
+            router.prefetch(targetUrl);
+          } catch {}
+        });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [promotedProducts, router]);
 
   // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
@@ -989,12 +1021,20 @@ export default function HomePage() {
                     <Link
                       key={p.id}
                       href={targetUrl}
+                      prefetch={true}
                       onClick={(e) => {
                         if (!currentUser) {
                           e.preventDefault();
                           setPendingRedirectUrl(targetUrl);
                           setModalTargetText(`${p.productName} by ${p.shopName}`);
                           setShowAuthModal(true);
+                          return;
+                        }
+                        setNavigatingProdId(p.id);
+                        try {
+                          router.push(targetUrl);
+                        } catch {
+                          window.location.assign(targetUrl);
                         }
                       }}
                       style={{
@@ -1012,9 +1052,11 @@ export default function HomePage() {
                           overflow: 'hidden',
                           border: '1px solid #e2e8f0',
                           boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(0,0,0,0.04)',
-                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                          transition: 'transform 0.15s ease, opacity 0.15s ease',
                           display: 'flex',
                           flexDirection: 'column',
+                          transform: navigatingProdId === p.id ? 'scale(0.97)' : 'none',
+                          opacity: navigatingProdId && navigatingProdId !== p.id ? 0.65 : 1,
                         }}
                       >
                         {/* 1:1 Exact Square Product Image */}
@@ -1027,6 +1069,22 @@ export default function HomePage() {
                             overflow: 'hidden',
                           }}
                         >
+                          {navigatingProdId === p.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(3px)',
+                                zIndex: 10,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <i className="fa-solid fa-circle-notch fa-spin" style={{ color: '#2563eb', fontSize: '1.4rem' }}></i>
+                            </div>
+                          )}
                           {p.image ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img

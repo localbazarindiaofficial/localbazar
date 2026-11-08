@@ -395,8 +395,22 @@ function ProductDetailPageContent() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <div style={{ width: 44, height: 44, border: '3.5px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'lbSpin 0.75s linear infinite' }}></div>
+      <div className="product-page-wrapper" style={{ maxWidth: 680, margin: '0 auto', padding: '1rem', minHeight: '100vh', background: '#f8fafc' }}>
+        {/* Skeleton Top Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div className="lb-skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }}></div>
+          <div className="lb-skeleton" style={{ width: 140, height: 22, borderRadius: 6 }}></div>
+          <div className="lb-skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }}></div>
+        </div>
+        {/* Skeleton Product Image Card */}
+        <div className="lb-skeleton" style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 18, marginBottom: '1.25rem' }}></div>
+        {/* Skeleton Title & Price */}
+        <div className="lb-skeleton" style={{ width: '70%', height: 26, borderRadius: 6, marginBottom: '0.75rem' }}></div>
+        <div className="lb-skeleton" style={{ width: '35%', height: 22, borderRadius: 6, marginBottom: '1.5rem' }}></div>
+        {/* Skeleton Store Badge */}
+        <div className="lb-skeleton" style={{ width: '100%', height: 56, borderRadius: 14, marginBottom: '1.25rem' }}></div>
+        {/* Skeleton Action Button */}
+        <div className="lb-skeleton" style={{ width: '100%', height: 46, borderRadius: 12 }}></div>
       </div>
     );
   }

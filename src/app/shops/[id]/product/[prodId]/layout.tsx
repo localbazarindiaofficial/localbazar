@@ -26,9 +26,11 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
 
   try {
     const docRef = doc(db, 'listings', String(shopId));
-    const snap = await getDoc(docRef);
+    // Fast 850ms timeout race so serverless Firestore never freezes or delays client page transition
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 850));
+    const snap = await Promise.race([getDoc(docRef), timeoutPromise]);
 
-    if (snap.exists()) {
+    if (snap && snap.exists()) {
       const shop = snap.data() as Listing;
       const prods = (shop.products && Array.isArray(shop.products)) ? shop.products : [];
 

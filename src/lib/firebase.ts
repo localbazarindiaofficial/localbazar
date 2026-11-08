@@ -143,6 +143,7 @@ const memoryCache = {
   categories: null as CategoryItem[] | null,
   cities: null as CityItem[] | null,
   banners: null as any[] | null,
+  promotedProducts: null as PromotedProductItem[] | null,
   targetBanners: null as any[] | null,
   newsTicker: null as string | null,
 };
@@ -157,6 +158,7 @@ export const cloudSync = {
     memoryCache.categories = null;
     memoryCache.cities = null;
     memoryCache.banners = null;
+    memoryCache.promotedProducts = null;
     memoryCache.targetBanners = null;
     memoryCache.newsTicker = null;
   },
@@ -588,18 +590,47 @@ export const cloudSync = {
   },
 
   // News & Banners Settings
-  pullHomeBanners: async (): Promise<SlideBannerItem[]> => {
+  pullHomeBanners: async (forceRefresh = false): Promise<SlideBannerItem[]> => {
+    if (!forceRefresh && memoryCache.banners && memoryCache.banners.length > 0) {
+      return memoryCache.banners;
+    }
+    // Check localStorage fast cache (0ms instant paint)
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_home_banners');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            memoryCache.banners = parsed;
+          }
+        }
+      } catch {}
+    }
     try {
       const snap = await getDoc(doc(db, 'settings', 'home_banners'));
       if (snap.exists() && Array.isArray(snap.data()?.banners)) {
-        return snap.data()?.banners as SlideBannerItem[];
+        const banners = snap.data()?.banners as SlideBannerItem[];
+        memoryCache.banners = banners;
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('lb_cached_home_banners', JSON.stringify(banners));
+          }
+        } catch {}
+        return banners;
       }
     } catch {}
+    if (memoryCache.banners) return memoryCache.banners;
     return [];
   },
 
   saveHomeBanners: async (banners: SlideBannerItem[]): Promise<void> => {
     await setDoc(doc(db, 'settings', 'home_banners'), { banners, updatedAt: Date.now() }, { merge: true });
+    memoryCache.banners = banners;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lb_cached_home_banners', JSON.stringify(banners));
+      }
+    } catch {}
   },
 
   pullTargetNewsBanners: async (): Promise<TargetNewsBannerItem[]> => {
@@ -631,18 +662,47 @@ export const cloudSync = {
   },
 
   // Promoted Products (Featured on Home Page)
-  pullPromotedProducts: async (): Promise<PromotedProductItem[]> => {
+  pullPromotedProducts: async (forceRefresh = false): Promise<PromotedProductItem[]> => {
+    if (!forceRefresh && memoryCache.promotedProducts && memoryCache.promotedProducts.length > 0) {
+      return memoryCache.promotedProducts;
+    }
+    // Check localStorage fast cache (0ms instant paint)
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_promoted_products');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            memoryCache.promotedProducts = parsed;
+          }
+        }
+      } catch {}
+    }
     try {
       const snap = await getDoc(doc(db, 'settings', 'promoted_products'));
       if (snap.exists() && Array.isArray(snap.data()?.items)) {
-        return snap.data()?.items as PromotedProductItem[];
+        const items = snap.data()?.items as PromotedProductItem[];
+        memoryCache.promotedProducts = items;
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('lb_cached_promoted_products', JSON.stringify(items));
+          }
+        } catch {}
+        return items;
       }
     } catch {}
+    if (memoryCache.promotedProducts) return memoryCache.promotedProducts;
     return [];
   },
 
   savePromotedProducts: async (items: PromotedProductItem[]): Promise<void> => {
     await setDoc(doc(db, 'settings', 'promoted_products'), { items, updatedAt: Date.now() }, { merge: true });
+    memoryCache.promotedProducts = items;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lb_cached_promoted_products', JSON.stringify(items));
+      }
+    } catch {}
   },
 
   pullNewsTicker: async (): Promise<string | null> => {
