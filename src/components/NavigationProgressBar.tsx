@@ -32,21 +32,25 @@ export default function NavigationProgressBar() {
     setIsNavigating(true);
     setProgress(35);
 
-    // Progressive increments
+    // Progressive increments: realistic visual feedback while page chunks fetch
     const t1 = setTimeout(() => {
       setProgress((prev) => (prev > 0 && prev < 80 ? 68 : prev));
-    }, 150);
+    }, 120);
 
     const t2 = setTimeout(() => {
       setProgress((prev) => (prev > 0 && prev < 90 ? 84 : prev));
-    }, 350);
+    }, 320);
 
-    // Hard safety timeout: Automatically complete within 850ms so bar can NEVER get stuck on screen
+    const t3 = setTimeout(() => {
+      setProgress((prev) => (prev > 0 && prev < 95 ? 92 : prev));
+    }, 750);
+
+    // Generous safety timeout: Dismiss after 6000ms if navigation was aborted
     const safetyTimer = setTimeout(() => {
       finishNavigation();
-    }, 850);
+    }, 6000);
 
-    timersRef.current.push(t1, t2, safetyTimer);
+    timersRef.current.push(t1, t2, t3, safetyTimer);
   };
 
   // When pathname or searchParams change, route has finished loading

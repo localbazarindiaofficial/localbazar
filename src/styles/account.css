@@ -98,6 +98,11 @@ body.account-hub-body {
     transform: translateX(-2px);
 }
 
+.account-sub-back-btn:active {
+    transform: scale(0.92);
+    background: #cbd5e1;
+}
+
 .account-sub-title-wrap {
     flex: 1;
     min-width: 0;

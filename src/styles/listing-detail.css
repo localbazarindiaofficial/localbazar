@@ -76,6 +76,11 @@ body.detail-body {
     color: var(--brand-blue);
 }
 
+.btn-detail-back:active {
+    transform: scale(0.92);
+    background: #e2e8f0;
+}
+
 .top-nav-title {
     font-size: 1.05rem;
     font-weight: 700;

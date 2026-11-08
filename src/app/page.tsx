@@ -188,6 +188,8 @@ export default function HomePage() {
   const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [exitToast, setExitToast] = useState(false);
+  const lastBackPressTimeRef = useRef(0);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerTouchStartX = useRef<number | null>(null);
 
@@ -347,6 +349,53 @@ export default function HomePage() {
     };
   }, []);
 
+  // PWA Android Hardware Back Safeguard (Prevents accidental app exit on Home screen)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if running as installed PWA / standalone
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://');
+
+    if (isStandalone && window.history.state?.homeRoot !== true) {
+      window.history.pushState({ homeRoot: true }, '');
+    }
+
+    const onPopState = () => {
+      // 1. If Auth modal is open, close it
+      if (showAuthModal) {
+        setShowAuthModal(false);
+        if (isStandalone) window.history.pushState({ homeRoot: true }, '');
+        return;
+      }
+
+      // 2. If suggestions are open, close them
+      if (showCitySugg || showCatSugg) {
+        setShowCitySugg(false);
+        setShowCatSugg(false);
+        if (isStandalone) window.history.pushState({ homeRoot: true }, '');
+        return;
+      }
+
+      // 3. Double-back to exit safeguard
+      if (isStandalone) {
+        const now = Date.now();
+        if (now - lastBackPressTimeRef.current < 2000) {
+          window.history.back();
+        } else {
+          lastBackPressTimeRef.current = now;
+          setExitToast(true);
+          setTimeout(() => setExitToast(false), 2000);
+          window.history.pushState({ homeRoot: true }, '');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [showAuthModal, showCitySugg, showCatSugg]);
+
   // Filtered Cities: ONLY words starting with the typed query
   const cityQuery = cityInput.trim().toLowerCase();
   const filteredCities = cityQuery
@@ -449,14 +498,19 @@ export default function HomePage() {
 
     // 3. Instant 0ms visual feedback: button turns to spinner immediately
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 5000);
+    setTimeout(() => setIsSearching(false), 3000);
 
     const params = new URLSearchParams();
     params.set('city', city);
     params.set('category', query);
     const targetUrl = `/explore?${params.toString()}`;
 
-    // Soft client transition
+    // Proactively prefetch explore route
+    try {
+      router.prefetch(targetUrl);
+    } catch {}
+
+    // Smooth client-side Next.js route transition (zero white-screen reload)
     try {
       router.push(targetUrl);
     } catch {
@@ -464,13 +518,12 @@ export default function HomePage() {
       return;
     }
 
-    // Fail-safe bulletproof fallback: if router.push gets stuck (stale PWA socket, chunk hash mismatch, sleeping mobile browser)
-    // navigate directly after 750ms so user is 100% guaranteed to reach the explore page
+    // Safety fallback: only triggers after 4500ms if client thread genuinely hung (never premature 750ms!)
     setTimeout(() => {
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/explore')) {
         window.location.assign(targetUrl);
       }
-    }, 750);
+    }, 4500);
   };
 
   const handleModalGoogleSignIn = async () => {
@@ -1269,6 +1322,33 @@ export default function HomePage() {
               <span>Fast, verified and secure 1-click sign-in</span>
             </div>
           </div>
+        </div>
+      )}
+      {/* PWA Double-Back Exit Toast */}
+      {exitToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(15, 23, 42, 0.92)',
+            backdropFilter: 'blur(8px)',
+            color: '#ffffff',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '999px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            zIndex: 999999,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            pointerEvents: 'none',
+          }}
+        >
+          <i className="fa-solid fa-arrow-left" style={{ fontSize: '0.75rem', opacity: 0.8 }}></i>
+          <span>Press back again to exit</span>
         </div>
       )}
     </>

@@ -100,6 +100,26 @@ function ExploreContent() {
     } catch {}
   }, [router]);
 
+  // PWA Hardware Back Safeguard on Explore (Smoothly returns to Home instead of exiting app)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const isStandalone = (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+
+    const onPopState = () => {
+      if (isStandalone && window.history.length <= 2) {
+        router.push('/');
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [router]);
+
   useEffect(() => {
     // Load categories & campaign banners directly from Cloud
     cloudSync.pullTargetNewsBanners().then((targets) => {
@@ -282,7 +302,13 @@ function ExploreContent() {
               <button
                 type="button"
                 className="explore-nav-back-btn"
-                onClick={() => router.push('/')}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/');
+                  }
+                }}
                 title="Back to Home"
               >
                 <i className="fa-solid fa-arrow-left"></i>

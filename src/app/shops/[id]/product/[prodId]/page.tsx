@@ -63,6 +63,7 @@ function ProductDetailPageContent() {
   const isAnyModalOpenRef = useRef(false);
   isAnyModalOpenRef.current = isAnyModalOpen;
   const modalHistoryPushedRef = useRef(false);
+  const isHardwareBackActionRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -72,7 +73,13 @@ function ProductDetailPageContent() {
         modalHistoryPushedRef.current = true;
       }
     } else {
-      modalHistoryPushedRef.current = false;
+      if (modalHistoryPushedRef.current) {
+        modalHistoryPushedRef.current = false;
+        if (!isHardwareBackActionRef.current && window.history.state?.modalOpen) {
+          window.history.back();
+        }
+      }
+      isHardwareBackActionRef.current = false;
     }
   }, [isAnyModalOpen]);
 
@@ -81,9 +88,21 @@ function ProductDetailPageContent() {
 
     const onPopState = () => {
       if (isAnyModalOpenRef.current) {
+        isHardwareBackActionRef.current = true;
         setLightboxImg(null);
         setShowReviewModal(false);
         modalHistoryPushedRef.current = false;
+        return;
+      }
+
+      const isStandalone = (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://')
+      );
+
+      if (isStandalone && window.history.length <= 2) {
+        router.push(shop?.id ? `/shops/${shop.id}` : '/explore');
       }
     };
 
@@ -91,7 +110,7 @@ function ProductDetailPageContent() {
     return () => {
       window.removeEventListener('popstate', onPopState);
     };
-  }, []);
+  }, [router, shop]);
 
   const handleProductBack = () => {
     if (isAnyModalOpenRef.current) {
@@ -103,10 +122,16 @@ function ProductDetailPageContent() {
       }
       return;
     }
+    // Clean up any lingering modal history state so back button NEVER gets stuck
+    if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
+      modalHistoryPushedRef.current = false;
+      window.history.back();
+      return;
+    }
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
     } else {
-      router.push(shop?.id ? `/shops/${shop.id}` : '/');
+      router.push(shop?.id ? `/shops/${shop.id}` : '/explore');
     }
   };
 

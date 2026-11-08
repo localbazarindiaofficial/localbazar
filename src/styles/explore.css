@@ -154,6 +154,11 @@ body.explore-body {
     border-color: #cbd5e1;
 }
 
+.explore-nav-back-btn:active {
+    transform: scale(0.92);
+    background: #e2e8f0;
+}
+
 .clean-results-title {
     font-size: clamp(0.85rem, 3.6vw, 1.15rem);
     font-weight: 800;
@@ -328,6 +333,12 @@ body.explore-body {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(26, 115, 232, 0.08);
     background: #f8fbff;
+}
+
+.listing-compact-row:active {
+    transform: scale(0.985);
+    background: #f1f5f9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .listing-row-left {

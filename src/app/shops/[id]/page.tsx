@@ -104,17 +104,35 @@ export default function ShopDetailPage() {
   const isAnyModalOpenRef = useRef(false);
   isAnyModalOpenRef.current = isAnyModalOpen;
   const modalHistoryPushedRef = useRef(false);
+  const isHardwareBackActionRef = useRef(false);
+
+  const closeModalStatesOnly = () => {
+    setLightboxImg(null);
+    setActiveViewerProduct(null);
+    setShowScheduleSheet(false);
+    setShowAddressSheet(false);
+    setShowReviewModal(false);
+    setShowShareModal(false);
+  };
 
   // Sync open sheet/modal with browser history
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     if (isAnyModalOpen) {
       if (!modalHistoryPushedRef.current) {
         window.history.pushState({ modalOpen: true }, '');
         modalHistoryPushedRef.current = true;
       }
     } else {
-      modalHistoryPushedRef.current = false;
+      // Modal closed via UI ('X' button, backdrop, swipe) and NOT by hardware back button:
+      if (modalHistoryPushedRef.current) {
+        modalHistoryPushedRef.current = false;
+        if (!isHardwareBackActionRef.current && window.history.state?.modalOpen) {
+          window.history.back();
+        }
+      }
+      isHardwareBackActionRef.current = false;
     }
   }, [isAnyModalOpen]);
 
@@ -124,13 +142,21 @@ export default function ShopDetailPage() {
 
     const onPopState = () => {
       if (isAnyModalOpenRef.current) {
-        setLightboxImg(null);
-        setActiveViewerProduct(null);
-        setShowScheduleSheet(false);
-        setShowAddressSheet(false);
-        setShowReviewModal(false);
-        setShowShareModal(false);
+        isHardwareBackActionRef.current = true;
+        closeModalStatesOnly();
         modalHistoryPushedRef.current = false;
+        return;
+      }
+
+      // If at root of shop navigation in PWA standalone, navigate to Explore safely instead of exiting app
+      const isStandalone = (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://')
+      );
+
+      if (isStandalone && window.history.length <= 2) {
+        router.push('/explore');
       }
     };
 
@@ -138,15 +164,10 @@ export default function ShopDetailPage() {
     return () => {
       window.removeEventListener('popstate', onPopState);
     };
-  }, []);
+  }, [router]);
 
   const closeAllModals = () => {
-    setLightboxImg(null);
-    setActiveViewerProduct(null);
-    setShowScheduleSheet(false);
-    setShowAddressSheet(false);
-    setShowReviewModal(false);
-    setShowShareModal(false);
+    closeModalStatesOnly();
     if (modalHistoryPushedRef.current && typeof window !== 'undefined' && window.history.state?.modalOpen) {
       modalHistoryPushedRef.current = false;
       window.history.back();
@@ -158,10 +179,16 @@ export default function ShopDetailPage() {
       closeAllModals();
       return;
     }
+    // Clean up any lingering modal history state so back button NEVER gets stuck
+    if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
+      modalHistoryPushedRef.current = false;
+      window.history.back();
+      return;
+    }
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
     } else {
-      router.push('/');
+      router.push('/explore');
     }
   };
 
