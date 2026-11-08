@@ -144,7 +144,13 @@ export default function AccountPage() {
   const [bizCityFilter, setBizCityFilter] = useState('ALL');
   const [bizTypeFilter, setBizTypeFilter] = useState<'all' | 'main' | 'branches'>('all');
   const [qrModalListing, setQrModalListing] = useState<Listing | null>(null);
+  const qrModalListingRef = useRef<Listing | null>(null);
+  qrModalListingRef.current = qrModalListing;
   const [qrCopied, setQrCopied] = useState(false);
+
+  // Add Listing Photo Upload Progress State
+  const [formPhotosUploading, setFormPhotosUploading] = useState(false);
+  const [formPhotosUploadCount, setFormPhotosUploadCount] = useState({ current: 0, total: 0 });
 
   // Merchant Portal Drawer (Matching media_1793697023434_8b2f0362.jpg)
   const [activePortalListing, setActivePortalListing] = useState<Listing | null>(null);
@@ -418,6 +424,24 @@ export default function AccountPage() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  // Store QR & Share Standee Modal Handlers (Integrated with Android PWA Back Navigation)
+  const openQrModal = (listing: Listing) => {
+    setQrModalListing(listing);
+    qrModalListingRef.current = listing;
+    if (typeof window !== 'undefined') {
+      const currentIdx = window.history.state?.idx !== undefined ? Number(window.history.state.idx) : 0;
+      window.history.pushState({ modal: 'qrStandee', idx: currentIdx + 1 }, '');
+    }
+  };
+
+  const closeQrModal = () => {
+    setQrModalListing(null);
+    qrModalListingRef.current = null;
+    if (typeof window !== 'undefined' && window.history.state?.modal === 'qrStandee') {
+      window.history.back();
+    }
+  };
+
   // Close Business Portal and sync browser history
   const closeBusinessPortal = () => {
     setActivePortalListing(null);
@@ -483,6 +507,10 @@ export default function AccountPage() {
     }
     if (showAddProductModal) {
       setShowAddProductModal(false);
+      return;
+    }
+    if (qrModalListingRef.current || qrModalListing) {
+      closeQrModal();
       return;
     }
 
@@ -580,6 +608,11 @@ export default function AccountPage() {
       }
       if (showAddProductModal) {
         setShowAddProductModal(false);
+      }
+      if (qrModalListingRef.current) {
+        setQrModalListing(null);
+        qrModalListingRef.current = null;
+        return;
       }
 
       // 2. Step back to previous screen
@@ -838,15 +871,28 @@ export default function AccountPage() {
     goToScreen('viewAddListing');
   };
 
-  // Photo Upload Handler with micro-compressor
+  // Photo Upload Handler with micro-compressor & progress feedback
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+    if (!e.target.files || e.target.files.length === 0) return;
     const files = Array.from(e.target.files);
-    for (const f of files) {
-      const url = await uploadImageToCloud(f);
-      if (url) {
-        setFormPhotos((prev) => [...prev, url]);
+    setFormPhotosUploading(true);
+    setFormPhotosUploadCount({ current: 0, total: files.length });
+    try {
+      let count = 0;
+      for (const f of files) {
+        const url = await uploadImageToCloud(f);
+        if (url) {
+          setFormPhotos((prev) => [...prev, url]);
+        }
+        count++;
+        setFormPhotosUploadCount({ current: count, total: files.length });
       }
+    } catch (err) {
+      console.error('Error uploading store photos:', err);
+      showAlert('Upload Warning', 'Could not upload some photos. Please check your connection and try again.', 'warning');
+    } finally {
+      setFormPhotosUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -2550,32 +2596,55 @@ export default function AccountPage() {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <label
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.6rem 1.15rem',
-                            borderRadius: '10px',
-                            background: '#eff6ff',
-                            color: '#2563eb',
-                            border: '1.5px dashed #93c5fd',
-                            fontWeight: 700,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <i className="fa-solid fa-cloud-arrow-up"></i>
-                          <span>+ Choose Store Photos</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handlePhotoUpload}
-                            style={{ display: 'none' }}
-                          />
-                        </label>
+                        {formPhotosUploading ? (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.65rem',
+                              padding: '0.65rem 1.25rem',
+                              borderRadius: '10px',
+                              background: '#fffbeb',
+                              color: '#b45309',
+                              border: '1.5px solid #fde68a',
+                              fontWeight: 700,
+                              fontSize: '0.86rem',
+                              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.15)',
+                            }}
+                          >
+                            <i className="fa-solid fa-spinner fa-spin" style={{ color: '#d97706', fontSize: '1rem' }}></i>
+                            <span>
+                              Uploading & Optimizing Photos ({formPhotosUploadCount.current}/{formPhotosUploadCount.total})...
+                            </span>
+                          </div>
+                        ) : (
+                          <label
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.6rem 1.15rem',
+                              borderRadius: '10px',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1.5px dashed #93c5fd',
+                              fontWeight: 700,
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <i className="fa-solid fa-cloud-arrow-up"></i>
+                            <span>+ Choose Store Photos</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handlePhotoUpload}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        )}
                         <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
                           JPG, PNG or WebP &bull; 1st photo is used as Cover Banner
                         </span>
@@ -2824,8 +2893,23 @@ export default function AccountPage() {
 
                     <div className="step-action-bar">
                       <div></div>
-                      <button type="button" className="btn-step-next" onClick={() => goToListingStep(2)}>
-                        <span>Continue to Address</span> <i className="fa-solid fa-arrow-right"></i>
+                      <button
+                        type="button"
+                        className="btn-step-next"
+                        disabled={formPhotosUploading}
+                        onClick={() => goToListingStep(2)}
+                        style={formPhotosUploading ? { opacity: 0.65, cursor: 'not-allowed' } : undefined}
+                      >
+                        {formPhotosUploading ? (
+                          <>
+                            <i className="fa-solid fa-spinner fa-spin"></i>
+                            <span>Uploading Photos...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Continue to Address</span> <i className="fa-solid fa-arrow-right"></i>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -3314,7 +3398,7 @@ export default function AccountPage() {
                               className="btn-biz-action btn-biz-share"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setQrModalListing(item);
+                                openQrModal(item);
                               }}
                               style={{ width: '100%' }}
                             >
@@ -9084,7 +9168,7 @@ export default function AccountPage() {
             padding: '1rem',
             backdropFilter: 'blur(3px)',
           }}
-          onClick={() => setQrModalListing(null)}
+          onClick={closeQrModal}
         >
           <div
             className="qr-modal-card"
@@ -9098,7 +9182,7 @@ export default function AccountPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setQrModalListing(null)}
+                onClick={closeQrModal}
                 style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}
               >
                 &times;
