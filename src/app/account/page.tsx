@@ -67,11 +67,36 @@ export default function AccountPage() {
     return null;
   });
   const [authChecked, setAuthChecked] = useState(false);
-  const [myListings, setMyListings] = useState<Listing[]>([]);
+  const [myListings, setMyListings] = useState<Listing[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_my_listings');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [allListings, setAllListings] = useState<Listing[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_all_listings');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+  const [listingsLoading, setListingsLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_my_listings');
+        if (raw && JSON.parse(raw).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [savedPlaces, setSavedPlaces] = useState<Listing[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [cities, setCities] = useState<CityItem[]>([]);
-  const [allListings, setAllListings] = useState<Listing[]>([]);
 
   // Personal Profile Form State
   const [profileName, setProfileName] = useState('');
@@ -780,6 +805,9 @@ export default function AccountPage() {
     // 2. Load Listings & Filter for current user + Robust Saved Places (Online Cloud First, Zero Demo Data)
     const applyListingsData = (items: Listing[]) => {
       setAllListings(items);
+      try {
+        localStorage.setItem('lb_cached_all_listings', JSON.stringify(items));
+      } catch {}
 
       const mine = items.filter(
         (l) =>
@@ -791,6 +819,10 @@ export default function AccountPage() {
           (u?.email && l.createdBy?.toLowerCase() === u.email.toLowerCase())
       );
       setMyListings(mine);
+      setListingsLoading(false);
+      try {
+        localStorage.setItem('lb_cached_my_listings', JSON.stringify(mine));
+      } catch {}
 
       // Load saved places directly from Cloud Firestore
       if (u && (u.id || u.uid)) {
@@ -813,6 +845,7 @@ export default function AccountPage() {
       }
     }).catch(() => {
       applyListingsData([]);
+      setListingsLoading(false);
     });
 
     cloudSync.pullCategories().then((cats) => cats && setCategories(cats)).catch(() => {});
@@ -1078,6 +1111,9 @@ export default function AccountPage() {
           (currentUser?.email && l.createdBy?.toLowerCase() === currentUser.email.toLowerCase())
       );
       setMyListings(mine);
+      try {
+        localStorage.setItem('lb_cached_my_listings', JSON.stringify(mine));
+      } catch {}
 
       const isEditing = !!editingId;
       const savedListingName = updatedListing.name;
@@ -1141,6 +1177,9 @@ export default function AccountPage() {
           (currentUser?.email && l.createdBy?.toLowerCase() === currentUser.email.toLowerCase())
       );
       setMyListings(mine);
+      try {
+        localStorage.setItem('lb_cached_my_listings', JSON.stringify(mine));
+      } catch {}
 
       showAlert(
         'Store is Live & Public! 🎉',
@@ -1173,8 +1212,16 @@ export default function AccountPage() {
           return;
         }
       }
-      setAllListings((prev) => prev.filter((l) => l.id !== listingId));
-      setMyListings((prev) => prev.filter((l) => l.id !== listingId));
+      setAllListings((prev) => {
+        const next = prev.filter((l) => l.id !== listingId);
+        try { localStorage.setItem('lb_cached_all_listings', JSON.stringify(next)); } catch {}
+        return next;
+      });
+      setMyListings((prev) => {
+        const next = prev.filter((l) => l.id !== listingId);
+        try { localStorage.setItem('lb_cached_my_listings', JSON.stringify(next)); } catch {}
+        return next;
+      });
       await cloudSync.deleteListing(listingId);
     } catch (err) {
       console.error('Error deleting listing:', err);
@@ -3409,7 +3456,30 @@ export default function AccountPage() {
                 </div>
 
                 {/* Businesses Cards List */}
-                {filteredBusinesses.length === 0 ? (
+                {listingsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {[1, 2].map((idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#ffffff',
+                          borderRadius: '16px',
+                          border: '1px solid #e2e8f0',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          gap: '1rem',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div className="lb-skeleton" style={{ width: '64px', height: '64px', borderRadius: '12px', flexShrink: 0 }}></div>
+                        <div style={{ flex: 1 }}>
+                          <div className="lb-skeleton" style={{ height: '18px', width: '55%', borderRadius: '6px', marginBottom: '8px' }}></div>
+                          <div className="lb-skeleton" style={{ height: '14px', width: '35%', borderRadius: '6px' }}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredBusinesses.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
                     <i className="fa-solid fa-store" style={{ fontSize: '2.5rem', color: '#94a3b8', marginBottom: '0.75rem', display: 'block' }}></i>
                     <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
@@ -5351,7 +5421,11 @@ export default function AccountPage() {
                             </span>
                           </div>
 
-                          {myListings.length === 0 ? (
+                          {listingsLoading ? (
+                            <div style={{ padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                              <div className="lb-skeleton" style={{ height: '70px', borderRadius: '12px' }}></div>
+                            </div>
+                          ) : myListings.length === 0 ? (
                             <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', background: '#f8fafc', borderRadius: '14px', border: '1px dashed #cbd5e1' }}>
                               <i className="fa-solid fa-store" style={{ fontSize: '2.2rem', color: '#94a3b8', marginBottom: '0.65rem', display: 'block' }}></i>
                               <div style={{ fontWeight: 800, color: '#334155', fontSize: '0.96rem' }}>No Businesses Registered Yet</div>
