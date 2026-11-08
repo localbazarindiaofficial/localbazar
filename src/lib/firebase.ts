@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, 
+  initializeFirestore,
   collection, 
   doc, 
   setDoc, 
@@ -29,10 +30,35 @@ export const firebaseConfig = {
 };
 
 // Initialize Firebase App
-export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const isNewApp = !getApps().length;
+export const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 
-export const db: Firestore = getFirestore(app);
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(app, { ignoreUndefinedProperties: true });
+} catch {
+  firestoreDb = getFirestore(app);
+}
+export const db: Firestore = firestoreDb;
 export const auth: Auth = getAuth(app);
+
+/**
+ * Utility to strip undefined properties recursively from an object
+ * to prevent Firestore setDoc/updateDoc unsupported field value crashes.
+ */
+export function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  const cleaned: any = Array.isArray(obj) ? [] : {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) continue;
+    if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+      cleaned[key] = cleanForFirestore(val);
+    } else {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+}
 
 // Image Upload Helper with Server-Side Route & Local Pre-Compression
 export async function uploadImageToCloud(fileOrDataUrl: File | Blob | string, maxKB = 300, maxDimension = 1200): Promise<string> {
@@ -512,7 +538,8 @@ export const cloudSync = {
 
   saveTrustRequest: async (req: TrustRequest): Promise<void> => {
     if (!req || !req.id) return;
-    await setDoc(doc(db, 'trust_requests', String(req.id)), req, { merge: true });
+    const cleanData = cleanForFirestore(req);
+    await setDoc(doc(db, 'trust_requests', String(req.id)), cleanData, { merge: true });
   },
 
   deleteTrustRequest: async (id: string): Promise<void> => {

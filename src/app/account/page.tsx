@@ -2026,8 +2026,8 @@ export default function AccountPage() {
       const newReq: TrustRequest = {
         id: reqId,
         listingId: String(selectedTrustListing.id),
-        listingName: selectedTrustListing.name,
-        businessName: selectedTrustListing.name,
+        listingName: selectedTrustListing.name || '',
+        businessName: selectedTrustListing.name || '',
         city: selectedTrustListing.city || '',
         category: selectedTrustListing.category || '',
         ownerName: trustApplicantName.trim(),
@@ -2035,13 +2035,13 @@ export default function AccountPage() {
         applicantId: currentUser?.id || '',
         phone: trustPhone.trim(),
         email: currentUser?.email || '',
-        docType: trustDocType,
+        docType: trustDocType || 'Trade License',
         tradeLicense: trustDocNumber.trim(),
-        gstNumber: trustDocType === 'GST Certificate' ? trustDocNumber.trim() : undefined,
-        docProof: trustDocProofUrl,
-        amountPaid: trustBadgeSettings.offerPrice || 299,
+        gstNumber: trustDocType === 'GST Certificate' ? trustDocNumber.trim() : (trustDocNumber.trim() || ''),
+        docProof: trustDocProofUrl || '',
+        amountPaid: trustBadgeSettings.offerPrice || 499,
         transactionId: trustTxnId.trim(),
-        paymentProof: trustPaymentProofUrl,
+        paymentProof: trustPaymentProofUrl || '',
         status: 'Pending',
         date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
         createdAt: Date.now(),
@@ -2065,9 +2065,13 @@ export default function AccountPage() {
         `Your Gold Trust Badge application for "${selectedTrustListing.name}" and payment reference (${newReq.transactionId}) have been received. Admin will verify and activate your badge shortly.`,
         'success'
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error submitting trust request:', err);
-      showAlert('Submission Failed', 'Could not submit your application. Please check connection and try again.', 'error');
+      showAlert(
+        'Submission Failed',
+        err?.message ? `Could not submit your application: ${err.message}` : 'Could not submit your application. Please check connection and try again.',
+        'error'
+      );
     } finally {
       setTrustSubmitting(false);
     }
