@@ -2058,8 +2058,8 @@ export default function SuperAdminPage() {
                       <span className="stat-label">Trust Badge Request</span>
                       <div className="stat-icon-wrap" style={{ background: '#fef3c7', color: '#d97706' }}><i className="fa-solid fa-shield-halved"></i></div>
                     </div>
-                    <div className="stat-value">{trustRequests.length}</div>
-                    <div className="stat-subtext">{metrics.pendingTrust} pending review</div>
+                    <div className="stat-value">{metrics.pendingTrust}</div>
+                    <div className="stat-subtext">{metrics.pendingTrust > 0 ? `${metrics.pendingTrust} pending review` : 'All caught up (0 pending)'}</div>
                   </div>
 
                   <div className="stat-card" onClick={() => setActiveView('mailbox')} style={{ cursor: 'pointer' }}>
