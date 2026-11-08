@@ -108,7 +108,8 @@ export default function SuperAdminPage() {
 
   // Trust Requests Filter & Modals
   const [trustSearch, setTrustSearch] = useState('');
-  const [trustStatusFilter, setTrustStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [trustStatusFilter, setTrustStatusFilter] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [viewingTrustModal, setViewingTrustModal] = useState<TrustRequest | null>(null);
   const [trustToApprove, setTrustToApprove] = useState<TrustRequest | null>(null);
   const [trustApprovalNote, setTrustApprovalNote] = useState('');
   const [trustToReject, setTrustToReject] = useState<TrustRequest | null>(null);
@@ -1011,10 +1012,7 @@ export default function SuperAdminPage() {
 
   // Trust Badge Requests Filter & Handlers
   const filteredTrustRequests = useMemo(() => {
-    let result = trustRequests;
-    if (trustStatusFilter !== 'all') {
-      result = result.filter((t) => (t.status || '').toLowerCase() === trustStatusFilter);
-    }
+    let result = trustRequests.filter((t) => (t.status || '').toLowerCase() === trustStatusFilter);
     if (trustSearch.trim()) {
       const q = trustSearch.trim().toLowerCase();
       result = result.filter(
@@ -1845,7 +1843,7 @@ export default function SuperAdminPage() {
             <button
               type="button"
               className={`menu-item ${activeView === 'trust' ? 'active' : ''}`}
-              onClick={() => { setActiveView('trust'); closeMobileSidebar(); }}
+              onClick={() => { setActiveView('trust'); setTrustStatusFilter('approved'); closeMobileSidebar(); }}
               style={{ background: 'none', border: 'none', textAlign: 'left', width: '100%', cursor: 'pointer' }}
             >
               <i className="fa-solid fa-shield-halved" style={{ color: '#d97706' }}></i>
@@ -2046,7 +2044,7 @@ export default function SuperAdminPage() {
                   </div>
 
                   {/* ROW 3: TOTAL TRUST BADGE, TRUST BADGE REQUEST, TOTAL MAIL, UNREAD MAIL */}
-                  <div className="stat-card" onClick={() => setActiveView('trust')} style={{ cursor: 'pointer' }}>
+                  <div className="stat-card" onClick={() => { setActiveView('trust'); setTrustStatusFilter('approved'); }} style={{ cursor: 'pointer' }}>
                     <div className="stat-card-header">
                       <span className="stat-label">Total Trust Badge</span>
                       <div className="stat-icon-wrap emerald" style={{ background: '#dcfce7', color: '#15803d' }}><i className="fa-solid fa-certificate"></i></div>
@@ -2055,7 +2053,7 @@ export default function SuperAdminPage() {
                     <div className="stat-subtext">Verified gold stores</div>
                   </div>
 
-                  <div className="stat-card" onClick={() => setActiveView('trust')} style={{ cursor: 'pointer' }}>
+                  <div className="stat-card" onClick={() => { setActiveView('trust'); setTrustStatusFilter('pending'); }} style={{ cursor: 'pointer' }}>
                     <div className="stat-card-header">
                       <span className="stat-label">Trust Badge Request</span>
                       <div className="stat-icon-wrap" style={{ background: '#fef3c7', color: '#d97706' }}><i className="fa-solid fa-shield-halved"></i></div>
@@ -3121,20 +3119,19 @@ export default function SuperAdminPage() {
 
               {/* Status Filter Tabs & Search */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                {/* Filter Tabs */}
+                {/* Filter Tabs: Approved (Default & Front), Pending, Rejected */}
                 <div style={{ display: 'flex', gap: '0.4rem', background: '#f1f5f9', padding: '0.3rem', borderRadius: '10px' }}>
-                  {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => {
-                    const count = st === 'all'
-                      ? trustRequests.length
-                      : trustRequests.filter((t) => (t.status || '').toLowerCase() === st).length;
+                  {(['approved', 'pending', 'rejected'] as const).map((st) => {
+                    const count = trustRequests.filter((t) => (t.status || '').toLowerCase() === st).length;
                     const isActive = trustStatusFilter === st;
+                    const label = st === 'approved' ? 'Approved' : st === 'pending' ? 'Pending' : 'Rejected';
                     return (
                       <button
                         key={st}
                         type="button"
                         onClick={() => setTrustStatusFilter(st)}
                         style={{
-                          padding: '0.45rem 0.85rem',
+                          padding: '0.45rem 0.95rem',
                           borderRadius: '8px',
                           border: 'none',
                           fontWeight: 700,
@@ -3146,10 +3143,29 @@ export default function SuperAdminPage() {
                           textTransform: 'capitalize',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <span>{st}</span>
+                        <i
+                          className={`fa-solid ${
+                            st === 'approved'
+                              ? 'fa-circle-check'
+                              : st === 'pending'
+                              ? 'fa-clock'
+                              : 'fa-circle-xmark'
+                          }`}
+                          style={{
+                            color:
+                              st === 'approved'
+                                ? '#059669'
+                                : st === 'pending'
+                                ? '#d97706'
+                                : '#dc2626',
+                            fontSize: '0.78rem',
+                          }}
+                        ></i>
+                        <span>{label}</span>
                         <span
                           style={{
                             fontSize: '0.72rem',
@@ -3160,19 +3176,15 @@ export default function SuperAdminPage() {
                                 ? '#fef3c7'
                                 : st === 'approved'
                                 ? '#ecfdf5'
-                                : st === 'rejected'
-                                ? '#fef2f2'
-                                : '#e2e8f0'
+                                : '#fef2f2'
                               : '#e2e8f0',
                             color: isActive
                               ? st === 'pending'
                                 ? '#b45309'
                                 : st === 'approved'
                                 ? '#047857'
-                                : st === 'rejected'
-                                ? '#b91c1c'
-                                : '#475569'
-                              : '#64748b',
+                                : '#b91c1c'
+                              : '#475569',
                             fontWeight: 800,
                           }}
                         >
@@ -3204,335 +3216,300 @@ export default function SuperAdminPage() {
                 </div>
               </div>
 
-              {/* Requests List */}
+              {/* Requests List in Professional Table Format */}
               {filteredTrustRequests.length === 0 ? (
                 <div style={{ background: '#fff', padding: '3.5rem 1.5rem', borderRadius: 14, textAlign: 'center', color: '#94a3b8', border: '1px dashed #cbd5e1' }}>
                   <i className="fa-solid fa-shield-halved" style={{ fontSize: '2.8rem', color: '#cbd5e1', marginBottom: '0.85rem', display: 'block' }}></i>
-                  <h4 style={{ fontWeight: 800, color: '#334155', marginBottom: 4 }}>No Trust Badge Applications Found</h4>
+                  <h4 style={{ fontWeight: 800, color: '#334155', marginBottom: 4 }}>
+                    No {trustStatusFilter === 'approved' ? 'Approved' : trustStatusFilter === 'pending' ? 'Pending' : 'Rejected'} Trust Badge Applications
+                  </h4>
                   <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                    {trustSearch || trustStatusFilter !== 'all'
-                      ? 'No applications match your search or filter.'
-                      : 'There are no Gold Trust Badge requests submitted yet.'}
+                    {trustSearch
+                      ? 'No applications match your search query.'
+                      : `There are currently no ${trustStatusFilter} applications in records.`}
                   </p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: '1.15rem' }}>
-                  {filteredTrustRequests.map((tr) => {
-                    const st = (tr.status || 'pending').toLowerCase();
-                    const isApproved = st === 'approved';
-                    const isRejected = st === 'rejected';
-                    const isPending = !isApproved && !isRejected;
+                <div style={{ background: '#ffffff', borderRadius: 12, border: '1px solid #e2e8f0', overflowX: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
+                        <th style={{ padding: '0.85rem 1rem' }}>Business / Listing</th>
+                        <th style={{ padding: '0.85rem 1rem' }}>Applicant</th>
+                        <th style={{ padding: '0.85rem 1rem' }}>Doc Type & No</th>
+                        <th style={{ padding: '0.85rem 1rem' }}>Payment & UTR</th>
+                        <th style={{ padding: '0.85rem 1rem' }}>Status</th>
+                        <th style={{ padding: '0.85rem 1rem' }}>Validity</th>
+                        <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTrustRequests.map((tr) => {
+                        const st = (tr.status || 'pending').toLowerCase();
+                        const isApproved = st === 'approved';
+                        const isRejected = st === 'rejected';
+                        const isPending = !isApproved && !isRejected;
 
-                    return (
-                      <div
-                        key={tr.id}
-                        style={{
-                          background: '#fff',
-                          padding: '1.35rem',
-                          borderRadius: 14,
-                          border: isApproved ? '1.5px solid #86efac' : isRejected ? '1.5px solid #fca5a5' : '1.5px solid #fde68a',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                        }}
-                      >
-                        {/* Top Row: Business Name & Status */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.15rem' }}>{tr.businessName || tr.listingName}</span>
-                              <span style={{ fontSize: '0.74rem', background: '#f1f5f9', color: '#64748b', padding: '0.15rem 0.55rem', borderRadius: 6, fontWeight: 700 }}>
-                                Listing ID: {tr.listingId}
-                              </span>
-                            </div>
+                        // Match listing for images & dates
+                        const matchedListing = listings.find((l) => String(l.id) === String(tr.listingId));
+                        const listingImg = matchedListing?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100';
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 4, flexWrap: 'wrap', fontSize: '0.8rem', color: '#64748b' }}>
-                              {tr.city && <span><i className="fa-solid fa-location-dot" style={{ color: '#2563eb', marginRight: 3 }}></i>{tr.city}</span>}
-                              {tr.category && (
-                                <>
-                                  <span>•</span>
-                                  <span><i className="fa-solid fa-tag" style={{ color: '#16a34a', marginRight: 3 }}></i>{tr.category}</span>
-                                </>
-                              )}
-                              <span>•</span>
-                              <span>Date: {tr.date || 'Recent'}</span>
-                              <span>•</span>
-                              <span style={{ color: '#94a3b8' }}>App #{tr.id}</span>
-                            </div>
-                          </div>
+                        // Remaining days calculation
+                        const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+                        const activatedAt = matchedListing?.trustBadgeActivatedAt || tr.updatedAt || tr.createdAt || Date.now();
+                        const expiresAt = matchedListing?.trustBadgeExpiresAt || (activatedAt + oneYearMs);
+                        const diffMs = expiresAt - Date.now();
+                        const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
-                          {/* Status Pill & Delete */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span
-                              style={{
-                                fontSize: '0.78rem',
-                                fontWeight: 800,
-                                padding: '0.3rem 0.8rem',
-                                borderRadius: '999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                background: isApproved ? '#ecfdf5' : isRejected ? '#fef2f2' : '#fef3c7',
-                                color: isApproved ? '#047857' : isRejected ? '#b91c1c' : '#b45309',
-                                border: isApproved ? '1px solid #a7f3d0' : isRejected ? '1px solid #fecdd3' : '1px solid #fde68a',
-                              }}
-                            >
-                              <i className={`fa-solid ${isApproved ? 'fa-circle-check' : isRejected ? 'fa-circle-xmark' : 'fa-clock'}`}></i>
-                              {isApproved ? 'Gold Badge Active 👑' : isRejected ? 'Rejected' : 'Pending Verification'}
-                            </span>
+                        let validityBadge = {
+                          text: isApproved ? `${daysLeft} Days Left` : isPending ? '365 Days on Approval' : '—',
+                          color: isApproved ? (daysLeft <= 30 ? '#b45309' : '#047857') : isPending ? '#b45309' : '#64748b',
+                          bg: isApproved ? (daysLeft <= 30 ? '#fef3c7' : '#ecfdf5') : isPending ? '#fef3c7' : '#f1f5f9',
+                          border: isApproved ? (daysLeft <= 30 ? '#fde68a' : '#a7f3d0') : isPending ? '#fde68a' : '#e2e8f0',
+                        };
+                        if (isApproved && daysLeft === 0) {
+                          validityBadge = {
+                            text: 'Expired (0 Days)',
+                            color: '#b91c1c',
+                            bg: '#fef2f2',
+                            border: '#fecdd3',
+                          };
+                        }
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTrustRequest(tr.id)}
-                              title="Delete application"
-                              style={{
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0',
-                                color: '#94a3b8',
-                                width: 30,
-                                height: 30,
-                                borderRadius: 8,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <i className="fa-solid fa-trash-can" style={{ fontSize: '0.8rem' }}></i>
-                            </button>
-                          </div>
-                        </div>
+                        return (
+                          <tr key={tr.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}>
+                            {/* 1. Business / Listing */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={listingImg}
+                                  alt={tr.businessName || tr.listingName || 'Store'}
+                                  style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                                />
+                                <div>
+                                  <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    <span>{tr.businessName || tr.listingName || 'Unnamed Business'}</span>
+                                    {isApproved && <i className="fa-solid fa-certificate" style={{ color: '#d97706', fontSize: '0.8rem' }} title="Verified Gold Trust Badge"></i>}
+                                  </div>
+                                  <div style={{ color: '#64748b', fontSize: '0.78rem', marginTop: 2 }}>
+                                    ID: <span style={{ color: '#2563eb', fontWeight: 600 }}>#{tr.listingId}</span>
+                                    {tr.city && <span> • {tr.city}</span>}
+                                    {tr.category && <span> • {tr.category}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
 
-                        {/* Middle Grid: Applicant/Document vs Payment Info */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1rem' }}>
-                          {/* Column 1: Applicant & Verification Proof */}
-                          <div style={{ background: '#f8fafc', padding: '0.95rem', borderRadius: 10, border: '1px solid #f1f5f9' }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#475569', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <i className="fa-solid fa-user-shield" style={{ color: '#2563eb' }}></i> Applicant & Verification Document
-                            </div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{tr.applicantName || tr.ownerName}</div>
-                            <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: 3 }}>
-                              {tr.phone && (
-                                <a href={formatTelUrl(tr.phone)} style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                  <i className="fa-solid fa-phone" style={{ fontSize: '0.75rem' }}></i> {tr.phone}
+                            {/* 2. Applicant */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{tr.applicantName || tr.ownerName || 'Not specified'}</div>
+                              {tr.phone ? (
+                                <a
+                                  href={formatTelUrl(tr.phone)}
+                                  style={{ color: '#2563eb', fontSize: '0.78rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: 2, fontWeight: 600 }}
+                                >
+                                  <i className="fa-solid fa-phone" style={{ fontSize: '0.72rem' }}></i> {tr.phone}
                                 </a>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>No phone</span>
                               )}
-                            </div>
+                            </td>
 
-                            <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
-                              <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                                Document Type: <strong style={{ color: '#0f172a' }}>{tr.docType || 'Trade License'}</strong>
+                            {/* 3. Doc Type & No */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'inline-block', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700 }}>
+                                {tr.docType || 'Trade License'}
                               </div>
-                              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>
-                                Reg / License No:{' '}
-                                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>
-                                  {tr.tradeLicense || tr.gstNumber || 'Not provided'}
-                                </strong>
+                              <div style={{ color: '#334155', fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, marginTop: 3 }}>
+                                {tr.tradeLicense || tr.gstNumber || 'N/A'}
                               </div>
+                            </td>
 
-                              {tr.docProof && (
-                                <div style={{ marginTop: '0.5rem' }}>
+                            {/* 4. Payment & UTR */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <strong style={{ color: '#16a34a', fontSize: '0.92rem' }}>₹{tr.amountPaid || 499}</strong>
+                                {tr.paymentProof && (
                                   <button
                                     type="button"
-                                    onClick={() => setTrustDocPreview({ name: `${tr.docType || 'Document'} Proof`, url: tr.docProof!, type: 'file' })}
-                                    style={{
-                                      background: '#eff6ff',
-                                      color: '#2563eb',
-                                      border: '1px solid #bfdbfe',
-                                      padding: '0.35rem 0.75rem',
-                                      borderRadius: 6,
-                                      fontSize: '0.76rem',
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '0.35rem',
-                                    }}
+                                    onClick={() => setTrustDocPreview({ name: 'Payment Receipt Screenshot', url: tr.paymentProof!, type: 'image' })}
+                                    title="View Payment Screenshot"
+                                    style={{ background: '#fef3c7', border: '1px solid #fde68a', color: '#b45309', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}
                                   >
-                                    <i className="fa-solid fa-file-lines"></i> View Document Proof
+                                    <i className="fa-solid fa-receipt"></i> Slip
                                   </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Column 2: UPI Payment Verification */}
-                          <div style={{ background: '#fffbeb', padding: '0.95rem', borderRadius: 10, border: '1px solid #fde68a' }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#92400e', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <i className="fa-solid fa-indian-rupee-sign" style={{ color: '#d97706' }}></i> Payment Verification Details
-                            </div>
-
-                            <div style={{ fontSize: '0.84rem', color: '#78350f', marginBottom: '0.5rem' }}>
-                              Amount Paid: <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>₹{tr.amountPaid || 299}</strong>
-                            </div>
-
-                            {/* Highlighted UTR Box with Copy */}
-                            <div style={{ background: '#fff', border: '1.5px solid #d97706', borderRadius: 8, padding: '0.6rem 0.85rem', marginBottom: '0.65rem' }}>
-                              <div style={{ fontSize: '0.72rem', color: '#78350f', fontWeight: 800 }}>12-Digit UPI Transaction ID / UTR:</div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginTop: 2 }}>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.98rem', color: '#0f172a' }}>
-                                  {tr.transactionId || 'NOT PROVIDED'}
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: 2 }}>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a', fontWeight: 700 }}>
+                                  {tr.transactionId || 'No UTR'}
                                 </span>
                                 {tr.transactionId && (
                                   <button
                                     type="button"
                                     onClick={() => {
                                       navigator.clipboard.writeText(tr.transactionId || '');
-                                      alert(`UTR copied: ${tr.transactionId}`);
+                                      alert(`Copied UTR: ${tr.transactionId}`);
                                     }}
-                                    style={{ background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: 4, cursor: 'pointer', fontWeight: 700 }}
+                                    title="Copy UTR"
+                                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.74rem', padding: 2 }}
                                   >
-                                    <i className="fa-solid fa-copy"></i> Copy UTR
+                                    <i className="fa-regular fa-copy"></i>
                                   </button>
                                 )}
                               </div>
-                            </div>
+                            </td>
 
-                            {/* Payment screenshot if available */}
-                            {tr.paymentProof && (
-                              <div>
-                                <button
-                                  type="button"
-                                  onClick={() => setTrustDocPreview({ name: 'Payment Receipt Screenshot', url: tr.paymentProof!, type: 'image' })}
-                                  style={{
-                                    background: '#fff',
-                                    border: '1px solid #cbd5e1',
-                                    color: '#334155',
-                                    padding: '0.35rem 0.75rem',
-                                    borderRadius: 6,
-                                    fontSize: '0.76rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                  }}
-                                >
-                                  <i className="fa-solid fa-receipt"></i> View Payment Screenshot
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Admin Feedback if Present */}
-                        {tr.adminReply && (
-                          <div
-                            style={{
-                              background: isRejected ? '#fef2f2' : '#eff6ff',
-                              border: isRejected ? '1px solid #fecdd3' : '1px solid #bfdbfe',
-                              borderRadius: 10,
-                              padding: '0.75rem 1rem',
-                              marginBottom: '0.85rem',
-                              fontSize: '0.84rem',
-                              color: isRejected ? '#991b1b' : '#1e40af',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '0.5rem',
-                            }}
-                          >
-                            <i className={`fa-solid ${isRejected ? 'fa-triangle-exclamation' : 'fa-comment-dots'}`} style={{ marginTop: 2 }}></i>
-                            <div>
-                              <strong>{isRejected ? 'Rejection Reason:' : 'Admin Note:'}</strong>
-                              <span style={{ marginLeft: 6 }}>{tr.adminReply}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
-                          <div>
-                            {isApproved && (
-                              <span style={{ color: '#059669', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                <i className="fa-solid fa-shield-halved" style={{ color: '#d97706' }}></i> Gold Trust Badge Granted
-                              </span>
-                            )}
-                            {isPending && (
-                              <span style={{ color: '#b45309', fontSize: '0.82rem', fontWeight: 700 }}>
-                                Cross-verify UTR in UPI app then approve.
-                              </span>
-                            )}
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            {isPending && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTrustToReject(tr);
-                                    setTrustRejectReason('');
-                                  }}
-                                  style={{
-                                    background: '#fef2f2',
-                                    color: '#ef4444',
-                                    border: '1px solid #fecdd3',
-                                    padding: '0.45rem 1rem',
-                                    borderRadius: 8,
-                                    fontWeight: 700,
-                                    fontSize: '0.82rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                  }}
-                                >
-                                  <i className="fa-solid fa-xmark"></i> Reject
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTrustToApprove(tr);
-                                    setTrustApprovalNote('');
-                                  }}
-                                  style={{
-                                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    padding: '0.45rem 1.15rem',
-                                    borderRadius: 8,
-                                    fontWeight: 700,
-                                    fontSize: '0.82rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    boxShadow: '0 2px 6px rgba(217, 119, 6, 0.3)',
-                                  }}
-                                >
-                                  <i className="fa-solid fa-shield-halved"></i> Approve Trust Badge
-                                </button>
-                              </>
-                            )}
-
-                            {isRejected && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTrustToApprove(tr);
-                                  setTrustApprovalNote('Re-evaluated and approved.');
-                                }}
+                            {/* 5. Status */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <span
                                 style={{
-                                  background: '#ecfdf5',
-                                  color: '#059669',
-                                  border: '1px solid #a7f3d0',
-                                  padding: '0.45rem 0.95rem',
-                                  borderRadius: 8,
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem',
-                                  cursor: 'pointer',
-                                  display: 'flex',
+                                  fontSize: '0.76rem',
+                                  fontWeight: 800,
+                                  padding: '0.25rem 0.65rem',
+                                  borderRadius: '999px',
+                                  display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '0.35rem',
+                                  gap: '0.3rem',
+                                  background: isApproved ? '#ecfdf5' : isRejected ? '#fef2f2' : '#fef3c7',
+                                  color: isApproved ? '#047857' : isRejected ? '#b91c1c' : '#b45309',
+                                  border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecdd3' : '#fde68a'}`,
                                 }}
                               >
-                                <i className="fa-solid fa-rotate-left"></i> Re-evaluate & Grant Badge
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                                <i className={`fa-solid ${isApproved ? 'fa-circle-check' : isRejected ? 'fa-circle-xmark' : 'fa-clock'}`}></i>
+                                {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending'}
+                              </span>
+                            </td>
+
+                            {/* 6. Validity (Remaining Days) */}
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.76rem',
+                                  fontWeight: 800,
+                                  padding: '0.25rem 0.65rem',
+                                  borderRadius: '999px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  whiteSpace: 'nowrap',
+                                  background: validityBadge.bg,
+                                  color: validityBadge.color,
+                                  border: `1px solid ${validityBadge.border}`,
+                                }}
+                              >
+                                <i className="fa-regular fa-calendar-check"></i>
+                                {validityBadge.text}
+                              </span>
+                            </td>
+
+                            {/* 7. Actions */}
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', justifyContent: 'flex-end' }}>
+                                {/* Eye button - Opens Full Details Modal */}
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingTrustModal(tr)}
+                                  title="View Full Details & Documents"
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 7,
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
+                                    color: '#2563eb',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  <i className="fa-solid fa-eye" style={{ fontSize: '0.85rem' }}></i>
+                                </button>
+
+                                {isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTrustToReject(tr);
+                                        setTrustRejectReason('');
+                                      }}
+                                      title="Reject Application"
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 7,
+                                        background: '#fef2f2',
+                                        border: '1px solid #fecdd3',
+                                        color: '#ef4444',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <i className="fa-solid fa-xmark" style={{ fontSize: '0.85rem' }}></i>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTrustToApprove(tr);
+                                        setTrustApprovalNote('');
+                                      }}
+                                      title="Approve & Grant Gold Badge"
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 7,
+                                        background: '#ecfdf5',
+                                        border: '1px solid #a7f3d0',
+                                        color: '#059669',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <i className="fa-solid fa-shield-halved" style={{ fontSize: '0.85rem' }}></i>
+                                    </button>
+                                  </>
+                                )}
+
+                                {isRejected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTrustToApprove(tr);
+                                      setTrustApprovalNote('Re-evaluated and approved.');
+                                    }}
+                                    title="Re-evaluate & Approve"
+                                    style={{
+                                      width: 32,
+                                      height: 32,
+                                      borderRadius: 7,
+                                      background: '#ecfdf5',
+                                      border: '1px solid #a7f3d0',
+                                      color: '#059669',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <i className="fa-solid fa-rotate-left" style={{ fontSize: '0.82rem' }}></i>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -7337,6 +7314,309 @@ export default function SuperAdminPage() {
               </div>
             </div>
           )}
+
+          {/* ================= MODAL: COMPLETE TRUST APPLICATION DETAILS ================= */}
+          {viewingTrustModal && (() => {
+            const tr = viewingTrustModal;
+            const st = (tr.status || 'pending').toLowerCase();
+            const isApproved = st === 'approved';
+            const isRejected = st === 'rejected';
+            const isPending = !isApproved && !isRejected;
+
+            const matchedListing = listings.find((l) => String(l.id) === String(tr.listingId));
+            const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+            const activatedAt = matchedListing?.trustBadgeActivatedAt || tr.updatedAt || tr.createdAt || Date.now();
+            const expiresAt = matchedListing?.trustBadgeExpiresAt || (activatedAt + oneYearMs);
+            const diffMs = expiresAt - Date.now();
+            const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+            return (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                <div style={{ background: '#fff', maxWidth: 660, width: '100%', borderRadius: 16, padding: '1.5rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                  {/* Modal Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.85rem', borderBottom: '1px solid #f1f5f9', marginBottom: '1.15rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                        <i className="fa-solid fa-shield-halved"></i>
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Gold Trust Badge Application
+                        </h3>
+                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                          App ID: #{tr.id} • Date: {tr.date || 'Recent'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingTrustModal(null)}
+                      style={{ background: '#f1f5f9', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+
+                  {/* Body Grid */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Status & Validity Banner */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: isApproved ? '#ecfdf5' : isRejected ? '#fef2f2' : '#fffbeb', border: `1px solid ${isApproved ? '#a7f3d0' : isRejected ? '#fecdd3' : '#fde68a'}`, padding: '0.75rem 1rem', borderRadius: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.86rem', color: isApproved ? '#047857' : isRejected ? '#b91c1c' : '#b45309' }}>
+                          Status: {isApproved ? 'Approved & Active 👑' : isRejected ? 'Rejected ❌' : 'Pending Verification ⏳'}
+                        </span>
+                      </div>
+                      {isApproved && (
+                        <span style={{ background: daysLeft <= 30 ? '#fef3c7' : '#d1fae5', color: daysLeft <= 30 ? '#b45309' : '#065f46', padding: '0.2rem 0.65rem', borderRadius: 999, fontWeight: 800, fontSize: '0.78rem' }}>
+                          📅 {daysLeft} Days Remaining
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Section 1: Business Info */}
+                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa-solid fa-store" style={{ color: '#2563eb' }}></i> Business & Store Information
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Business Name:</span>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{tr.businessName || tr.listingName}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Listing ID:</span>
+                          <div style={{ fontWeight: 700, color: '#2563eb' }}>#{tr.listingId}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>City:</span>
+                          <div style={{ fontWeight: 600, color: '#334155' }}>{tr.city || 'Not provided'}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Category:</span>
+                          <div style={{ fontWeight: 600, color: '#334155' }}>{tr.category || 'General'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Applicant Info */}
+                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa-solid fa-user-tie" style={{ color: '#059669' }}></i> Applicant / Owner Information
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Full Name:</span>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{tr.applicantName || tr.ownerName || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Phone Number:</span>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                            {tr.phone ? (
+                              <a href={formatTelUrl(tr.phone)} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                                <i className="fa-solid fa-phone" style={{ fontSize: '0.72rem', marginRight: 4 }}></i>
+                                {tr.phone}
+                              </a>
+                            ) : 'N/A'}
+                          </div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Email:</span>
+                          <div style={{ fontWeight: 600, color: '#334155' }}>{tr.email || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Applicant User ID:</span>
+                          <div style={{ fontWeight: 600, color: '#64748b', fontSize: '0.8rem', fontFamily: 'monospace' }}>{tr.applicantId || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Verification Document */}
+                    <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: 10, border: '1px solid #bfdbfe' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa-solid fa-file-shield"></i> Government Verification Document
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem', marginBottom: tr.docProof ? '0.75rem' : 0 }}>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Document Type:</span>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{tr.docType || 'Trade License'}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Registration / License Number:</span>
+                          <div style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>
+                            {tr.tradeLicense || tr.gstNumber || 'Not provided'}
+                          </div>
+                        </div>
+                      </div>
+                      {tr.docProof && (
+                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #bfdbfe' }}>
+                          <span style={{ fontSize: '0.76rem', color: '#1d4ed8', fontWeight: 700, display: 'block', marginBottom: 6 }}>Document File / Proof:</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setTrustDocPreview({ name: `${tr.docType || 'Document'} Proof`, url: tr.docProof!, type: 'file' })}
+                              style={{
+                                background: '#2563eb',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '0.45rem 0.95rem',
+                                borderRadius: 7,
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-file-lines"></i> Open Document File
+                            </button>
+                            <a
+                              href={tr.docProof}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#2563eb', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'underline' }}
+                            >
+                              Direct Link <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '0.72rem' }}></i>
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 4: Payment Details */}
+                    <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: 10, border: '1px solid #fde68a' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#92400e', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa-solid fa-indian-rupee-sign"></i> UPI Payment & Transaction Details
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem', marginBottom: tr.paymentProof ? '0.75rem' : 0 }}>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#78350f' }}>Amount Paid:</span>
+                          <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '1.15rem' }}>₹{tr.amountPaid || 499}</div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.76rem', color: '#78350f' }}>12-Digit UPI Transaction ID / UTR:</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: 2 }}>
+                            <span style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace', fontSize: '0.98rem' }}>
+                              {tr.transactionId || 'NOT PROVIDED'}
+                            </span>
+                            {tr.transactionId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(tr.transactionId || '');
+                                  alert(`Copied UTR: ${tr.transactionId}`);
+                                }}
+                                style={{ background: '#d97706', color: '#fff', border: 'none', padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}
+                              >
+                                <i className="fa-solid fa-copy"></i> Copy
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {tr.paymentProof && (
+                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #fde68a' }}>
+                          <span style={{ fontSize: '0.76rem', color: '#92400e', fontWeight: 700, display: 'block', marginBottom: 6 }}>Payment Receipt Screenshot:</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setTrustDocPreview({ name: 'Payment Receipt Screenshot', url: tr.paymentProof!, type: 'image' })}
+                              style={{
+                                background: '#d97706',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '0.45rem 0.95rem',
+                                borderRadius: 7,
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-receipt"></i> View Screenshot
+                            </button>
+                            <a
+                              href={tr.paymentProof}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'underline' }}
+                            >
+                              Open Full Size <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '0.72rem' }}></i>
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Admin Note if Present */}
+                    {tr.adminReply && (
+                      <div style={{ background: isRejected ? '#fef2f2' : '#eff6ff', border: `1px solid ${isRejected ? '#fecdd3' : '#bfdbfe'}`, borderRadius: 10, padding: '0.75rem 1rem', fontSize: '0.84rem', color: isRejected ? '#991b1b' : '#1e40af' }}>
+                        <strong>{isRejected ? 'Rejection Reason:' : 'Admin Note:'}</strong> {tr.adminReply}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                    <button
+                      type="button"
+                      onClick={() => setViewingTrustModal(null)}
+                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.55rem 1.25rem', borderRadius: 8, fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer' }}
+                    >
+                      Close
+                    </button>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {isPending && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const target = viewingTrustModal;
+                              setViewingTrustModal(null);
+                              setTrustToReject(target);
+                              setTrustRejectReason('');
+                            }}
+                            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecdd3', padding: '0.55rem 1rem', borderRadius: 8, fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <i className="fa-solid fa-xmark"></i> Reject
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const target = viewingTrustModal;
+                              setViewingTrustModal(null);
+                              setTrustToApprove(target);
+                              setTrustApprovalNote('');
+                            }}
+                            style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', color: '#fff', border: 'none', padding: '0.55rem 1.25rem', borderRadius: 8, fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <i className="fa-solid fa-shield-halved"></i> Approve Trust Badge
+                          </button>
+                        </>
+                      )}
+                      {isRejected && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const target = viewingTrustModal;
+                            setViewingTrustModal(null);
+                            setTrustToApprove(target);
+                            setTrustApprovalNote('Re-evaluated and approved.');
+                          }}
+                          style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.55rem 1.15rem', borderRadius: 8, fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <i className="fa-solid fa-rotate-left"></i> Re-evaluate & Grant Badge
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ================= MODAL: APPROVE TRUST BADGE ================= */}
           {trustToApprove && (
