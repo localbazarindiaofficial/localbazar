@@ -2502,23 +2502,51 @@ export default function AccountPage() {
                 {/* STAGE 1: BASIC & PHOTOS */}
                 {listingStep === 1 && (
                   <div className="listing-step-pane active">
-                    <div className="compact-photo-picker-box">
-                      <div className="compact-photo-top-bar">
-                        <div className="compact-photo-title-wrap">
-                          <div className="compact-photo-icon-badge">
+                    {/* 1. Listing Photos Card */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '16px',
+                        padding: '1.25rem',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                        marginBottom: '1.25rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}>
                             <i className="fa-solid fa-camera"></i>
                           </div>
-                          <div className="compact-photo-meta-info">
-                            <h4 className="compact-photo-title">Listing Photos</h4>
-                            <p className="compact-photo-sub">Upload store images & banners</p>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>Listing Photos</h4>
+                            <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b' }}>Upload storefront, products &amp; interior photos</p>
                           </div>
                         </div>
-                        <span className="compact-photo-count-pill">{formPhotos.length} Selected</span>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 700, background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 20 }}>
+                          {formPhotos.length} Selected
+                        </span>
                       </div>
 
-                      <div className="compact-photo-action-bar">
-                        <label className="btn-compact-add-photo" style={{ cursor: 'pointer' }}>
-                          <i className="fa-solid fa-cloud-arrow-up"></i> <span>Choose Photos</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <label
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.6rem 1.15rem',
+                            borderRadius: '10px',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1.5px dashed #93c5fd',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <i className="fa-solid fa-cloud-arrow-up"></i>
+                          <span>+ Choose Store Photos</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -2527,17 +2555,42 @@ export default function AccountPage() {
                             style={{ display: 'none' }}
                           />
                         </label>
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                          JPG, PNG or WebP &bull; 1st photo is used as Cover Banner
+                        </span>
                       </div>
 
                       {formPhotos.length > 0 && (
-                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', padding: '0.75rem 0' }}>
+                        <div style={{ display: 'flex', gap: '0.65rem', overflowX: 'auto', padding: '0.85rem 0 0.25rem 0' }}>
                           {formPhotos.map((img, i) => (
-                            <div key={i} style={{ position: 'relative' }}>
-                              <img src={img} alt={`Preview ${i}`} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px' }} />
+                            <div key={i} style={{ position: 'relative', flexShrink: 0, width: 78, height: 78, borderRadius: 10, overflow: 'hidden', border: i === 0 ? '2px solid #2563eb' : '1px solid #cbd5e1' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={img} alt={`Preview ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              {i === 0 && (
+                                <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(37, 99, 235, 0.9)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', fontWeight: 800, padding: '1px 0' }}>
+                                  Cover
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setFormPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                                style={{ position: 'absolute', top: -5, right: -5, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '10px', cursor: 'pointer' }}
+                                style={{
+                                  position: 'absolute',
+                                  top: 3,
+                                  right: 3,
+                                  background: 'rgba(239, 68, 68, 0.9)',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: 18,
+                                  height: 18,
+                                  fontSize: 10,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                                title="Remove photo"
                               >
                                 &times;
                               </button>
@@ -2547,51 +2600,90 @@ export default function AccountPage() {
                       )}
                     </div>
 
-                    <div className="form-section-block">
-                      <h3 className="form-section-title">
-                        <i className="fa-solid fa-circle-info"></i> Basic Information
-                      </h3>
-                      <div className="form-grid-3">
-                        <div className="form-field span-2">
-                          <label>Business / Shop Name *</label>
+                    {/* 2. Basic Information Card */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '16px',
+                        padding: '1.25rem',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                        marginBottom: '1.25rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.15rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}>
+                          <i className="fa-solid fa-store"></i>
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>Basic Information</h3>
+                          <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b' }}>Core business profile details displayed to customers</p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {/* Shop Name */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-shop" style={{ color: '#2563eb', marginRight: 6 }}></i> Business / Shop Name <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Apollo Pharmacy, New Bengal Sweet"
+                            placeholder="e.g. Apollo Pharmacy, New Bengal Sweets"
                             value={formName}
                             onChange={(e) => setFormName(e.target.value)}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: '#f8fafc' }}
                           />
                         </div>
 
-                        <div className="form-field" style={{ position: 'relative' }}>
-                          <label>Category *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Type category (e.g. Salon, Restaurant)..."
-                            value={formCategory}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setFormCategory(val);
-                              setShowCatSuggestions(val.trim().length > 0);
-                            }}
-                            onFocus={() => {
-                              if (formCategory.trim().length > 0) setShowCatSuggestions(true);
-                            }}
-                            onBlur={() => setTimeout(() => setShowCatSuggestions(false), 200)}
-                            autoComplete="off"
-                          />
+                        {/* Category */}
+                        <div style={{ position: 'relative' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-layer-group" style={{ color: '#2563eb', marginRight: 6 }}></i> Business Category <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Type category (e.g. Salon, Restaurant)..."
+                              value={formCategory}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormCategory(val);
+                                setShowCatSuggestions(val.trim().length > 0);
+                              }}
+                              onFocus={() => {
+                                if (formCategory.trim().length > 0) setShowCatSuggestions(true);
+                              }}
+                              onBlur={() => setTimeout(() => setShowCatSuggestions(false), 200)}
+                              autoComplete="off"
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: '#f8fafc' }}
+                            />
+                            {formCategory && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormCategory('');
+                                  setShowCatSuggestions(false);
+                                }}
+                                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
                           {showCatSuggestions && formCategory.trim().length > 0 && categories.length > 0 && (() => {
                             const filtered = categories
                               .filter((c) => c.name.toLowerCase().includes(formCategory.trim().toLowerCase()))
                               .slice(0, 8);
                             if (filtered.length === 0) return null;
                             return (
-                              <div className="city-suggestions-dropdown" style={{ display: 'block', maxHeight: '180px', overflowY: 'auto' }}>
+                              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 10, border: '1px solid #cbd5e1', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto' }}>
                                 {filtered.map((c) => (
                                   <div
                                     key={c.name}
-                                    style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
                                     onMouseDown={(e) => {
                                       e.preventDefault();
                                       setFormCategory(c.name);
@@ -2599,7 +2691,7 @@ export default function AccountPage() {
                                     }}
                                   >
                                     <i className={`fa-solid ${c.icon || 'fa-tag'}`} style={{ color: '#2563eb', fontSize: '0.85rem', width: '16px', textAlign: 'center' }}></i>
-                                    <span style={{ fontWeight: 600 }}>{c.name}</span>
+                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
                                   </div>
                                 ))}
                               </div>
@@ -2607,35 +2699,53 @@ export default function AccountPage() {
                           })()}
                         </div>
 
-                        <div className="form-field" style={{ position: 'relative' }}>
-                          <label>City / Locality *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Type city (e.g. Kolkata, Mumbai)..."
-                            value={formCity}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setFormCity(val);
-                              setShowCitySuggestions(val.trim().length > 0);
-                            }}
-                            onFocus={() => {
-                              if (formCity.trim().length > 0) setShowCitySuggestions(true);
-                            }}
-                            onBlur={() => setTimeout(() => setShowCitySuggestions(false), 200)}
-                            autoComplete="off"
-                          />
+                        {/* City */}
+                        <div style={{ position: 'relative' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-location-dot" style={{ color: '#ef4444', marginRight: 6 }}></i> City / Locality <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Type city (e.g. Kolkata, Mumbai)..."
+                              value={formCity}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormCity(val);
+                                setShowCitySuggestions(val.trim().length > 0);
+                              }}
+                              onFocus={() => {
+                                if (formCity.trim().length > 0) setShowCitySuggestions(true);
+                              }}
+                              onBlur={() => setTimeout(() => setShowCitySuggestions(false), 200)}
+                              autoComplete="off"
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: '#f8fafc' }}
+                            />
+                            {formCity && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormCity('');
+                                  setShowCitySuggestions(false);
+                                }}
+                                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
                           {showCitySuggestions && formCity.trim().length > 0 && cities.length > 0 && (() => {
                             const filtered = cities
                               .filter((c) => c.name.toLowerCase().includes(formCity.trim().toLowerCase()))
                               .slice(0, 8);
                             if (filtered.length === 0) return null;
                             return (
-                              <div className="city-suggestions-dropdown" style={{ display: 'block', maxHeight: '180px', overflowY: 'auto' }}>
+                              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 10, border: '1px solid #cbd5e1', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto' }}>
                                 {filtered.map((c) => (
                                   <div
                                     key={c.name}
-                                    style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    style={{ padding: '0.55rem 0.85rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
                                     onMouseDown={(e) => {
                                       e.preventDefault();
                                       setFormCity(c.name);
@@ -2643,7 +2753,8 @@ export default function AccountPage() {
                                     }}
                                   >
                                     <i className="fa-solid fa-location-dot" style={{ color: '#ef4444', fontSize: '0.85rem', width: '16px', textAlign: 'center' }}></i>
-                                    <span style={{ fontWeight: 600 }}>{c.name}</span>
+                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                                    <span style={{ fontSize: '0.74rem', color: '#64748b', marginLeft: 'auto' }}>{c.district || c.state}</span>
                                   </div>
                                 ))}
                               </div>
@@ -2651,24 +2762,40 @@ export default function AccountPage() {
                           })()}
                         </div>
 
-                        <div className="form-field span-2">
-                          <label>Contact Phone Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="+91 98300 12345"
-                            value={formPhone}
-                            onChange={(e) => setFormPhone(e.target.value)}
-                          />
+                        {/* Phone Number with +91 Country Badge */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-phone" style={{ color: '#10b981', marginRight: 6 }}></i> Contact Phone Number <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', borderRadius: 10, border: '1.5px solid #cbd5e1', overflow: 'hidden', background: '#f8fafc' }}>
+                            <span style={{ padding: '0.65rem 0.85rem', background: '#e2e8f0', color: '#334155', fontWeight: 800, fontSize: '0.85rem', borderRight: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <i className="fa-solid fa-phone" style={{ fontSize: '0.75rem', color: '#10b981' }}></i> +91
+                            </span>
+                            <input
+                              type="tel"
+                              required
+                              placeholder="98300 12345"
+                              value={formPhone.replace(/^\+91\s*/, '')}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                setFormPhone(raw ? `+91 ${raw}` : '');
+                              }}
+                              style={{ flex: 1, padding: '0.65rem 0.85rem', border: 'none', outline: 'none', fontSize: '0.9rem', background: 'transparent' }}
+                            />
+                          </div>
                         </div>
 
-                        <div className="form-field span-3">
-                          <label>Description / About Business</label>
+                        {/* Description */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-align-left" style={{ color: '#6366f1', marginRight: 6 }}></i> Description / About Business
+                          </label>
                           <textarea
                             rows={3}
-                            placeholder="Tell customers about your products, services and specialties..."
+                            placeholder="Tell customers about your products, services, specialties, and special offers..."
                             value={formDesc}
                             onChange={(e) => setFormDesc(e.target.value)}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: '#f8fafc', lineHeight: 1.45 }}
                           />
                         </div>
                       </div>
@@ -2686,30 +2813,94 @@ export default function AccountPage() {
                 {/* STAGE 2: ADDRESS & GOOGLE MAP */}
                 {listingStep === 2 && (
                   <div className="listing-step-pane active">
-                    <div className="form-section-block">
-                      <h3 className="form-section-title">
-                        <i className="fa-solid fa-map-location-dot"></i> Store Location & Address
-                      </h3>
-                      <div className="form-grid-2">
-                        <div className="form-field">
-                          <label>Full Detailed Address *</label>
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '16px',
+                        padding: '1.25rem',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                        marginBottom: '1.25rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.15rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}>
+                          <i className="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>Store Location &amp; Address</h3>
+                          <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b' }}>Provide accurate address and navigation link for customers</p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        {/* 1. Full Detailed Address */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-map-pin" style={{ color: '#ef4444', marginRight: 6 }}></i> Detailed Store Address <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
                           <textarea
-                            rows={4}
+                            rows={3}
                             required
-                            placeholder="Building name, Floor, Street, Landmark, Pin Code"
+                            placeholder="Shop / Plot No., Building Name, Street / Road, Near Landmark, Area, PIN Code"
                             value={formAddress}
                             onChange={(e) => setFormAddress(e.target.value)}
+                            style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: '#f8fafc', lineHeight: 1.45 }}
                           />
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 4 }}>
+                            <i className="fa-solid fa-circle-info" style={{ marginRight: 4, color: '#2563eb' }}></i> Customers will use this full address to locate your store.
+                          </div>
                         </div>
-                        <div className="form-field">
-                          <label>Google Map Link / Share URL</label>
-                          <textarea
-                            rows={4}
-                            placeholder="https://maps.google.com/?q=... or Share location URL"
-                            value={formMapLink}
-                            onChange={(e) => setFormMapLink(e.target.value)}
-                          />
-                          <small className="field-hint">Paste Google Maps share link so customers can navigate with one tap.</small>
+
+                        {/* 2. Google Maps Navigation Link */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <i className="fa-solid fa-location-crosshairs" style={{ color: '#2563eb', marginRight: 6 }}></i> Google Maps Navigation Link (Recommended)
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', borderRadius: 10, border: '1.5px solid #cbd5e1', overflow: 'hidden', background: '#f8fafc' }}>
+                            <span style={{ padding: '0.65rem 0.85rem', background: '#e2e8f0', color: '#2563eb', fontSize: '0.95rem', borderRight: '1px solid #cbd5e1', display: 'flex', alignItems: 'center' }}>
+                              <i className="fa-solid fa-map-location-dot"></i>
+                            </span>
+                            <input
+                              type="url"
+                              placeholder="Paste Google Maps share link (e.g. https://maps.app.goo.gl/...)"
+                              value={formMapLink}
+                              onChange={(e) => setFormMapLink(e.target.value)}
+                              style={{ flex: 1, padding: '0.65rem 0.85rem', border: 'none', outline: 'none', fontSize: '0.88rem', background: 'transparent' }}
+                            />
+                            {formMapLink && (
+                              <button
+                                type="button"
+                                onClick={() => setFormMapLink('')}
+                                style={{ background: 'none', border: 'none', color: '#94a3b8', padding: '0 0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}
+                                title="Clear"
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Directions Callout Tip Card */}
+                          <div
+                            style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: 10,
+                              padding: '0.75rem 0.95rem',
+                              marginTop: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '0.65rem',
+                            }}
+                          >
+                            <i className="fa-solid fa-route" style={{ color: '#16a34a', fontSize: '1.1rem', marginTop: 2, flexShrink: 0 }}></i>
+                            <div>
+                              <strong style={{ fontSize: '0.82rem', color: '#166534', display: 'block' }}>1-Tap Doorstep Customer Navigation</strong>
+                              <span style={{ fontSize: '0.75rem', color: '#15803d', lineHeight: 1.4, display: 'block' }}>
+                                Open Google Maps on your phone &rarr; Search your shop &rarr; Tap &ldquo;Share&rdquo; &rarr; Copy link and paste it here. When customers tap &ldquo;Directions&rdquo; on your listing, it will navigate straight to your shop doorstep!
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
