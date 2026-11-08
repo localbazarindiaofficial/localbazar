@@ -280,6 +280,7 @@ export default function AccountPage() {
 
   // Help & Support States (Compose & Inbox)
   const [helpTab, setHelpTab] = useState<'compose' | 'inbox'>('compose');
+  const [hasNewSentTicketNotification, setHasNewSentTicketNotification] = useState(false);
   const [helpSubject, setHelpSubject] = useState('');
   const [helpMessage, setHelpMessage] = useState('');
   const [helpAttachments, setHelpAttachments] = useState<MailAttachment[]>([]);
@@ -2100,16 +2101,16 @@ export default function AccountPage() {
       // Save to Firebase Cloud
       await cloudSync.saveMail(newMail);
 
-      // Reset form & navigate to Inbox
+      // Reset form & remain on Compose tab with notification on Inbox
       setHelpSubject('');
       setHelpMessage('');
       setHelpAttachments([]);
-      setHelpTab('inbox');
-      setSelectedTicketId(ticketId);
+      setSelectedTicketId(null);
+      setHasNewSentTicketNotification(true);
 
       showAlert(
-        'Support Ticket Sent! 📩',
-        'Your message has been delivered to LocalBazar Admin Support. You can check admin replies directly in this Inbox tab.',
+        'Message Sent Successfully! 📩',
+        'Your support message has been delivered to LocalBazar Admin Support. You can check all messages and replies anytime in your Inbox tab.',
         'success'
       );
     } catch (err) {
@@ -6051,7 +6052,11 @@ export default function AccountPage() {
 
                 <button
                   type="button"
-                  onClick={() => setHelpTab('inbox')}
+                  onClick={() => {
+                    setHelpTab('inbox');
+                    setSelectedTicketId(null);
+                    setHasNewSentTicketNotification(false);
+                  }}
                   style={{
                     flex: 1,
                     padding: '0.65rem 1rem',
@@ -6072,16 +6077,29 @@ export default function AccountPage() {
                 >
                   <i className="fa-solid fa-inbox" style={{ color: helpTab === 'inbox' ? '#16a34a' : '#94a3b8' }}></i>
                   Inbox
-                  {unreadMailsCount > 0 && (
-                    <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
-                      {unreadMailsCount}
+                  {(unreadMailsCount > 0 || hasNewSentTicketNotification) ? (
+                    <span
+                      style={{
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: '0.72rem',
+                        padding: '0.1rem 0.5rem',
+                        borderRadius: '999px',
+                        fontWeight: 800,
+                        boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', display: 'inline-block' }}></span>
+                      {unreadMailsCount > 0 ? unreadMailsCount : 'New'}
                     </span>
-                  )}
-                  {unreadMailsCount === 0 && userMails.length > 0 && (
+                  ) : userMails.length > 0 ? (
                     <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
                       {userMails.length}
                     </span>
-                  )}
+                  ) : null}
                 </button>
               </div>
 
