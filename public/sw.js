@@ -1,16 +1,15 @@
-// LocalBazar Progressive Web App (PWA) Service Worker Engine v107
-const CACHE_NAME = 'localbazar-pwa-v107';
+// LocalBazar Progressive Web App (PWA) Service Worker Engine v108
+const CACHE_NAME = 'localbazar-pwa-v108';
 
-// Only lightweight critical shell assets (Giant 512px icons are loaded on-demand, not blocking install)
+// Only lightweight static icons & manifest - NEVER CACHE HTML DOCUMENTS
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icon-192.png',
   '/favicon.png',
   '/apple-touch-icon.png'
 ];
 
-// Install: Cache critical shell assets
+// Install: Cache critical static shell icons only
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -26,7 +25,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: Immediately purge all legacy cache versions (v90, etc.) and claim clients
+// Activate: Immediately purge ALL legacy caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -48,36 +47,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // 1. Bypass all server APIs and Next.js internal chunks
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) {
-    return;
-  }
-
-  // 2. Bypass Firebase, Firestore, Google Auth/APIs, and external image CDNs
-  if (
-    url.origin.includes('firestore.googleapis.com') ||
-    url.origin.includes('firebaseio.com') ||
-    url.origin.includes('identitytoolkit') ||
-    url.origin.includes('api.imgbb.com') ||
-    url.origin.includes('googleapis.com') ||
-    url.origin.includes('gstatic.com') ||
-    url.origin.includes('googleusercontent.com') ||
-    url.origin.includes('ibb.co')
-  ) {
-    return;
-  }
-
-  // 3. Dynamic Pages (/explore, /shops, /account, /admin): Direct network pass-through, NEVER poisoned by root cache
-  if (
-    url.pathname.startsWith('/explore') ||
-    url.pathname.startsWith('/shops') ||
-    url.pathname.startsWith('/account') ||
-    url.pathname.startsWith('/admin')
-  ) {
-    // If not a full browser HTML navigation (e.g. Next.js RSC fetch or background request), let browser handle natively
-    if (event.request.mode !== 'navigate') {
-      return;
-    }
+  // 1. ALL HTML navigations: ALWAYS bypass service worker and fetch LIVE network
+  // This guarantees Next.js build chunks and RSC payloads NEVER mismatch or get stuck!
+  if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
         return new Response(
@@ -92,36 +64,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Page Navigation (HTML Root /): Stale-While-Revalidate for ultra-fast instant 0.05s launch & refresh
-  if (event.request.mode === 'navigate' && url.pathname === '/') {
-    event.respondWith(
-      caches.match('/').then((cached) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const copy = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, copy);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cached);
-
-        // Instant launch from local cache (0.05s) if available, while network updates in background
-        return cached || fetchPromise;
-      })
-    );
-    return;
+  // 2. Bypass all server APIs, Next.js internal chunks, and external CDNs
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/_next/') ||
+    url.searchParams.has('_rsc') ||
+    url.origin.includes('firestore.googleapis.com') ||
+    url.origin.includes('firebaseio.com') ||
+    url.origin.includes('identitytoolkit') ||
+    url.origin.includes('api.imgbb.com') ||
+    url.origin.includes('googleapis.com') ||
+    url.origin.includes('gstatic.com') ||
+    url.origin.includes('googleusercontent.com') ||
+    url.origin.includes('ibb.co')
+  ) {
+    return; // Let browser fetch natively
   }
 
-  // 5. Static Assets (PWA Icons, Manifest, Favicon): Cache First with Network Fallback
+  // 3. Static Assets (PWA Icons, Manifest, Favicon): Cache First with Network Fallback
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      })
-    );
+    const isStaticAsset = STATIC_ASSETS.some((a) => url.pathname === a);
+    if (isStaticAsset) {
+      event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || fetch(event.request);
+        })
+      );
+    }
   }
 });
 

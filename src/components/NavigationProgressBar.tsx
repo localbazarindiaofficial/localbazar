@@ -23,7 +23,7 @@ export default function NavigationProgressBar() {
     const fadeTimer = setTimeout(() => {
       setIsNavigating(false);
       setProgress(0);
-    }, 120);
+    }, 150);
     timersRef.current.push(fadeTimer);
   };
 
@@ -41,16 +41,12 @@ export default function NavigationProgressBar() {
       setProgress((prev) => (prev > 0 && prev < 90 ? 84 : prev));
     }, 200);
 
-    const t3 = setTimeout(() => {
-      setProgress((prev) => (prev > 0 && prev < 95 ? 92 : prev));
-    }, 450);
-
-    // Generous safety timeout: Dismiss after 4000ms if navigation was aborted
+    // Generous safety timeout: Dismiss after 3000ms if navigation completed or aborted
     const safetyTimer = setTimeout(() => {
       finishNavigation();
-    }, 4000);
+    }, 3000);
 
-    timersRef.current.push(t1, t2, t3, safetyTimer);
+    timersRef.current.push(t1, t2, safetyTimer);
   };
 
   // When pathname or searchParams change, route has finished loading
@@ -59,49 +55,34 @@ export default function NavigationProgressBar() {
     return () => clearAllTimers();
   }, [pathname, searchParams]);
 
-  // Global click & history navigation listener
+  // Safe, non-blocking click listener: NEVER monkeypatches history.pushState or uses capture phase
   useEffect(() => {
-    // Intercept history.pushState so programmatic router.push() triggers instant progress bar only on real page change
-    const originalPushState = window.history.pushState;
-    window.history.pushState = function (...args) {
-      try {
-        const url = args[2];
-        if (url && typeof url === 'string') {
-          const targetUrl = new URL(url, window.location.href);
-          if (
-            targetUrl.origin === window.location.origin &&
-            (targetUrl.pathname !== window.location.pathname || targetUrl.search !== window.location.search)
-          ) {
-            startNavigation();
-          }
-        }
-      } catch {}
-      return originalPushState.apply(this, args);
-    };
-
     const handleDocumentClick = (e: MouseEvent) => {
-      // Find closest anchor tag
       const target = (e.target as HTMLElement)?.closest('a');
       if (!target || !target.href) return;
 
-      const targetUrl = new URL(target.href, window.location.href);
-      const currentUrl = new URL(window.location.href);
+      try {
+        const targetUrl = new URL(target.href, window.location.href);
+        const currentUrl = new URL(window.location.href);
 
-      // Only trigger for same-origin internal navigations that actually change page
-      if (
-        targetUrl.origin === currentUrl.origin &&
-        target.target !== '_blank' &&
-        !target.hasAttribute('download') &&
-        (targetUrl.pathname !== currentUrl.pathname || targetUrl.search !== currentUrl.search)
-      ) {
-        startNavigation();
-      }
+        // Only trigger for same-origin internal navigations that actually change page
+        if (
+          targetUrl.origin === currentUrl.origin &&
+          target.target !== '_blank' &&
+          !target.hasAttribute('download') &&
+          (targetUrl.pathname !== currentUrl.pathname || targetUrl.search !== currentUrl.search)
+        ) {
+          // Defer startNavigation so it NEVER interrupts Next.js Link dispatch
+          setTimeout(() => {
+            startNavigation();
+          }, 0);
+        }
+      } catch {}
     };
 
-    document.addEventListener('click', handleDocumentClick, { capture: true });
+    document.addEventListener('click', handleDocumentClick);
     return () => {
-      document.removeEventListener('click', handleDocumentClick, { capture: true });
-      window.history.pushState = originalPushState;
+      document.removeEventListener('click', handleDocumentClick);
       clearAllTimers();
     };
   }, []);

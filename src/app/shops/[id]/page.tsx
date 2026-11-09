@@ -35,8 +35,20 @@ export default function ShopDetailPage() {
   const router = useRouter();
   const shopId = decodeURIComponent(String(params?.id || ''));
 
-  const [shop, setShop] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [shop, setShop] = useState<Listing | null>(() => {
+    if (typeof window !== 'undefined' && shopId) {
+      try {
+        const raw = localStorage.getItem('lb_cached_listings');
+        if (raw) {
+          const list: Listing[] = JSON.parse(raw);
+          const found = list.find((l) => String(l.id) === String(shopId));
+          if (found) return found;
+        }
+      } catch {}
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(!shop);
 
   // Bottom Navigation Active Tab ('home' | 'reviews')
   const [bottomTab, setBottomTab] = useState<'home' | 'reviews'>('home');
@@ -286,7 +298,9 @@ export default function ShopDetailPage() {
   useEffect(() => {
     if (!shopId) return;
 
-    setLoading(true);
+    if (!shop) {
+      setLoading(true);
+    }
     cloudSync.getListingById(shopId).then((cloudListing) => {
       if (cloudListing) {
         setShop(cloudListing);

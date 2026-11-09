@@ -26,9 +26,32 @@ function ProductDetailPageContent() {
   const shopId = decodeURIComponent(String(params?.id || ''));
   const prodId = decodeURIComponent(String(params?.prodId || ''));
 
-  const [shop, setShop] = useState<Listing | null>(null);
-  const [product, setProduct] = useState<ProductItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialData = useMemo(() => {
+    if (typeof window !== 'undefined' && shopId) {
+      try {
+        const raw = localStorage.getItem('lb_cached_listings');
+        if (raw) {
+          const list: Listing[] = JSON.parse(raw);
+          const foundShop = list.find((l) => String(l.id).toLowerCase() === shopId.toLowerCase());
+          if (foundShop) {
+            const prods = (foundShop.products && foundShop.products.length > 0) ? foundShop.products : [];
+            const target = prodId.toLowerCase();
+            const foundProd = prods.find((p) => {
+              const pId = String(p.id || '').toLowerCase();
+              const pName = String(p.name || '').toLowerCase();
+              return pId === target || pName === target || encodeURIComponent(pName) === target;
+            }) || null;
+            return { shop: foundShop, product: foundProd };
+          }
+        }
+      } catch {}
+    }
+    return { shop: null, product: null };
+  }, [shopId, prodId]);
+
+  const [shop, setShop] = useState<Listing | null>(() => initialData.shop);
+  const [product, setProduct] = useState<ProductItem | null>(() => initialData.product);
+  const [loading, setLoading] = useState(!initialData.shop || !initialData.product);
 
   // Gallery slider state
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -220,7 +243,9 @@ function ProductDetailPageContent() {
     }
 
     // Fetch live listing from Cloud Firestore (Zero demo data)
-    setLoading(true);
+    if (!shop || !product) {
+      setLoading(true);
+    }
     cloudSync.getListingById(shopId).then((cloudItem) => {
       if (cloudItem) {
         resolveData([cloudItem]);

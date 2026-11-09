@@ -509,7 +509,7 @@ export default function HomePage() {
 
     // 3. Instant 0ms visual feedback: button turns to spinner immediately
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 1200);
+    setTimeout(() => setIsSearching(false), 700);
 
     const params = new URLSearchParams();
     params.set('city', city);
@@ -534,12 +534,12 @@ export default function HomePage() {
       return;
     }
 
-    // Safety fallback: If client route has not switched within 1000ms, force direct assign so user is never stuck
+    // Safety fallback: If client route has not switched within 700ms, force direct assign so user is never stuck
     setTimeout(() => {
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/explore')) {
         window.location.assign(targetUrl);
       }
-    }, 1000);
+    }, 700);
   };
 
   const handleModalGoogleSignIn = async () => {
