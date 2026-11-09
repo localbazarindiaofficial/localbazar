@@ -195,6 +195,7 @@ export default function HomePage() {
   // Clean reset of search inputs strictly upon returning to Home (pageshow / popstate)
   useEffect(() => {
     const handleReturnToHome = () => {
+      setIsSearching(false);
       if (isNavigatedAwayRef.current) {
         setCityInput('');
         setQueryInput('');
@@ -251,6 +252,23 @@ export default function HomePage() {
       return () => clearTimeout(timer);
     }
   }, [promotedProducts, router]);
+
+  // Real-time Predictive Search Preloader: prefetch exact explore query URL into memory while user types / selects
+  useEffect(() => {
+    const c = cityInput.trim();
+    const q = queryInput.trim();
+    if (c && q) {
+      const timer = setTimeout(() => {
+        try {
+          const params = new URLSearchParams();
+          params.set('city', c);
+          params.set('category', q);
+          router.prefetch(`/explore?${params.toString()}`);
+        } catch {}
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [cityInput, queryInput, router]);
 
   // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
@@ -507,39 +525,31 @@ export default function HomePage() {
       return;
     }
 
-    // 3. Instant 0ms visual feedback: button turns to spinner immediately
+    // 3. Instant 0ms visual feedback: trigger top progress bar & search state
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 700);
+    setTimeout(() => setIsSearching(false), 500);
 
     const params = new URLSearchParams();
     params.set('city', city);
     params.set('category', query);
     const targetUrl = `/explore?${params.toString()}`;
 
-    // Proactively prefetch explore route
-    try {
-      router.prefetch(targetUrl);
-    } catch {}
-
     // Mark navigated away so returning via Back button resets cleanly
     isNavigatedAwayRef.current = true;
     setShowCitySugg(false);
     setShowCatSugg(false);
 
-    // Smooth client-side Next.js route transition with instant fallback
+    // Dispatch global navigation start event for top glowing progress bar (0ms feedback)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lb:start-navigation'));
+    }
+
+    // Pure client-side Next.js App Router transition (Never abort or hard-reload)
     try {
       router.push(targetUrl);
     } catch {
-      window.location.assign(targetUrl);
-      return;
+      window.location.href = targetUrl;
     }
-
-    // Safety fallback: If client route has not switched within 700ms, force direct assign so user is never stuck
-    setTimeout(() => {
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/explore')) {
-        window.location.assign(targetUrl);
-      }
-    }, 700);
   };
 
   const handleModalGoogleSignIn = async () => {
@@ -905,15 +915,10 @@ export default function HomePage() {
             {/* Search Action */}
             <button
               type="submit"
-              className="omni-submit-btn"
+              className={`omni-submit-btn ${isSearching ? 'searching' : ''}`}
               aria-label="Search"
-              disabled={isSearching}
-              onPointerDown={(e) => {
-                // Instant mobile touch trigger on 1st tap (no double tap needed)
-                if (cityInput.trim() && queryInput.trim() && !isSearching) {
-                  e.preventDefault();
-                  handleSearchSubmit();
-                }
+              onClick={(e) => {
+                handleSearchSubmit(e);
               }}
             >
               {isSearching ? (

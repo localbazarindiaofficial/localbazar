@@ -55,7 +55,7 @@ export default function NavigationProgressBar() {
     return () => clearAllTimers();
   }, [pathname, searchParams]);
 
-  // Safe, non-blocking click listener: NEVER monkeypatches history.pushState or uses capture phase
+  // Safe, non-blocking click & custom trigger listener
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest('a');
@@ -80,9 +80,15 @@ export default function NavigationProgressBar() {
       } catch {}
     };
 
+    const handleCustomNavigation = () => {
+      startNavigation();
+    };
+
     document.addEventListener('click', handleDocumentClick);
+    window.addEventListener('lb:start-navigation', handleCustomNavigation);
     return () => {
       document.removeEventListener('click', handleDocumentClick);
+      window.removeEventListener('lb:start-navigation', handleCustomNavigation);
       clearAllTimers();
     };
   }, []);
