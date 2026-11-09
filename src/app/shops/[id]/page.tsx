@@ -61,8 +61,16 @@ export default function ShopDetailPage() {
   // Product Viewer 3-Images Slider Ref
   const productSliderTrackRef = useRef<HTMLDivElement>(null);
 
-  // Empty store fallback banners from admin
-  const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>([]);
+  // Empty store fallback banners from admin (Instant cache-first load)
+  const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_empty_store_banners');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
   const [allCategories, setAllCategories] = useState<CategoryItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -199,17 +207,38 @@ export default function ShopDetailPage() {
       closeAllModals();
       return;
     }
-    // Clean up any lingering modal history state so back button NEVER gets stuck
+
+    // Clean up any lingering modal history state
     if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
       modalHistoryPushedRef.current = false;
-      window.history.back();
-      return;
+      try { window.history.back(); } catch {}
     }
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/explore');
+
+    // Resolve previous explore URL if available
+    let targetExploreUrl = '/explore';
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUrl = sessionStorage.getItem('lb_last_explore_url');
+        if (savedUrl && savedUrl.startsWith('/explore')) {
+          targetExploreUrl = savedUrl;
+        }
+      } catch {}
     }
+
+    // Attempt router.back() if internal referrer exists, with reliable instant fallback
+    try {
+      if (typeof window !== 'undefined' && document.referrer && document.referrer.includes(window.location.host)) {
+        router.back();
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/shops/')) {
+            router.push(targetExploreUrl);
+          }
+        }, 250);
+        return;
+      }
+    } catch {}
+
+    router.push(targetExploreUrl);
   };
 
   // Track Current User
@@ -348,6 +377,9 @@ export default function ShopDetailPage() {
     cloudSync.pullEmptyStoreBanners().then((cloudSlots) => {
       if (cloudSlots && cloudSlots.length > 0) {
         setEmptyStoreBanners(cloudSlots);
+        try {
+          localStorage.setItem('lb_cached_empty_store_banners', JSON.stringify(cloudSlots));
+        } catch {}
       }
     }).catch(() => {});
 
@@ -438,58 +470,28 @@ export default function ShopDetailPage() {
 
   // 16:9 Banner Carousel Images (Trust Badge Exclusive: Trust stores show custom banners; Free stores show Admin default banners)
   const bannersList = useMemo(() => {
-    let customList: any[] = [];
     const hasTrust = isTrustBadgeActive(shop);
 
+    // 1. If Trust store has custom banners, display strictly the store's custom banners (Zero dummy banners)
     if (hasTrust && Array.isArray(shop?.banners) && shop.banners.length > 0) {
-      customList = shop.banners
+      const customList = shop.banners
         .map((b) => (typeof b === 'string' ? b.trim() : b))
         .filter(Boolean);
-    } else {
-      const activeSlots = emptyStoreBanners
-        .filter((s) => Boolean(s.imageUrl && typeof s.imageUrl === 'string' && s.imageUrl.trim()))
-        .map((s) => s.imageUrl.trim());
-      if (activeSlots.length > 0) {
-        customList = activeSlots;
+      if (customList.length > 0) {
+        return customList.slice(0, 3);
       }
     }
 
-    const defaultFallbacks = [
-      {
-        id: 'def-1',
-        headline: 'Special Discount Offer',
-        deal: 'Visit today for exclusive deals & big savings',
-        tag: 'EXCLUSIVE OFFER',
-        bgGradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-        icon: 'fa-bolt'
-      },
-      {
-        id: 'def-2',
-        headline: 'Verified Quality Products',
-        deal: '100% Genuine & Trusted Local Merchant',
-        tag: 'QUALITY ASSURED',
-        bgGradient: 'linear-gradient(135deg, #065f46 0%, #059669 100%)',
-        icon: 'fa-certificate'
-      },
-      {
-        id: 'def-3',
-        headline: 'Fast Home Delivery & Pickup',
-        deal: 'Call or WhatsApp for quick order fulfillment',
-        tag: 'INSTANT CONNECT',
-        bgGradient: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
-        icon: 'fa-truck-fast'
-      }
-    ];
-
-    // Combine custom banners, and fill remaining slots up to 3 with default banners
-    const combined = [...customList];
-    for (const def of defaultFallbacks) {
-      if (combined.length >= 3) break;
-      combined.push(def);
+    // 2. Otherwise display Admin configured empty store fallback banners (Zero dummy banners)
+    const activeAdminSlots = emptyStoreBanners
+      .filter((s) => Boolean(s.imageUrl && typeof s.imageUrl === 'string' && s.imageUrl.trim()))
+      .map((s) => s.imageUrl.trim());
+    if (activeAdminSlots.length > 0) {
+      return activeAdminSlots.slice(0, 3);
     }
 
-    return combined.slice(0, 3);
-  }, [shop?.banners, emptyStoreBanners]);
+    return [];
+  }, [shop?.banners, emptyStoreBanners, shop]);
 
   // Banner rotation interval (every 3.5s on mobile only)
   useEffect(() => {
@@ -1120,65 +1122,32 @@ export default function ShopDetailPage() {
             </div>
 
             {/* 16:9 Banner Carousel */}
-            <div
-              className="store-ads-carousel-wrap"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
+            {bannersList.length > 0 && (
               <div
-                className="store-ads-slider"
-                style={
-                  isMobile
-                    ? {
-                        display: 'flex',
-                        width: '100%',
-                        transform: `translateX(-${activeBannerIdx * 100}%)`,
-                        transition: 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
-                        overflow: 'visible',
-                      }
-                    : {
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '1.15rem',
-                        width: '100%',
-                        transform: 'none',
-                        overflow: 'visible',
-                      }
-                }
+                className="store-ads-carousel-wrap"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
               >
-                {bannersList.map((banner: any, idx: number) => {
-                  const imgSrc = typeof banner === 'string'
-                    ? banner.trim()
-                    : (banner?.imageUrl || banner?.url || banner?.image || banner?.src || '');
-                  const isImg = Boolean(imgSrc);
+                <div
+                  className="store-ads-slider"
+                  style={{
+                    transform: `translateX(-${activeBannerIdx * 100}%)`,
+                    transition: 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
+                  }}
+                >
+                  {bannersList.map((banner: any, idx: number) => {
+                    const imgSrc = typeof banner === 'string'
+                      ? banner.trim()
+                      : (banner?.imageUrl || banner?.url || banner?.image || banner?.src || '');
 
-                  if (isImg) {
                     return (
                       <div
                         key={idx}
                         className="store-ad-card is-custom-img"
-                        style={
-                          isMobile
-                            ? {
-                                minWidth: '100%',
-                                maxWidth: '100%',
-                                width: '100%',
-                                flex: '0 0 100%',
-                                aspectRatio: '16 / 9',
-                                boxSizing: 'border-box',
-                              }
-                            : {
-                                minWidth: 0,
-                                maxWidth: '100%',
-                                width: '100%',
-                                aspectRatio: '16 / 9',
-                                boxSizing: 'border-box',
-                              }
-                        }
                       >
                         <img
                           src={imgSrc}
-                          alt={banner?.title || banner?.headline || `Promotion ${idx + 1}`}
+                          alt={`Promotion ${idx + 1}`}
                           className="store-ad-custom-img"
                           onError={(e) => {
                             const target = e.currentTarget;
@@ -1188,46 +1157,24 @@ export default function ShopDetailPage() {
                         />
                       </div>
                     );
-                  }
-
-                  return (
-                    <div
-                      key={idx}
-                      className="store-ad-card festive-ad-1"
-                      style={{
-                        background: banner.bgGradient || 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-                        ...(isMobile
-                          ? { minWidth: '100%', maxWidth: '100%', width: '100%', flex: '0 0 100%', aspectRatio: '16 / 9', boxSizing: 'border-box' }
-                          : { minWidth: 0, maxWidth: '100%', width: '100%', aspectRatio: '16 / 9', boxSizing: 'border-box' })
-                      }}
-                    >
-                      <div className="store-ad-badge">
-                        <i className={`fa-solid ${banner.icon || 'fa-bolt'}`}></i> {banner.tag || 'SPECIAL OFFER'}
-                      </div>
-                      <div className="store-ad-content">
-                        <span className="store-ad-sub">Verified Business Offer</span>
-                        <h3 className="store-ad-heading">{banner.headline || banner.title || 'Exclusive Discount'}</h3>
-                        <p className="store-ad-deal">{banner.deal || banner.subtitle || 'Visit or contact today for best prices'}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {bannersList.length > 1 && (
-                <div className="store-ads-dots">
-                  {bannersList.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`ad-dot ${i === activeBannerIdx ? 'active' : ''}`}
-                      onClick={() => setActiveBannerIdx(i)}
-                      style={{ cursor: 'pointer' }}
-                      title={`Slide ${i + 1}`}
-                    />
-                  ))}
+                  })}
                 </div>
-              )}
-            </div>
+
+                {bannersList.length > 1 && (
+                  <div className="store-ads-dots">
+                    {bannersList.map((_, i) => (
+                      <span
+                        key={i}
+                        className={`ad-dot ${i === activeBannerIdx ? 'active' : ''}`}
+                        onClick={() => setActiveBannerIdx(i)}
+                        style={{ cursor: 'pointer' }}
+                        title={`Slide ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Featured Top Picks Shelf (Strictly Top Picks, NO "View all" link) */}
             <div className="store-featured-shelf">

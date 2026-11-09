@@ -104,10 +104,16 @@ function ExploreContent() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Reset pagination on search change
+  // Reset pagination on search change & save active explore query URL
   useEffect(() => {
     setVisibleCount(INITIAL_LIMIT);
     setIsLoadingMore(false);
+    if (typeof window !== 'undefined') {
+      try {
+        const fullUrl = window.location.pathname + window.location.search;
+        sessionStorage.setItem('lb_last_explore_url', fullUrl);
+      } catch {}
+    }
   }, [cityParam, catParam]);
 
   const [savedIds, setSavedIds] = useState<string[]>([]);

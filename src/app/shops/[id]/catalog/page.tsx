@@ -90,12 +90,23 @@ function StoreCategoryCatalogContent() {
   const [currentSortBy, setCurrentSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'name_asc'>('featured');
   const [filterInStockOnly, setFilterInStockOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>([]);
+  const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_empty_store_banners');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
 
   useEffect(() => {
     cloudSync.pullEmptyStoreBanners().then((cloudSlots) => {
       if (cloudSlots && cloudSlots.length > 0) {
         setEmptyStoreBanners(cloudSlots);
+        try {
+          localStorage.setItem('lb_cached_empty_store_banners', JSON.stringify(cloudSlots));
+        } catch {}
       }
     }).catch(() => {});
 

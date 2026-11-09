@@ -139,23 +139,31 @@ function ProductDetailPageContent() {
     if (isAnyModalOpenRef.current) {
       setLightboxImg(null);
       setShowReviewModal(false);
-      if (modalHistoryPushedRef.current && typeof window !== 'undefined' && window.history.state?.modalOpen) {
-        modalHistoryPushedRef.current = false;
-        window.history.back();
-      }
       return;
     }
-    // Clean up any lingering modal history state so back button NEVER gets stuck
+
+    // Clean up any lingering modal history state
     if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
       modalHistoryPushedRef.current = false;
-      window.history.back();
-      return;
+      try { window.history.back(); } catch {}
     }
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push(shop?.id ? `/shops/${shop.id}` : '/explore');
-    }
+
+    const targetShopUrl = shop?.id || shopId ? `/shops/${encodeURIComponent(shop?.id || shopId)}` : '/explore';
+
+    // Attempt router.back() if internal referrer exists, with reliable instant fallback
+    try {
+      if (typeof window !== 'undefined' && document.referrer && document.referrer.includes(window.location.host)) {
+        router.back();
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname.includes('/product/')) {
+            router.push(targetShopUrl);
+          }
+        }, 250);
+        return;
+      }
+    } catch {}
+
+    router.push(targetShopUrl);
   };
 
   // Auth observer
