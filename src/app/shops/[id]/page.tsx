@@ -51,7 +51,15 @@ export default function ShopDetailPage() {
 
   // Empty store fallback banners from admin
   const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>([]);
-  const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_categories');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -333,6 +341,7 @@ export default function ShopDetailPage() {
     cloudSync.pullCategories().then((cats) => {
       if (cats && Array.isArray(cats)) {
         setAllCategories(cats);
+        try { localStorage.setItem('lb_cached_categories', JSON.stringify(cats)); } catch {}
       }
     }).catch(() => {});
   }, [shopId]);

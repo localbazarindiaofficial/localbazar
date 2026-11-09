@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Listing, ProductItem, StoreCategoryItem, EmptyStoreBannerSlot } from '@/types';
+import { Listing, ProductItem, StoreCategoryItem, EmptyStoreBannerSlot, CategoryItem } from '@/types';
 import { cloudSync } from '@/lib/firebase';
 import '@/styles/listing-detail.css';
 import '@/styles/store-category.css';
@@ -47,6 +47,11 @@ function formatEmojiOrIcon(icon?: string, label = ''): React.ReactNode {
   return <span className="cat-emoji" style={{ fontStyle: 'normal', lineHeight: 1 }}>{ic}</span>;
 }
 
+// Helper to normalize any string to a clean comparison slug
+function normalizeSlug(s = ''): string {
+  return (s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 function StoreCategoryCatalogContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -56,8 +61,31 @@ function StoreCategoryCatalogContent() {
   const initialCat = (searchParams.get('cat') || '').toLowerCase().trim();
   const prodParam = (searchParams.get('product') || searchParams.get('prod') || '').trim();
 
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [listing, setListing] = useState<Listing | null>(() => {
+    if (typeof window !== 'undefined' && listingId) {
+      try {
+        const raw = localStorage.getItem('lb_cached_listings');
+        if (raw) {
+          const list: Listing[] = JSON.parse(raw);
+          const found = list.find((l) => String(l.id) === String(listingId));
+          if (found) return found;
+        }
+      } catch {}
+    }
+    return null;
+  });
+
+  const [allCategories, setAllCategories] = useState<CategoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_categories');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(!listing);
   const [currentCatTag, setCurrentCatTag] = useState(initialCat);
   const [currentSortBy, setCurrentSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'name_asc'>('featured');
   const [filterInStockOnly, setFilterInStockOnly] = useState(false);
@@ -68,6 +96,14 @@ function StoreCategoryCatalogContent() {
     cloudSync.pullEmptyStoreBanners().then((cloudSlots) => {
       if (cloudSlots && cloudSlots.length > 0) {
         setEmptyStoreBanners(cloudSlots);
+      }
+    }).catch(() => {});
+
+    // Dynamic Admin categories for 100% future-proof in-store category synchronization
+    cloudSync.pullCategories().then((cats) => {
+      if (cats && Array.isArray(cats)) {
+        setAllCategories(cats);
+        try { localStorage.setItem('lb_cached_categories', JSON.stringify(cats)); } catch {}
       }
     }).catch(() => {});
   }, []);
@@ -89,7 +125,7 @@ function StoreCategoryCatalogContent() {
   useEffect(() => {
     if (!listingId) return;
 
-    setLoading(true);
+    if (!listing) setLoading(true);
     cloudSync.getListingById(listingId).then((cloudItem) => {
       if (cloudItem) {
         setListing(cloudItem);
@@ -101,41 +137,114 @@ function StoreCategoryCatalogContent() {
     });
   }, [listingId]);
 
-  // Normalized Store Categories
+  // Normalized Store Categories (Fully dynamic & synchronized with Admin Categories and Store Products)
   const storeCategories = useMemo<{ label: string; tag: string; icon: string }[]>(() => {
     if (!listing) return [];
-    let raw: (StoreCategoryItem | string)[] = Array.isArray(listing.storeCategories) && listing.storeCategories.length > 0
-      ? listing.storeCategories
-      : [];
+    let rawCats: any[] = [];
 
-    if (raw.length === 0) {
-      raw = [
-        { label: 'Popular', tag: 'popular', icon: '🔥' },
-        { label: 'Featured', tag: 'featured', icon: '⭐' },
-        { label: 'Offers', tag: 'offers', icon: '🏷️' }
-      ];
+    // 1. If listing has its own custom in-store categories defined by merchant:
+    if (Array.isArray(listing.storeCategories) && listing.storeCategories.length > 0) {
+      rawCats = [...listing.storeCategories];
     }
 
-    return raw.map((c) => {
-      const label = typeof c === 'string' ? c.trim() : (c.label || c.name || 'Category').trim();
-      const tag = typeof c === 'string'
-        ? label.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-        : (c.tag || label.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
-      const icon = (typeof c === 'object' && c && c.icon) ? c.icon : resolveCatEmoji(label);
-      return { label, tag, icon };
+    // 2. Dynamic lookup: match Admin Global Category from Firestore for this store's category
+    const storeMainCat = (listing.category || '').trim().toLowerCase();
+    const matchedAdminCat = allCategories.find((c) => {
+      const cName = (c.name || '').trim().toLowerCase();
+      const cAlt = (c.alternativeName || '').trim().toLowerCase();
+      return cName === storeMainCat || cAlt === storeMainCat || cName.includes(storeMainCat) || storeMainCat.includes(cName);
     });
-  }, [listing]);
 
-  // Set default active category tag if none set
+    if (rawCats.length === 0 && matchedAdminCat) {
+      if (Array.isArray(matchedAdminCat.storeCategories) && matchedAdminCat.storeCategories.length > 0) {
+        rawCats = [...matchedAdminCat.storeCategories];
+      } else if (Array.isArray(matchedAdminCat.subcategories) && matchedAdminCat.subcategories.length > 0) {
+        rawCats = [...matchedAdminCat.subcategories];
+      }
+    }
+
+    // 3. Dynamically include any distinct in-store categories assigned to store products
+    if (Array.isArray(listing.products) && listing.products.length > 0) {
+      const prodCats = Array.from(new Set(listing.products.map((p) => p.storeCategory || p.category).filter(Boolean)));
+      prodCats.forEach((pc) => {
+        const pcStr = typeof pc === 'string' ? pc.trim() : ((pc as any).label || (pc as any).name);
+        const exists = rawCats.some((rc) => {
+          const rcStr = typeof rc === 'string' ? rc.trim() : (rc.label || rc.name || rc.tag);
+          return rcStr && rcStr.toLowerCase() === pcStr?.toLowerCase();
+        });
+        if (!exists && pcStr) {
+          rawCats.push(pc);
+        }
+      });
+    }
+
+    if (rawCats.length > 0) {
+      return rawCats.map((c: any) => {
+        const label = typeof c === 'string' ? c.trim() : (c.label || c.name || 'Category').trim();
+        const tag = typeof c === 'string'
+          ? normalizeSlug(label)
+          : (c.tag || normalizeSlug(label));
+        const icon = (typeof c === 'object' && c && c.icon) ? c.icon : resolveCatEmoji(label);
+        return { label, tag, icon };
+      });
+    }
+
+    return [];
+  }, [listing, allCategories]);
+
+  // Keep currentCatTag in sync with URL searchParams if URL changes
   useEffect(() => {
-    if (storeCategories.length > 0 && !currentCatTag) {
-      setCurrentCatTag(storeCategories[0].tag);
+    if (initialCat) {
+      setCurrentCatTag(initialCat);
+    }
+  }, [initialCat]);
+
+  // Set default active category tag if none set or URL has no cat param
+  useEffect(() => {
+    if (storeCategories.length > 0) {
+      if (!currentCatTag) {
+        setCurrentCatTag(storeCategories[0].tag);
+      }
     }
   }, [storeCategories, currentCatTag]);
 
   const activeCategory = useMemo(() => {
-    return storeCategories.find((c) => c.tag === currentCatTag || c.label.toLowerCase() === currentCatTag) || storeCategories[0];
-  }, [storeCategories, currentCatTag]);
+    if (currentCatTag === 'all' || currentCatTag === 'all-products') {
+      return { label: 'All Products', tag: 'all', icon: '🛍️' };
+    }
+
+    if (storeCategories.length === 0) {
+      if (initialCat) {
+        return {
+          label: initialCat.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+          tag: initialCat,
+          icon: resolveCatEmoji(initialCat)
+        };
+      }
+      return null;
+    }
+
+    const targetSlug = normalizeSlug(currentCatTag);
+    const targetClean = (currentCatTag || '').toLowerCase().trim();
+
+    const found = storeCategories.find((c) => {
+      const cTagSlug = normalizeSlug(c.tag);
+      const cLabelSlug = normalizeSlug(c.label);
+      const cLabelLower = c.label.toLowerCase().trim();
+      return (
+        c.tag === currentCatTag ||
+        cTagSlug === targetSlug ||
+        cLabelSlug === targetSlug ||
+        cLabelLower === targetClean ||
+        cTagSlug.includes(targetSlug) ||
+        targetSlug.includes(cTagSlug) ||
+        cLabelLower.includes(targetClean) ||
+        targetClean.includes(cLabelLower)
+      );
+    });
+
+    return found || storeCategories[0];
+  }, [storeCategories, currentCatTag, initialCat]);
 
   // Filter & sort products
   const displayProducts = useMemo(() => {
@@ -144,14 +253,23 @@ function StoreCategoryCatalogContent() {
       ? listing.products
       : [];
 
-    const catTargetTag = (activeCategory?.tag || '').toLowerCase();
-    const catTargetLabel = (activeCategory?.label || '').toLowerCase();
+    const isAll = !activeCategory || activeCategory.tag === 'all';
+    const catTargetSlug = normalizeSlug(activeCategory?.tag || '');
+    const catTargetLabel = (activeCategory?.label || '').toLowerCase().trim();
 
     // 1. Category Filter
     let filtered = prods.filter((p) => {
+      if (isAll) return true;
       const pCat = (p.storeCategory || p.category || '').toLowerCase().trim();
-      const pCatSlug = pCat.replace(/[^a-z0-9]+/g, '-');
-      return pCatSlug === catTargetTag || pCat === catTargetLabel || pCat.includes(catTargetLabel) || catTargetLabel.includes(pCat) || pCat.includes(catTargetTag);
+      const pCatSlug = normalizeSlug(pCat);
+      return (
+        pCatSlug === catTargetSlug ||
+        pCat === catTargetLabel ||
+        pCat.includes(catTargetLabel) ||
+        catTargetLabel.includes(pCat) ||
+        pCatSlug.includes(catTargetSlug) ||
+        catTargetSlug.includes(pCatSlug)
+      );
     });
 
     // 2. Search Filter
@@ -358,6 +476,99 @@ function StoreCategoryCatalogContent() {
             </div>
           </div>
 
+          {/* Horizontal Scrolling Category Pills Bar (Synchronized with Admin Dynamic Subcategories) */}
+          {storeCategories.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.5rem',
+                overflowX: 'auto',
+                padding: '0.35rem 0 0.85rem 0',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setCurrentCatTag('all')}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '999px',
+                  border: currentCatTag === 'all' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                  background: currentCatTag === 'all' ? '#eff6ff' : '#ffffff',
+                  color: currentCatTag === 'all' ? '#1d4ed8' : '#475569',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: currentCatTag === 'all' ? '0 1px 4px rgba(37, 99, 235, 0.15)' : 'none',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>🛍️</span>
+                <span>All Products</span>
+                <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>({listing.products?.length || 0})</span>
+              </button>
+
+              {storeCategories.map((c) => {
+                const isSelected = activeCategory?.tag === c.tag;
+                const cSlug = normalizeSlug(c.tag);
+                const cLabel = c.label.toLowerCase().trim();
+                const count = (listing.products || []).filter((p) => {
+                  const pCat = (p.storeCategory || p.category || '').toLowerCase().trim();
+                  const pSlug = normalizeSlug(pCat);
+                  return pSlug === cSlug || pCat === cLabel || pCat.includes(cLabel) || cLabel.includes(pCat);
+                }).length;
+
+                return (
+                  <button
+                    key={c.tag}
+                    type="button"
+                    onClick={() => setCurrentCatTag(c.tag)}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '999px',
+                      border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      color: isSelected ? '#1d4ed8' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      boxShadow: isSelected ? '0 1px 4px rgba(37, 99, 235, 0.15)' : 'none',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>{c.icon || resolveCatEmoji(c.label)}</span>
+                    <span>{c.label}</span>
+                    {count > 0 && (
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          background: isSelected ? '#2563eb' : '#f1f5f9',
+                          color: isSelected ? '#fff' : '#64748b',
+                          padding: '0.05rem 0.45rem',
+                          borderRadius: '999px',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Product Grid / Catalog Feed */}
           <div className="store-products-catalog-section">
             <div className="store-products-catalog-grid view-list">
@@ -366,9 +577,30 @@ function StoreCategoryCatalogContent() {
                   <span className="empty-cat-state-icon">{formatEmojiOrIcon(activeCategory?.icon || '📦', activeCategory?.label || '')}</span>
                   <h3 className="empty-cat-state-title">No Products Listed in &quot;{activeCategory?.label || 'Category'}&quot;</h3>
                   <p className="empty-cat-state-sub">This business currently has 0 items added under this category matching your filter. Please check other categories or contact the store directly.</p>
-                  <Link href={`/shops/${encodeURIComponent(listing.id)}`} className="btn-return-store-link">
-                    <i className="fa-solid fa-arrow-left"></i> Return to Store Home
-                  </Link>
+                  <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentCatTag('all')}
+                      style={{
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '0.55rem 1rem',
+                        borderRadius: 10,
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-boxes-stacked"></i> View All Store Products ({listing.products?.length || 0})
+                    </button>
+                    <Link href={`/shops/${encodeURIComponent(listing.id)}`} className="btn-return-store-link" style={{ marginTop: 0 }}>
+                      <i className="fa-solid fa-arrow-left"></i> Return to Store Home
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 displayProducts.map((p, idx) => {
