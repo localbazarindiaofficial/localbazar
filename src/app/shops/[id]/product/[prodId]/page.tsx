@@ -81,8 +81,13 @@ function ProductDetailPageContent() {
     ) || null;
   }, [currentUser, reviewsList]);
 
+  // Contact Auth Gate State
+  const [showContactAuthModal, setShowContactAuthModal] = useState(false);
+  const [pendingContactAction, setPendingContactAction] = useState<{ type: 'call' | 'whatsapp'; url: string } | null>(null);
+  const [contactAuthLoading, setContactAuthLoading] = useState(false);
+
   // Native App-Like Back Navigation (PWA Android Hardware Back Button Support)
-  const isAnyModalOpen = Boolean(lightboxImg || showReviewModal);
+  const isAnyModalOpen = Boolean(lightboxImg || showReviewModal || showContactAuthModal);
   const isAnyModalOpenRef = useRef(false);
   isAnyModalOpenRef.current = isAnyModalOpen;
   const modalHistoryPushedRef = useRef(false);
@@ -114,6 +119,8 @@ function ProductDetailPageContent() {
         isHardwareBackActionRef.current = true;
         setLightboxImg(null);
         setShowReviewModal(false);
+        setShowContactAuthModal(false);
+        setPendingContactAction(null);
         modalHistoryPushedRef.current = false;
         return;
       }
@@ -270,6 +277,73 @@ function ProductDetailPageContent() {
   const handleScrollToReviews = () => {
     if (reviewsSectionRef.current) {
       reviewsSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Contact Auth Flow: Lead generation & Phone Number gating
+  const triggerContactAuth = (type: 'call' | 'whatsapp', targetUrl: string) => {
+    if (currentUser) {
+      if (type === 'call') {
+        window.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+
+    setPendingContactAction({ type, url: targetUrl });
+    setShowContactAuthModal(true);
+  };
+
+  const handleContactGoogleSignIn = async () => {
+    setContactAuthLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      const u = res.user;
+      let existingUser: UserProfile | null = null;
+      try {
+        const raw = localStorage.getItem('lb_current_user');
+        if (raw) existingUser = JSON.parse(raw);
+      } catch {}
+
+      const stdId = formatLBUserId(u.email || u.uid);
+      const originalJoined = existingUser?.joinedDate || (u.metadata?.creationTime ? new Date(u.metadata.creationTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+
+      const profile: UserProfile = {
+        ...(existingUser || {}),
+        id: existingUser?.id && String(existingUser.id).startsWith('LB') ? existingUser.id : stdId,
+        uid: u.uid,
+        name: existingUser?.name || u.displayName || 'Member User',
+        email: u.email || existingUser?.email || '',
+        photoURL: u.photoURL || existingUser?.photoURL || '',
+        role: existingUser?.role || 'user',
+        joinedDate: originalJoined
+      };
+
+      setCurrentUser(profile);
+      try {
+        localStorage.setItem('lb_current_user', JSON.stringify(profile));
+      } catch {}
+      await cloudSync.saveUser(profile);
+
+      setShowContactAuthModal(false);
+
+      if (pendingContactAction) {
+        const action = pendingContactAction;
+        setPendingContactAction(null);
+        setTimeout(() => {
+          if (action.type === 'call') {
+            window.location.href = action.url;
+          } else {
+            window.open(action.url, '_blank', 'noopener,noreferrer');
+          }
+        }, 150);
+      }
+    } catch (err) {
+      console.warn('Google sign-in cancelled or failed:', err);
+    } finally {
+      setContactAuthLoading(false);
     }
   };
 
@@ -875,26 +949,28 @@ function ProductDetailPageContent() {
         <div className="pdp-sticky-bar-inner">
           {/* Call Button */}
           {shop.phone && (
-            <a
-              href={formatTelUrl(shop.phone)}
+            <button
+              type="button"
+              onClick={() => triggerContactAuth('call', formatTelUrl(shop.phone))}
               className="pdp-action-btn call"
               title="Call Store"
+              style={{ border: 'none', cursor: 'pointer' }}
             >
               <i className="fa-solid fa-phone"></i> Call Store
-            </a>
+            </button>
           )}
 
           {/* WhatsApp Order Button */}
           {(shop.whatsapp || shop.phone) && (
-            <a
-              href={formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this in stock?`)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => triggerContactAuth('whatsapp', formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this in stock?`))}
               className="pdp-action-btn whatsapp"
               title="Buy on WhatsApp"
+              style={{ border: 'none', cursor: 'pointer' }}
             >
               <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.1rem' }}></i> Buy on WhatsApp
-            </a>
+            </button>
           )}
         </div>
       </div>
@@ -1010,6 +1086,134 @@ function ProductDetailPageContent() {
             style={{ maxWidth: '92vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px' }}
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Contact Auth Gate Modal: Reveal Phone & Instant Connect */}
+      {showContactAuthModal && (
+        <div
+          className="lb-auth-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            zIndex: 99999
+          }}
+          onClick={() => {
+            if (!contactAuthLoading) {
+              setShowContactAuthModal(false);
+              setPendingContactAction(null);
+            }
+          }}
+        >
+          <div
+            className="lb-auth-modal-card"
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '1.75rem 1.5rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              position: 'relative',
+              textAlign: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowContactAuthModal(false);
+                setPendingContactAction(null);
+              }}
+              disabled={contactAuthLoading}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: '#f1f5f9',
+                border: 'none',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: pendingContactAction?.type === 'whatsapp' ? '#dcfce7' : '#eff6ff', color: pendingContactAction?.type === 'whatsapp' ? '#16a34a' : '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', margin: '0 auto 1rem' }}>
+              <i className={pendingContactAction?.type === 'whatsapp' ? 'fa-brands fa-whatsapp' : 'fa-solid fa-phone-volume'}></i>
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+              Connect with {shop?.name || 'Seller'}
+            </h3>
+
+            <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1.25rem 0', lineHeight: 1.45 }}>
+              Sign in with Google to reveal the verified phone number & directly {pendingContactAction?.type === 'whatsapp' ? 'order on WhatsApp' : 'call the store'}.
+            </p>
+
+            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '0.75rem', marginBottom: '1.25rem', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-solid fa-check" style={{ color: '#16a34a' }}></i>
+                <span>Direct 1-tap connection with seller</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="fa-solid fa-check" style={{ color: '#16a34a' }}></i>
+                <span>100% Free & Verified by LocalBazar</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleContactGoogleSignIn}
+              disabled={contactAuthLoading}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1rem',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.65rem',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                cursor: contactAuthLoading ? 'not-allowed' : 'pointer',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {contactAuthLoading ? (
+                <div style={{ width: '20px', height: '20px', border: '2.5px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'lbSpin 0.75s linear infinite' }}></div>
+              ) : (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                  </svg>
+                  <span>Continue with Google</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 

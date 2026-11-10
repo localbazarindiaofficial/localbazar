@@ -181,6 +181,7 @@ export default function HomePage() {
   const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSharedBackGuest, setIsSharedBackGuest] = useState(false);
   const [exitToast, setExitToast] = useState(false);
   const lastBackPressTimeRef = useRef(0);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -284,8 +285,13 @@ export default function HomePage() {
 
   // Load User, Cities & Categories (Non-blocking: instant 0ms paint + background cloud sync)
   useEffect(() => {
-    // 1. Instant local user auth load
+    // 1. Instant local user auth load & session navigation tracking
     try {
+      sessionStorage.setItem('lb_internal_nav', 'true');
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('src') === 'shared_back') {
+        setIsSharedBackGuest(true);
+      }
       const rawUser = localStorage.getItem('lb_current_user');
       if (rawUser) setCurrentUser(JSON.parse(rawUser));
       else setCurrentUser(null);
@@ -673,6 +679,50 @@ export default function HomePage() {
         </div>
       </header>
 
+      {/* Smart Funnel Top Welcome Banner for Shared Visitors */}
+      {isSharedBackGuest && !currentUser && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: '#ffffff',
+            padding: '0.65rem 1rem',
+            textAlign: 'center',
+            fontSize: '0.84rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+            position: 'relative',
+            zIndex: 100
+          }}
+        >
+          <span>👋 Welcome to LocalBazar! Sign in with Google to search any city and explore verified local shops.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setModalTargetText('All Local Places');
+              setShowAuthModal(true);
+            }}
+            style={{
+              background: '#ffffff',
+              color: '#1e3a8a',
+              border: 'none',
+              borderRadius: '999px',
+              padding: '0.3rem 0.9rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            Sign In
+          </button>
+        </div>
+      )}
+
       {/* Center Stage: The Heart of LocalBazar */}
       <main className="center-stage">
         <div className="stage-container">
@@ -712,6 +762,11 @@ export default function HomePage() {
                 }}
                 onFocus={(e) => {
                   try { e.currentTarget.select(); } catch {}
+                  if (isSharedBackGuest && !currentUser) {
+                    setModalTargetText('Local Places & Stores');
+                    setShowAuthModal(true);
+                    return;
+                  }
                   setShowCitySugg(cityInput.trim().length > 0);
                   setShowCatSugg(false);
                 }}
@@ -834,6 +889,11 @@ export default function HomePage() {
                 }}
                 onFocus={(e) => {
                   try { e.currentTarget.select(); } catch {}
+                  if (isSharedBackGuest && !currentUser) {
+                    setModalTargetText('Local Places & Stores');
+                    setShowAuthModal(true);
+                    return;
+                  }
                   setShowCatSugg(queryInput.trim().length > 0);
                   setShowCitySugg(false);
                 }}

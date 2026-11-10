@@ -112,6 +112,7 @@ function ExploreContent() {
       try {
         const fullUrl = window.location.pathname + window.location.search;
         sessionStorage.setItem('lb_last_explore_url', fullUrl);
+        sessionStorage.setItem('lb_internal_nav', 'true');
       } catch {}
     }
   }, [cityParam, catParam]);
