@@ -16,7 +16,8 @@ export default function PwaInstallManager() {
   const isAdminRoute = Boolean(
     pathname && (
       pathname.startsWith('/admin') ||
-      pathname.startsWith('/manas-pan-login-admin')
+      pathname.startsWith('/manas-pan-login-admin') ||
+      pathname.startsWith('/manas-pan-admin-login')
     )
   );
 
@@ -100,12 +101,12 @@ export default function PwaInstallManager() {
     const scheduleNextShow = (delayMs: number = 2000) => {
       if (reShowTimerRef.current) clearTimeout(reShowTimerRef.current);
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-      if (currentPath.startsWith('/admin') || currentPath.startsWith('/manas-pan-login-admin')) {
+      if (currentPath.startsWith('/admin') || currentPath.startsWith('/manas-pan-login-admin') || currentPath.startsWith('/manas-pan-admin-login')) {
         return;
       }
       reShowTimerRef.current = setTimeout(() => {
         const pathNow = typeof window !== 'undefined' ? window.location.pathname : '';
-        if (pathNow.startsWith('/admin') || pathNow.startsWith('/manas-pan-login-admin')) {
+        if (pathNow.startsWith('/admin') || pathNow.startsWith('/manas-pan-login-admin') || pathNow.startsWith('/manas-pan-admin-login')) {
           return;
         }
         const until = getDismissedUntil();
@@ -138,7 +139,7 @@ export default function PwaInstallManager() {
 
       // Check dismissal timer (Strictly disabled on admin routes)
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-      if (!currentPath.startsWith('/admin') && !currentPath.startsWith('/manas-pan-login-admin')) {
+      if (!currentPath.startsWith('/admin') && !currentPath.startsWith('/manas-pan-login-admin') && !currentPath.startsWith('/manas-pan-admin-login')) {
         const currentDismissedUntil = getDismissedUntil();
         if (Date.now() >= currentDismissedUntil) {
           setShowBanner(true);
@@ -230,7 +231,7 @@ export default function PwaInstallManager() {
     if (reShowTimerRef.current) clearTimeout(reShowTimerRef.current);
     reShowTimerRef.current = setTimeout(() => {
       const pathNow = typeof window !== 'undefined' ? window.location.pathname : '';
-      if (pathNow.startsWith('/admin') || pathNow.startsWith('/manas-pan-login-admin')) {
+      if (pathNow.startsWith('/admin') || pathNow.startsWith('/manas-pan-login-admin') || pathNow.startsWith('/manas-pan-admin-login')) {
         return;
       }
       // Only re-show if still not installed and not in standalone

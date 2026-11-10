@@ -7,7 +7,7 @@ export default function LegacyAdminRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/admin');
+    router.replace('/manas-pan-admin-login');
   }, [router]);
 
   return (
