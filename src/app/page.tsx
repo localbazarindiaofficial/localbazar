@@ -184,6 +184,8 @@ export default function HomePage() {
   const [exitToast, setExitToast] = useState(false);
   const lastBackPressTimeRef = useRef(0);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [desktopBannerIndex, setDesktopBannerIndex] = useState(0);
+  const [desktopBannerPaused, setDesktopBannerPaused] = useState(false);
   const bannerTouchStartX = useRef<number | null>(null);
 
   const cityRef = useRef<HTMLDivElement>(null);
@@ -212,7 +214,7 @@ export default function HomePage() {
     };
   }, []);
 
-  // Auto-slide home banners every 4 seconds if > 1 banner
+  // Auto-slide home banners on mobile every 4 seconds if > 1 banner
   useEffect(() => {
     if (homeSlideBanners.length <= 1) return;
     const interval = setInterval(() => {
@@ -220,6 +222,16 @@ export default function HomePage() {
     }, 4000);
     return () => clearInterval(interval);
   }, [homeSlideBanners.length]);
+
+  // Auto-slide home banners on desktop if > 3 banners
+  useEffect(() => {
+    if (homeSlideBanners.length <= 3 || desktopBannerPaused) return;
+    const maxIndex = Math.max(0, homeSlideBanners.length - 3);
+    const interval = setInterval(() => {
+      setDesktopBannerIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [homeSlideBanners.length, desktopBannerPaused]);
 
   // Auto-slide promoted products row horizontally when items overflow
   useEffect(() => {
@@ -929,130 +941,316 @@ export default function HomePage() {
             </button>
           </form>
 
-          {/* Home Slide Banners (Full-width, auto-sliding, zero gap, clean display) */}
+          {/* Home Slide Banners (Mobile: 1 Single Compact Slide | Desktop: 3 Professional Side-by-Side Cards) */}
           {homeSlideBanners.length > 0 && (
-            <div
-              style={{
-                marginTop: '2rem',
-                width: '100%',
-                maxWidth: 760,
-                position: 'relative',
-                borderRadius: '18px',
-                overflow: 'hidden',
-                boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
-                border: '1px solid #e2e8f0',
-                background: '#f8fafc',
-              }}
-              onTouchStart={(e) => {
-                bannerTouchStartX.current = e.touches[0].clientX;
-              }}
-              onTouchEnd={(e) => {
-                if (bannerTouchStartX.current === null || homeSlideBanners.length <= 1) return;
-                const touchEndX = e.changedTouches[0].clientX;
-                const diff = bannerTouchStartX.current - touchEndX;
-                if (Math.abs(diff) > 40) {
-                  if (diff > 0) {
-                    setActiveBannerIndex((prev) => (prev + 1) % homeSlideBanners.length);
-                  } else {
-                    setActiveBannerIndex((prev) => (prev - 1 + homeSlideBanners.length) % homeSlideBanners.length);
-                  }
-                }
-                bannerTouchStartX.current = null;
-              }}
-            >
-              {/* Carousel Track */}
+            <>
+              {/* MOBILE VIEW (<= 768px): 100% UNCHANGED, SINGLE COMPACT SLIDE WITH TOUCH SWIPE */}
               <div
+                className="lb-banners-mobile"
                 style={{
-                  display: 'flex',
-                  width: `${homeSlideBanners.length * 100}%`,
-                  transform: `translateX(-${(activeBannerIndex * 100) / homeSlideBanners.length}%)`,
-                  transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
+                  marginTop: '2rem',
+                  width: '100%',
+                  maxWidth: 760,
+                  position: 'relative',
+                  borderRadius: '18px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                }}
+                onTouchStart={(e) => {
+                  bannerTouchStartX.current = e.touches[0].clientX;
+                }}
+                onTouchEnd={(e) => {
+                  if (bannerTouchStartX.current === null || homeSlideBanners.length <= 1) return;
+                  const touchEndX = e.changedTouches[0].clientX;
+                  const diff = bannerTouchStartX.current - touchEndX;
+                  if (Math.abs(diff) > 40) {
+                    if (diff > 0) {
+                      setActiveBannerIndex((prev) => (prev + 1) % homeSlideBanners.length);
+                    } else {
+                      setActiveBannerIndex((prev) => (prev - 1 + homeSlideBanners.length) % homeSlideBanners.length);
+                    }
+                  }
+                  bannerTouchStartX.current = null;
                 }}
               >
-                {homeSlideBanners.map((b: any, idx: number) => {
-                  const bannerLink = b.link || b.url || b.actionUrl;
-                  const slideContent = (
-                    <div
-                      key={b.id || idx}
-                      style={{
-                        width: `${100 / homeSlideBanners.length}%`,
-                        position: 'relative',
-                        aspectRatio: '16 / 9',
-                        overflow: 'hidden',
-                        background: '#f1f5f9',
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={b.imageUrl}
-                        alt={b.title || 'LocalBazar Banner'}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                      />
-                    </div>
-                  );
-
-                  return bannerLink ? (
-                    <Link
-                      key={b.id || idx}
-                      href={bannerLink}
-                      style={{
-                        display: 'block',
-                        width: `${100 / homeSlideBanners.length}%`,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {slideContent}
-                    </Link>
-                  ) : (
-                    slideContent
-                  );
-                })}
-              </div>
-
-              {/* Indicator Dots (Only if > 1 banner) */}
-              {homeSlideBanners.length > 1 && (
+                {/* Carousel Track */}
                 <div
                   style={{
-                    position: 'absolute',
-                    bottom: '10px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
                     display: 'flex',
-                    gap: '6px',
-                    alignItems: 'center',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    padding: '4px 8px',
-                    borderRadius: '20px',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 2,
+                    width: `${homeSlideBanners.length * 100}%`,
+                    transform: `translateX(-${(activeBannerIndex * 100) / homeSlideBanners.length}%)`,
+                    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
                   }}
                 >
-                  {homeSlideBanners.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveBannerIndex(idx)}
-                      aria-label={`Go to banner ${idx + 1}`}
-                      style={{
-                        width: activeBannerIndex === idx ? '18px' : '6px',
-                        height: '6px',
-                        borderRadius: '3px',
-                        border: 'none',
-                        padding: 0,
-                        background: activeBannerIndex === idx ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                      }}
-                    />
-                  ))}
+                  {homeSlideBanners.map((b: any, idx: number) => {
+                    const bannerLink = b.link || b.url || b.actionUrl;
+                    const slideContent = (
+                      <div
+                        key={b.id || idx}
+                        style={{
+                          width: `${100 / homeSlideBanners.length}%`,
+                          position: 'relative',
+                          aspectRatio: '16 / 9',
+                          overflow: 'hidden',
+                          background: '#f1f5f9',
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={b.imageUrl}
+                          alt={b.title || 'LocalBazar Banner'}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
+                    );
+
+                    return bannerLink ? (
+                      <Link
+                        key={b.id || idx}
+                        href={bannerLink}
+                        style={{
+                          display: 'block',
+                          width: `${100 / homeSlideBanners.length}%`,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {slideContent}
+                      </Link>
+                    ) : (
+                      slideContent
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+
+                {/* Indicator Dots (Only if > 1 banner) */}
+                {homeSlideBanners.length > 1 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      gap: '6px',
+                      alignItems: 'center',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      padding: '4px 8px',
+                      borderRadius: '20px',
+                      backdropFilter: 'blur(4px)',
+                      zIndex: 2,
+                    }}
+                  >
+                    {homeSlideBanners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveBannerIndex(idx)}
+                        aria-label={`Go to banner ${idx + 1}`}
+                        style={{
+                          width: activeBannerIndex === idx ? '18px' : '6px',
+                          height: '6px',
+                          borderRadius: '3px',
+                          border: 'none',
+                          padding: 0,
+                          background: activeBannerIndex === idx ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* DESKTOP VIEW (> 768px): 3 BANNERS SIDE-BY-SIDE PRO DISPLAY */}
+              <div
+                className="lb-banners-desktop"
+                style={{
+                  marginTop: '2rem',
+                  width: '100%',
+                  maxWidth: '860px',
+                  position: 'relative',
+                }}
+                onMouseEnter={() => setDesktopBannerPaused(true)}
+                onMouseLeave={() => setDesktopBannerPaused(false)}
+              >
+                {/* Static Side-by-Side Trio when <= 3 banners */}
+                {homeSlideBanners.length <= 3 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '14px',
+                      justifyContent: 'center',
+                      width: '100%',
+                    }}
+                  >
+                    {homeSlideBanners.map((b: any, idx: number) => {
+                      const bannerLink = b.link || b.url || b.actionUrl;
+                      const card = (
+                        <div
+                          key={b.id || idx}
+                          className="lb-desktop-banner-card"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            position: 'relative',
+                            aspectRatio: '16 / 9',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(0, 0, 0, 0.03)',
+                            background: '#f8fafc',
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={b.imageUrl}
+                            alt={b.title || 'LocalBazar Banner'}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
+                        </div>
+                      );
+
+                      return bannerLink ? (
+                        <Link key={b.id || idx} href={bannerLink} style={{ flex: 1, minWidth: 0, textDecoration: 'none', display: 'block' }}>
+                          {card}
+                        </Link>
+                      ) : (
+                        card
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Multi-Slide Carousel when > 3 banners */
+                  <div style={{ position: 'relative', width: '100%', overflow: 'hidden', borderRadius: '16px', padding: '4px 0' }}>
+                    {/* Track */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '14px',
+                        transform: `translateX(calc(-${desktopBannerIndex} * (100% + 14px) / 3))`,
+                        transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
+                        width: '100%',
+                      }}
+                    >
+                      {homeSlideBanners.map((b: any, idx: number) => {
+                        const bannerLink = b.link || b.url || b.actionUrl;
+                        const card = (
+                          <div
+                            key={b.id || idx}
+                            className="lb-desktop-banner-card"
+                            style={{
+                              flex: '0 0 calc((100% - 28px) / 3)',
+                              position: 'relative',
+                              aspectRatio: '16 / 9',
+                              borderRadius: '14px',
+                              overflow: 'hidden',
+                              border: '1px solid #e2e8f0',
+                              boxShadow: '0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(0, 0, 0, 0.03)',
+                              background: '#f8fafc',
+                            }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={b.imageUrl}
+                              alt={b.title || 'LocalBazar Banner'}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                display: 'block',
+                              }}
+                            />
+                          </div>
+                        );
+
+                        return bannerLink ? (
+                          <Link key={b.id || idx} href={bannerLink} style={{ flex: '0 0 calc((100% - 28px) / 3)', textDecoration: 'none', display: 'block' }}>
+                            {card}
+                          </Link>
+                        ) : (
+                          card
+                        );
+                      })}
+                    </div>
+
+                    {/* Left Navigation Arrow */}
+                    {desktopBannerIndex > 0 && (
+                      <button
+                        type="button"
+                        className="lb-desktop-nav-btn"
+                        onClick={() => setDesktopBannerIndex((prev) => Math.max(0, prev - 1))}
+                        aria-label="Previous banners"
+                        style={{
+                          position: 'absolute',
+                          left: '6px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          zIndex: 3,
+                          color: '#0f172a',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <i className="fa-solid fa-chevron-left"></i>
+                      </button>
+                    )}
+
+                    {/* Right Navigation Arrow */}
+                    {desktopBannerIndex < homeSlideBanners.length - 3 && (
+                      <button
+                        type="button"
+                        className="lb-desktop-nav-btn"
+                        onClick={() => setDesktopBannerIndex((prev) => Math.min(homeSlideBanners.length - 3, prev + 1))}
+                        aria-label="Next banners"
+                        style={{
+                          position: 'absolute',
+                          right: '6px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          zIndex: 3,
+                          color: '#0f172a',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <i className="fa-solid fa-chevron-right"></i>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* Promoted Products (Square Cards, Side-by-Side Auto-Sliding Row) */}

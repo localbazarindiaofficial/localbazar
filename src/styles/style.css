@@ -2229,6 +2229,43 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ========================================================
+   HOME SLIDE BANNERS RESPONSIVE SPLIT
+   Mobile: 1 Single Compact Slide with Touch Swipe
+   Desktop: 3 Professional Side-by-Side Cards Carousel
+   ======================================================== */
+.lb-banners-desktop {
+  display: none !important;
+}
+.lb-banners-mobile {
+  display: block !important;
+}
+
+@media (min-width: 769px) {
+  .lb-banners-desktop {
+    display: block !important;
+  }
+  .lb-banners-mobile {
+    display: none !important;
+  }
+  .lb-desktop-banner-card {
+    transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease !important;
+  }
+  .lb-desktop-banner-card:hover {
+    transform: translateY(-3px) scale(1.01) !important;
+    box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.16), 0 4px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+  .lb-desktop-nav-btn {
+    opacity: 0.85;
+    transition: all 0.2s ease;
+  }
+  .lb-desktop-nav-btn:hover {
+    opacity: 1 !important;
+    transform: translateY(-50%) scale(1.1) !important;
+    background: #ffffff !important;
+  }
+}
+
 
 
 
