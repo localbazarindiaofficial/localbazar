@@ -325,8 +325,8 @@ export default function HomePage() {
         if (t) setHomeNewsTicker(t);
       });
 
-      cloudSync.pullHomeBanners().then((banners) => {
-        if (banners && banners.length) setHomeSlideBanners(banners);
+      cloudSync.pullHomeBanners(true).then((banners) => {
+        if (Array.isArray(banners) && banners.length > 0) setHomeSlideBanners(banners);
       });
 
       cloudSync.pullPromotedProducts().then((p) => {

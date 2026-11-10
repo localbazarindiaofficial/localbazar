@@ -1249,19 +1249,29 @@ export default function SuperAdminPage() {
     };
     const updated = [newBanner, ...homeBanners];
     setHomeBanners(updated);
-    await cloudSync.saveHomeBanners(updated).catch(() => {});
-    setNewHomeBannerTitle('');
-    setNewHomeBannerUrl('');
-    setNewHomeBannerLink('');
-    setIsHomeBannerModalOpen(false);
-    alert('Home slide banner added successfully!');
+    try {
+      await cloudSync.saveHomeBanners(updated);
+      setNewHomeBannerTitle('');
+      setNewHomeBannerUrl('');
+      setNewHomeBannerLink('');
+      setIsHomeBannerModalOpen(false);
+      alert('Home slide banner added successfully!');
+    } catch (err: any) {
+      console.error('Failed to save home banner:', err);
+      alert('Failed to save banner to cloud: ' + (err?.message || 'Check Firestore rules'));
+    }
   };
 
   const handleDeleteHomeBanner = async (bannerId: string) => {
     if (!confirm('Are you sure you want to delete this home slide banner?')) return;
     const updated = homeBanners.filter(b => b.id !== bannerId);
     setHomeBanners(updated);
-    await cloudSync.saveHomeBanners(updated).catch(() => {});
+    try {
+      await cloudSync.saveHomeBanners(updated);
+    } catch (err: any) {
+      console.error('Failed to delete home banner:', err);
+      alert('Failed to delete from cloud: ' + (err?.message || 'Check connection'));
+    }
   };
 
   // 2. Target City & Category Handlers

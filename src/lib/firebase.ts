@@ -678,7 +678,9 @@ export const cloudSync = {
         } catch {}
         return banners;
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Could not pull fresh banners from Firestore:', err);
+    }
     if (memoryCache.banners) return memoryCache.banners;
     return [];
   },
@@ -689,6 +691,7 @@ export const cloudSync = {
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('lb_cached_home_banners', JSON.stringify(banners));
+        window.dispatchEvent(new CustomEvent('lb_home_banners_changed', { detail: banners }));
       }
     } catch {}
   },

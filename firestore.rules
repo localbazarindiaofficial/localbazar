@@ -62,7 +62,7 @@ service cloud.firestore {
     // 7. Platform Settings (Admin Security & Public Banners/Pricing)
     match /settings/{settingId} {
       allow read: if settingId != 'admin_security' || isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() || settingId != 'admin_security';
     }
 
     // 8. Business Claims & Trust Badge Verification Requests
