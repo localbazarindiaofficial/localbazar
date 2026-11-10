@@ -283,7 +283,7 @@ export default function SuperAdminPage() {
         cloudSync.pullCityRequests().catch(() => []),
         cloudSync.pullCategoryRequests().catch(() => []),
         cloudSync.pullTrustBadgeSettings().catch(() => null),
-        cloudSync.pullHomeBanners().catch(() => []),
+        cloudSync.pullHomeBanners(true).catch(() => []),
         cloudSync.pullTargetNewsBanners().catch(() => []),
         cloudSync.pullEmptyStoreBanners().catch(() => []),
         cloudSync.pullNewsTicker().catch(() => null),
