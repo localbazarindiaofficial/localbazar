@@ -1097,8 +1097,14 @@ export default function AccountPage() {
       setAllListings(allList);
       await cloudSync.saveListing(updatedListing);
 
-      // Auto add city to cloud
-      await cloudSync.saveCity({ name: formCity.trim(), state: 'Active Hub' });
+      // Auto add city to cloud (Non-blocking: never interrupt store registration if restricted)
+      try {
+        if (formCity && formCity.trim()) {
+          await cloudSync.saveCity({ name: formCity.trim(), state: 'Active Hub' });
+        }
+      } catch (cityErr) {
+        console.warn('City auto-sync note (non-critical):', cityErr);
+      }
 
       // Update local state
       const mine = allList.filter(
@@ -1126,8 +1132,13 @@ export default function AccountPage() {
         'Go to Manage Business',
         () => goToScreen('viewManageListings')
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving listing:', err);
+      showAlert(
+        'Submission Error',
+        `Unable to save your listing. Please check your network connection and try again. (${err?.message || 'Unknown error'})`,
+        'error'
+      );
     }
   };
 
@@ -1402,17 +1413,21 @@ export default function AccountPage() {
     };
 
     setCurrentUser(updatedUser);
-    localStorage.setItem('lb_current_user', JSON.stringify(updatedUser));
+    try {
+      localStorage.setItem('lb_current_user', JSON.stringify(updatedUser));
+    } catch {}
+
     try {
       await cloudSync.saveUser(updatedUser);
-    } catch (err) {
+      setIsSavingProfile(false);
+      setSaveSuccess(true);
+      showToast('Profile updated successfully!', 'success');
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err: any) {
       console.error('Failed to sync profile to cloud:', err);
+      setIsSavingProfile(false);
+      showToast(`Could not update profile: ${err?.message || 'Please try again'}`, 'error');
     }
-
-    setIsSavingProfile(false);
-    setSaveSuccess(true);
-    showToast('Profile updated successfully!', 'success');
-    setTimeout(() => setSaveSuccess(false), 2500);
   };
 
   // Schedule Presets & Holiday Helpers
@@ -1527,7 +1542,8 @@ export default function AccountPage() {
       setAllListings((prev) =>
         prev.map((l) => (String(l.id).trim().toLowerCase() === String(updated.id).trim().toLowerCase() ? updated : l))
       );
-      await cloudSync.saveListing(updated);
+      // Atomic partial update: only send the modified fields to cloud, preventing stale overwrite of admin badges or ratings
+      await cloudSync.updateListingFields(currentListing.id, fieldsToUpdate);
 
       activePortalListingRef.current = updated;
       setActivePortalListing(updated);

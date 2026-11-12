@@ -206,6 +206,26 @@ export const cloudSync = {
     memoryCache.listingById.set(String(listing.id), listing);
   },
 
+  updateListingFields: async (listingId: string, fields: Partial<Listing>): Promise<void> => {
+    if (!listingId || !fields) return;
+    const docRef = doc(db, 'listings', String(listingId));
+    const payload = {
+      ...fields,
+      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+    await setDoc(docRef, payload, { merge: true });
+
+    if (memoryCache.listingById.has(String(listingId))) {
+      const existing = memoryCache.listingById.get(String(listingId))!;
+      const merged = { ...existing, ...payload };
+      memoryCache.listingById.set(String(listingId), merged);
+      if (memoryCache.listings) {
+        const idx = memoryCache.listings.findIndex((l) => l.id === listingId);
+        if (idx >= 0) memoryCache.listings[idx] = merged;
+      }
+    }
+  },
+
   deleteListing: async (listingId: string): Promise<void> => {
     if (!listingId) return;
     const docRef = doc(db, 'listings', String(listingId));
@@ -425,7 +445,6 @@ export const cloudSync = {
     const colRef = collection(db, 'users');
     const snap = await getDocs(colRef);
     const usersMap = new Map<string, UserProfile>();
-    const redundantDocIds: string[] = [];
 
     snap.forEach((d) => {
       const u = d.data() as UserProfile;
@@ -445,14 +464,8 @@ export const cloudSync = {
       if (emailKey) {
         if (!usersMap.has(emailKey)) {
           usersMap.set(emailKey, normalizedUser);
-          if (!d.id.startsWith('LB')) {
-            redundantDocIds.push(d.id);
-          }
         } else {
           const existing = usersMap.get(emailKey)!;
-          if (!d.id.startsWith('LB')) {
-            redundantDocIds.push(d.id);
-          }
           usersMap.set(emailKey, {
             ...existing,
             ...normalizedUser,
@@ -471,22 +484,7 @@ export const cloudSync = {
       }
     });
 
-    // Clean up duplicate or raw UID documents from Firestore in background
-    for (const delId of redundantDocIds) {
-      try {
-        await deleteDoc(doc(db, 'users', delId));
-      } catch {}
-    }
-
-    const result = Array.from(usersMap.values());
-    // Auto-save standardized LB documents to Firestore
-    for (const usr of result) {
-      try {
-        await setDoc(doc(db, 'users', usr.id), usr, { merge: true });
-      } catch {}
-    }
-
-    return result;
+    return Array.from(usersMap.values());
   },
 
   // Mails & Notifications
