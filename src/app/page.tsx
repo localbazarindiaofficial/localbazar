@@ -8,115 +8,9 @@ import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebas
 import { doc, getDoc } from 'firebase/firestore';
 import { CityItem, CategoryItem, UserProfile, PromotedProductItem } from '@/types';
 
-// Default categories list (Live cities pulled dynamically from cloud Firestore with localStorage cache)
+// Default categories list (Live cities and categories pulled dynamically from cloud Firestore with localStorage cache)
 const DEFAULT_CITIES: CityItem[] = [];
-
-const DEFAULT_CATEGORIES: CategoryItem[] = [
-  {
-    name: 'Grocery & Supermarket',
-    alternativeName: 'Ration, Kirana, Daily Needs',
-    icon: 'fa-basket-shopping',
-    storeCategories: [
-      { label: 'Kirana', tag: 'kirana', icon: '🛒' },
-      { label: 'Ration', tag: 'ration', icon: '🌾' },
-      { label: 'Rice & Wheat', tag: 'rice-wheat', icon: '🍚' },
-      { label: 'Spices & Masala', tag: 'spices-masala', icon: '🌶️' },
-      { label: 'Dairy & Milk', tag: 'dairy-milk', icon: '🥛' },
-      { label: 'Snacks & Beverages', tag: 'snacks-beverages', icon: '🍿' }
-    ],
-    subcategories: ['Kirana', 'Ration', 'Rice & Wheat', 'Spices & Masala', 'Dairy & Milk', 'Daily Needs']
-  },
-  {
-    name: 'Pharmacy & Medical',
-    alternativeName: 'Chemist, Medicine Store, Pharmacy',
-    icon: 'fa-prescription-bottle-medical',
-    storeCategories: [
-      { label: 'Medicine', tag: 'medicine', icon: '💊' },
-      { label: 'Chemist', tag: 'chemist', icon: '💉' },
-      { label: 'Health Supplements', tag: 'health-supplements', icon: '🧪' },
-      { label: 'Baby Care', tag: 'baby-care', icon: '🍼' },
-      { label: 'Ayurvedic', tag: 'ayurvedic', icon: '🌿' }
-    ],
-    subcategories: ['Medicine', 'Chemist', 'Health Supplements', 'Baby Care', 'Ayurvedic']
-  },
-  {
-    name: 'Doctor & Clinics',
-    alternativeName: 'Specialist, Chambers, Healthcare',
-    icon: 'fa-user-doctor',
-    storeCategories: [
-      { label: 'General Physician', tag: 'general-physician', icon: '🩺' },
-      { label: 'Dentist', tag: 'dentist', icon: '🦷' },
-      { label: 'Pediatrician', tag: 'pediatrician', icon: '👶' },
-      { label: 'Eye Specialist', tag: 'eye-specialist', icon: '👁️' },
-      { label: 'Pathology & Blood Test', tag: 'pathology', icon: '🔬' }
-    ],
-    subcategories: ['General Physician', 'Dentist', 'Pediatrician', 'Eye Specialist', 'Pathology']
-  },
-  {
-    name: 'Electronics & Mobiles',
-    alternativeName: 'Smartphones, Laptops, Gadgets',
-    icon: 'fa-mobile-screen-button',
-    storeCategories: [
-      { label: 'Smartphones', tag: 'smartphones', icon: '📱' },
-      { label: 'Laptops & Computers', tag: 'laptops-computers', icon: '💻' },
-      { label: 'Mobile Repair', tag: 'mobile-repair', icon: '🛠️' },
-      { label: 'Home Appliances', tag: 'home-appliances', icon: '📺' },
-      { label: 'Accessories', tag: 'accessories', icon: '🎧' }
-    ],
-    subcategories: ['Smartphones', 'Laptops', 'Mobile Repair', 'Home Appliances', 'Accessories']
-  },
-  {
-    name: 'Fashion & Clothing',
-    alternativeName: 'Garments, Apparels, Boutiques',
-    icon: 'fa-shirt',
-    storeCategories: [
-      { label: 'Men Clothing', tag: 'men-clothing', icon: '👔' },
-      { label: 'Women Wear & Sarees', tag: 'women-wear-sarees', icon: '👗' },
-      { label: 'Kids Fashion', tag: 'kids-fashion', icon: '🧒' },
-      { label: 'Footwear & Shoes', tag: 'footwear-shoes', icon: '👟' },
-      { label: 'Tailoring & Boutiques', tag: 'tailoring-boutiques', icon: '✂️' }
-    ],
-    subcategories: ['Men Clothing', 'Women Wear', 'Sarees', 'Kids Fashion', 'Footwear', 'Boutique']
-  },
-  {
-    name: 'Restaurants & Cafe',
-    alternativeName: 'Food, Dining, Sweets, Snacks',
-    icon: 'fa-utensils',
-    storeCategories: [
-      { label: 'Fast Food & Biryani', tag: 'fast-food-biryani', icon: '🍔' },
-      { label: 'Sweets & Bakery', tag: 'sweets-bakery', icon: '🍰' },
-      { label: 'Cafe & Tea Stalls', tag: 'cafe-tea', icon: '☕' },
-      { label: 'Family Restaurant', tag: 'family-restaurant', icon: '🍽️' },
-      { label: 'Ice Cream & Shakes', tag: 'ice-cream-shakes', icon: '🍨' }
-    ],
-    subcategories: ['Fast Food', 'Biryani', 'Sweets & Bakery', 'Cafe', 'Restaurant', 'Ice Cream']
-  },
-  {
-    name: 'Hardware & Electrical',
-    alternativeName: 'Sanitary, Paints, Tools',
-    icon: 'fa-wrench',
-    storeCategories: [
-      { label: 'Paints & Wallpapers', tag: 'paints-wallpapers', icon: '🎨' },
-      { label: 'Electrical Fittings', tag: 'electrical-fittings', icon: '💡' },
-      { label: 'Sanitary & Plumbing', tag: 'sanitary-plumbing', icon: '🚿' },
-      { label: 'Plywood & Timber', tag: 'plywood-timber', icon: '🪵' },
-      { label: 'Tools & Machines', tag: 'tools-machines', icon: '🔨' }
-    ],
-    subcategories: ['Paints', 'Electrical', 'Sanitary', 'Plumbing', 'Plywood', 'Hardware Tools']
-  },
-  {
-    name: 'Automobile & Garage',
-    alternativeName: 'Bike & Car Repair, Spare Parts',
-    icon: 'fa-motorcycle',
-    storeCategories: [
-      { label: 'Bike Service & Repair', tag: 'bike-service-repair', icon: '🏍️' },
-      { label: 'Car Wash & Garage', tag: 'car-wash-garage', icon: '🚗' },
-      { label: 'Spare Parts & Tyres', tag: 'spare-parts-tyres', icon: '⚙️' },
-      { label: 'Battery & Electrical', tag: 'battery-electrical', icon: '🔋' }
-    ],
-    subcategories: ['Bike Service', 'Car Garage', 'Spare Parts', 'Tyres', 'Car Wash']
-  },
-];
+const DEFAULT_CATEGORIES: CategoryItem[] = [];
 
 // Helper: match only when word starts with typed query
 const matchStartsWithWord = (text: string, q: string): boolean => {
@@ -141,7 +35,18 @@ export default function HomePage() {
     }
     return [];
   });
-  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<CategoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_categories');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
   const [cityInput, setCityInput] = useState('');
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -324,18 +229,11 @@ export default function HomePage() {
       });
 
       cloudSync.pullCategories().then((cat) => {
-        if (cat && cat.length) {
-          const enrichedCats = cat.map((ct) => {
-            const def = DEFAULT_CATEGORIES.find((d) => d.name.toLowerCase() === (ct.name || '').toLowerCase());
-            return {
-              ...ct,
-              alternativeName: ct.alternativeName || def?.alternativeName || '',
-              icon: ct.icon || def?.icon || 'fa-store',
-              storeCategories: (ct.storeCategories && ct.storeCategories.length > 0) ? ct.storeCategories : (def?.storeCategories || []),
-              subcategories: (ct.subcategories && ct.subcategories.length > 0) ? ct.subcategories : (def?.subcategories || [])
-            };
-          });
-          setCategories(enrichedCats);
+        if (Array.isArray(cat)) {
+          setCategories(cat);
+          try {
+            localStorage.setItem('lb_cached_categories', JSON.stringify(cat));
+          } catch {}
         }
       });
 

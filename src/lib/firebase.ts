@@ -371,6 +371,17 @@ export const cloudSync = {
     if (!forceRefresh && memoryCache.categories) {
       return memoryCache.categories;
     }
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('lb_cached_categories');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            memoryCache.categories = parsed;
+          }
+        }
+      } catch {}
+    }
     const colRef = collection(db, 'categories');
     const snap = await getDocs(colRef);
     const cats: CategoryItem[] = [];
@@ -380,6 +391,11 @@ export const cloudSync = {
     });
     cats.sort((a, b) => a.name.localeCompare(b.name));
     memoryCache.categories = cats;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lb_cached_categories', JSON.stringify(cats));
+      }
+    } catch {}
     return cats;
   },
 
@@ -388,6 +404,11 @@ export const cloudSync = {
     const docId = category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await setDoc(doc(db, 'categories', docId), category, { merge: true });
     memoryCache.categories = null; // Invalidate
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lb_cached_categories');
+      }
+    } catch {}
   },
 
   deleteCategory: async (categoryName: string): Promise<void> => {
@@ -395,6 +416,11 @@ export const cloudSync = {
     const docId = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await deleteDoc(doc(db, 'categories', docId));
     memoryCache.categories = null; // Invalidate
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lb_cached_categories');
+      }
+    } catch {}
   },
 
   // Users
