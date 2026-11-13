@@ -2,6 +2,8 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, 
   initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   collection, 
   doc, 
   setDoc, 
@@ -35,7 +37,16 @@ export const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 
 let firestoreDb: Firestore;
 try {
-  firestoreDb = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  if (typeof window !== 'undefined') {
+    firestoreDb = initializeFirestore(app, {
+      ignoreUndefinedProperties: true,
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+  } else {
+    firestoreDb = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  }
 } catch {
   firestoreDb = getFirestore(app);
 }
@@ -61,7 +72,7 @@ export function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
 }
 
 // Image Upload Helper with Server-Side Route & Local Pre-Compression
-export async function uploadImageToCloud(fileOrDataUrl: File | Blob | string, maxKB = 300, maxDimension = 1200): Promise<string> {
+export async function uploadImageToCloud(fileOrDataUrl: File | Blob | string, maxKB = 120, maxDimension = 900): Promise<string> {
   if (!fileOrDataUrl) return '';
 
   let base64Data: string | null = null;
@@ -93,11 +104,11 @@ export async function uploadImageToCloud(fileOrDataUrl: File | Blob | string, ma
     // server API unavailable, fall back safely to optimized pre-compressed base64
   }
 
-  // Safe fallback: Return pre-compressed base64 without exposing any private API keys in client bundle
+  // Safe fallback: Return pre-compressed base64 without exceeding Firestore's 1MB document limit
   return base64Data;
 }
 
-function preCompressImage(file: Blob | File, maxKB = 350, maxDimension = 1200): Promise<string | null> {
+function preCompressImage(file: Blob | File, maxKB = 120, maxDimension = 900): Promise<string | null> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') return resolve(null);
     if (!file || !file.type || !file.type.startsWith('image/')) return resolve(null);
@@ -515,16 +526,60 @@ export const cloudSync = {
 
   // Mails & Notifications
   pullMail: async (): Promise<MailItem[]> => {
-    const colRef = collection(db, 'mail');
-    const snap = await getDocs(colRef);
+    try {
+      const colRef = collection(db, 'mail');
+      const snap = await getDocs(colRef);
+      const mails: MailItem[] = [];
+      snap.forEach((d) => mails.push(d.data() as MailItem));
+      return mails;
+    } catch (e) {
+      console.warn('pullMail warning:', e);
+      return [];
+    }
+  },
+
+  pullMailForUser: async (userEmail?: string, userUid?: string): Promise<MailItem[]> => {
     const mails: MailItem[] = [];
-    snap.forEach((d) => mails.push(d.data() as MailItem));
+    const addedIds = new Set<string>();
+    const colRef = collection(db, 'mail');
+
+    if (userEmail) {
+      try {
+        const q = query(colRef, where('userEmail', '==', userEmail.toLowerCase()));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as MailItem;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            mails.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
+    if (userUid) {
+      try {
+        const q = query(colRef, where('userUid', '==', userUid));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as MailItem;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            mails.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
     return mails;
   },
 
   saveMail: async (mailItem: MailItem): Promise<void> => {
     if (!mailItem || !mailItem.id) return;
-    await setDoc(doc(db, 'mail', String(mailItem.id)), mailItem, { merge: true });
+    const cleanData = cleanForFirestore({
+      ...mailItem,
+      userUid: mailItem.userUid || (auth.currentUser ? auth.currentUser.uid : undefined),
+      userEmail: mailItem.userEmail ? mailItem.userEmail.toLowerCase() : (auth.currentUser?.email ? auth.currentUser.email.toLowerCase() : undefined),
+    });
+    await setDoc(doc(db, 'mail', String(mailItem.id)), cleanData, { merge: true });
   },
 
   deleteMail: async (mailId: string): Promise<void> => {
@@ -534,16 +589,60 @@ export const cloudSync = {
 
   // Claims
   pullClaims: async (): Promise<ClaimItem[]> => {
-    const colRef = collection(db, 'claims');
-    const snap = await getDocs(colRef);
+    try {
+      const colRef = collection(db, 'claims');
+      const snap = await getDocs(colRef);
+      const claims: ClaimItem[] = [];
+      snap.forEach((d) => claims.push(d.data() as ClaimItem));
+      return claims;
+    } catch (e) {
+      console.warn('pullClaims warning:', e);
+      return [];
+    }
+  },
+
+  pullClaimsForUser: async (userEmail?: string, userUid?: string): Promise<ClaimItem[]> => {
     const claims: ClaimItem[] = [];
-    snap.forEach((d) => claims.push(d.data() as ClaimItem));
+    const addedIds = new Set<string>();
+    const colRef = collection(db, 'claims');
+
+    if (userEmail) {
+      try {
+        const q = query(colRef, where('applicantEmail', '==', userEmail.toLowerCase()));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as ClaimItem;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            claims.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
+    if (userUid) {
+      try {
+        const q = query(colRef, where('userUid', '==', userUid));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as ClaimItem;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            claims.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
     return claims;
   },
 
   saveClaim: async (claim: ClaimItem): Promise<void> => {
     if (!claim || !claim.id) return;
-    await setDoc(doc(db, 'claims', String(claim.id)), claim, { merge: true });
+    const cleanData = cleanForFirestore({
+      ...claim,
+      userUid: claim.userUid || (auth.currentUser ? auth.currentUser.uid : undefined),
+      applicantEmail: claim.applicantEmail ? claim.applicantEmail.toLowerCase() : undefined,
+    });
+    await setDoc(doc(db, 'claims', String(claim.id)), cleanData, { merge: true });
   },
 
   deleteClaim: async (claimId: string): Promise<void> => {
@@ -553,16 +652,59 @@ export const cloudSync = {
 
   // Trust requests
   pullTrustRequests: async (): Promise<TrustRequest[]> => {
-    const colRef = collection(db, 'trust_requests');
-    const snap = await getDocs(colRef);
+    try {
+      const colRef = collection(db, 'trust_requests');
+      const snap = await getDocs(colRef);
+      const reqs: TrustRequest[] = [];
+      snap.forEach((d) => reqs.push(d.data() as TrustRequest));
+      return reqs;
+    } catch (e) {
+      console.warn('pullTrustRequests warning:', e);
+      return [];
+    }
+  },
+
+  pullTrustRequestsForUser: async (userEmail?: string, userUid?: string): Promise<TrustRequest[]> => {
     const reqs: TrustRequest[] = [];
-    snap.forEach((d) => reqs.push(d.data() as TrustRequest));
+    const addedIds = new Set<string>();
+    const colRef = collection(db, 'trust_requests');
+
+    if (userEmail) {
+      try {
+        const q = query(colRef, where('applicantEmail', '==', userEmail.toLowerCase()));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as TrustRequest;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            reqs.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
+    if (userUid) {
+      try {
+        const q = query(colRef, where('userUid', '==', userUid));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as TrustRequest;
+          if (item && item.id && !addedIds.has(String(item.id))) {
+            reqs.push(item);
+            addedIds.add(String(item.id));
+          }
+        });
+      } catch {}
+    }
     return reqs;
   },
 
   saveTrustRequest: async (req: TrustRequest): Promise<void> => {
     if (!req || !req.id) return;
-    const cleanData = cleanForFirestore(req);
+    const cleanData = cleanForFirestore({
+      ...req,
+      userUid: req.userUid || (auth.currentUser ? auth.currentUser.uid : undefined),
+      applicantEmail: req.applicantEmail ? req.applicantEmail.toLowerCase() : (req.email ? req.email.toLowerCase() : undefined),
+    });
     await setDoc(doc(db, 'trust_requests', String(req.id)), cleanData, { merge: true });
   },
 

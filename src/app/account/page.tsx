@@ -851,17 +851,12 @@ export default function AccountPage() {
     cloudSync.pullCategories().then((cats) => cats && setCategories(cats)).catch(() => {});
     cloudSync.pullCities().then((cts) => cts && setCities(cts)).catch(() => {});
 
+    const userEmail = u?.email?.toLowerCase();
+    const userUid = u?.uid || (u as any)?.id;
+
     // Load Claims from Cloud Firestore
-    cloudSync.pullClaims().then((allClaims) => {
-      if (allClaims && allClaims.length > 0) {
-        const mine = allClaims.filter(
-          (c) =>
-            c.claimantId === u?.id ||
-            (u?.email && c.claimantEmail?.toLowerCase() === u.email.toLowerCase()) ||
-            (u?.phone && c.claimantPhone === u.phone) ||
-            (u?.email && c.applicantEmail?.toLowerCase() === u.email.toLowerCase()) ||
-            (u?.phone && c.applicantPhone === u.phone)
-        );
+    cloudSync.pullClaimsForUser(userEmail, userUid).then((mine) => {
+      if (mine && mine.length > 0) {
         setUserClaims(mine);
       }
     }).catch(() => {});
@@ -874,14 +869,8 @@ export default function AccountPage() {
     }).catch(() => {});
 
     // Load User Trust Requests from Cloud Firestore
-    cloudSync.pullTrustRequests().then((allReqs) => {
-      if (allReqs && allReqs.length > 0) {
-        const mine = allReqs.filter(
-          (t) =>
-            t.applicantId === u?.id ||
-            (u?.phone && t.phone === u.phone) ||
-            (u?.email && t.email?.toLowerCase() === u.email.toLowerCase())
-        );
+    cloudSync.pullTrustRequestsForUser(userEmail, userUid).then((mine) => {
+      if (mine && mine.length > 0) {
         setUserTrustRequests(mine);
       }
     }).catch(() => {});
@@ -894,7 +883,7 @@ export default function AccountPage() {
     }).catch(() => {});
 
     // Load Help & Support Mails from Cloud Firestore
-    cloudSync.pullMail().then((mails) => {
+    cloudSync.pullMailForUser(userEmail, userUid).then((mails) => {
       if (mails && Array.isArray(mails)) {
         setAllMails(mails);
       }

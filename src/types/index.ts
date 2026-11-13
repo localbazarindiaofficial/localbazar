@@ -184,6 +184,8 @@ export interface MailReplyItem {
 
 export interface MailItem {
   id: string;
+  userUid?: string;
+  userEmail?: string;
   toEmail?: string;
   toName?: string;
   from?: string;
@@ -215,6 +217,8 @@ export interface ClaimDocument {
 
 export interface ClaimItem {
   id: string;
+  userUid?: string;
+  userId?: string;
   listingId: string;
   listingName: string;
   city?: string;
@@ -222,6 +226,7 @@ export interface ClaimItem {
   applicantName?: string;
   applicantPhone?: string;
   applicantEmail?: string;
+  ownerEmail?: string;
   claimantName?: string;
   claimantPhone?: string;
   claimantEmail?: string;
@@ -250,6 +255,8 @@ export interface TrustBadgeSettings {
 
 export interface TrustRequest {
   id: string;
+  userUid?: string;
+  userId?: string;
   listingId: string;
   listingName?: string;
   businessName?: string;
@@ -258,6 +265,8 @@ export interface TrustRequest {
   ownerName?: string;
   applicantName?: string;
   applicantId?: string;
+  applicantEmail?: string;
+  ownerEmail?: string;
   phone?: string;
   email?: string;
   docType?: string;

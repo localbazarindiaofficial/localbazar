@@ -114,7 +114,8 @@ service cloud.firestore {
       allow create: if request.resource.data.subject is string || request.resource.data.name is string;
       allow update: if isSuperAdmin() || (request.auth != null && (
         resource.data.userEmail == request.auth.token.email ||
-        resource.data.email == request.auth.token.email
+        resource.data.email == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
       ));
       allow delete: if isSuperAdmin();
     }
