@@ -10,12 +10,23 @@ service cloud.firestore {
       );
     }
 
-    // 2. Listings Collection (Public can add, only Owner or SuperAdmin can update, only SuperAdmin can delete)
+    // Helper: Authenticated User check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 2. Listings Collection (Only Authenticated Users can create listings; Owner ID/Email verified)
     match /listings/{listingId} {
       allow read: if true;
-      allow create: if request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow create: if isAuthenticated() && 
+        request.resource.data.name is string && 
+        request.resource.data.name.size() > 0 && (
+          isSuperAdmin() ||
+          request.resource.data.ownerId == request.auth.uid ||
+          request.resource.data.ownerEmail == request.auth.token.email
+        );
       allow update: if isSuperAdmin() || (
-        request.auth != null && (
+        isAuthenticated() && (
           resource.data.ownerEmail == request.auth.token.email ||
           resource.data.ownerId == request.auth.uid
         )
@@ -23,12 +34,17 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // 3. User Profiles (Public can view, Authenticated users can create & update their profile; SuperAdmin has full access)
+    // 3. User Profiles (Public can view, Authenticated users create/update their own profile securely)
     match /users/{userId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() ||
+        request.resource.data.uid == request.auth.uid ||
+        request.resource.data.email == request.auth.token.email ||
+        request.auth.uid == userId
+      );
       allow update: if isSuperAdmin() || (
-        request.auth != null && (
+        isAuthenticated() && (
           resource.data.email == request.auth.token.email ||
           resource.data.uid == request.auth.uid ||
           request.auth.uid == userId ||
@@ -38,12 +54,16 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // 4. Store Reviews & Ratings
+    // 4. Store & Product Reviews (Strictly Authenticated Users to prevent spam)
     match /reviews/{storeId}/items/{reviewId} {
       allow read: if true;
-      allow create: if request.resource.data.rating is number || request.resource.data.stars is number || request.resource.data.name is string;
+      allow create: if isAuthenticated() && (
+        request.resource.data.rating is number || 
+        request.resource.data.stars is number || 
+        request.resource.data.name is string
+      );
       allow update: if isSuperAdmin() || (
-        request.auth != null && (
+        isAuthenticated() && (
           resource.data.userEmail == request.auth.token.email ||
           resource.data.userId == request.auth.uid
         )
@@ -51,16 +71,16 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // 5. Customer Chat & Inquiries (Supports both /inbox and /inquiries)
+    // 5. Customer Chat & Inquiries (Strictly Authenticated to prevent anonymous spam)
     match /inquiries/{storeId}/messages/{messageId} {
-      allow read: if isSuperAdmin() || (request.auth != null && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid));
-      allow create: if request.resource.data.text is string || request.resource.data.message is string;
+      allow read: if isSuperAdmin() || (isAuthenticated() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid));
+      allow create: if isAuthenticated() && (request.resource.data.text is string || request.resource.data.message is string);
       allow update, delete: if isSuperAdmin();
     }
     match /inbox/{storeId}/threads/{threadId} {
-      allow read: if isSuperAdmin() || request.auth != null;
-      allow create: if request.resource.data.userName is string || request.resource.data.id is string || request.auth != null;
-      allow update: if isSuperAdmin() || request.auth != null;
+      allow read: if isSuperAdmin() || isAuthenticated();
+      allow create: if isAuthenticated() && (request.resource.data.userName is string || request.resource.data.id is string);
+      allow update: if isSuperAdmin() || isAuthenticated();
       allow delete: if isSuperAdmin();
     }
 
@@ -86,34 +106,34 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // 9. Claims, Trust Badges & Mailbox (Users can view & manage their own tickets; SuperAdmin has full access)
+    // 9. Claims, Trust Badges & Mailbox (Strictly Authenticated users)
     match /claims/{claimId} {
-      allow read: if isSuperAdmin() || (request.auth != null && (
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
         resource.data.applicantEmail == request.auth.token.email ||
         resource.data.ownerEmail == request.auth.token.email ||
         resource.data.userUid == request.auth.uid ||
         resource.data.userId == request.auth.uid
       ));
-      allow create: if request.resource.data.applicantName is string || request.resource.data.name is string;
+      allow create: if isAuthenticated() && (request.resource.data.applicantName is string || request.resource.data.name is string);
       allow update, delete: if isSuperAdmin();
     }
     match /trust_requests/{requestId} {
-      allow read: if isSuperAdmin() || (request.auth != null && (
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
         resource.data.applicantEmail == request.auth.token.email ||
         resource.data.ownerEmail == request.auth.token.email ||
         resource.data.userUid == request.auth.uid
       ));
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
     match /mail/{mailId} {
-      allow read: if isSuperAdmin() || (request.auth != null && (
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
         resource.data.userEmail == request.auth.token.email ||
         resource.data.email == request.auth.token.email ||
         resource.data.userUid == request.auth.uid
       ));
-      allow create: if request.resource.data.subject is string || request.resource.data.name is string;
-      allow update: if isSuperAdmin() || (request.auth != null && (
+      allow create: if isAuthenticated() && (request.resource.data.subject is string || request.resource.data.name is string);
+      allow update: if isSuperAdmin() || (isAuthenticated() && (
         resource.data.userEmail == request.auth.token.email ||
         resource.data.email == request.auth.token.email ||
         resource.data.userUid == request.auth.uid
@@ -122,12 +142,12 @@ service cloud.firestore {
     }
     match /city_requests/{reqId} {
       allow read: if isSuperAdmin();
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
     match /category_requests/{reqId} {
       allow read: if isSuperAdmin();
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow update, delete: if isSuperAdmin();
     }
 
