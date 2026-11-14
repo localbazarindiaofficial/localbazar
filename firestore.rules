@@ -59,7 +59,8 @@ service cloud.firestore {
     }
     match /inbox/{storeId}/threads/{threadId} {
       allow read: if isSuperAdmin() || request.auth != null;
-      allow create, update: if isSuperAdmin() || request.auth != null;
+      allow create: if request.resource.data.userName is string || request.resource.data.id is string || request.auth != null;
+      allow update: if isSuperAdmin() || request.auth != null;
       allow delete: if isSuperAdmin();
     }
 

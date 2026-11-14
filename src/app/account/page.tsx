@@ -757,13 +757,46 @@ export default function AccountPage() {
           setAvatarLoadError(false);
         }
 
-        // 2. Recover authentic original joined date
+        // 2. Recover authentic original profile details & joined date from Firestore
         try {
           let authenticDate = '';
           const snap = await getDoc(doc(db, 'users', stdId));
           if (snap.exists()) {
-            const data = snap.data() as UserProfile;
-            if (data.joinedDate) authenticDate = data.joinedDate;
+            const cloudUser = snap.data() as UserProfile;
+            if (cloudUser.joinedDate) authenticDate = cloudUser.joinedDate;
+
+            if (cloudUser.phone && !updatedUser.phone) {
+              updatedUser.phone = cloudUser.phone;
+              setProfilePhone(cloudUser.phone);
+              needsUpdate = true;
+            }
+            if (cloudUser.city && !updatedUser.city) {
+              updatedUser.city = cloudUser.city;
+              setProfileCity(cloudUser.city);
+              needsUpdate = true;
+            }
+            if (cloudUser.state && !updatedUser.state) {
+              updatedUser.state = cloudUser.state;
+              setProfileState(cloudUser.state);
+              needsUpdate = true;
+            }
+            const cloudPin = cloudUser.pincode || (cloudUser as any)?.pinCode;
+            if (cloudPin && !updatedUser.pincode) {
+              updatedUser.pincode = cloudPin;
+              setProfilePincode(cloudPin);
+              needsUpdate = true;
+            }
+            if (cloudUser.gender && !updatedUser.gender) {
+              updatedUser.gender = cloudUser.gender;
+              setProfileGender(cloudUser.gender);
+              needsUpdate = true;
+            }
+            const cloudDob = cloudUser.dob || (cloudUser as any)?.dateOfBirth;
+            if (cloudDob && !updatedUser.dob) {
+              updatedUser.dob = cloudDob;
+              setProfileDob(formatDobForInput(cloudDob));
+              needsUpdate = true;
+            }
           }
           if (fbUser.metadata?.creationTime) {
             const cDate = new Date(fbUser.metadata.creationTime);

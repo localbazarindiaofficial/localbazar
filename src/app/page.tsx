@@ -478,17 +478,16 @@ export default function HomePage() {
       const userEmail = u.email || '';
       const lbId = formatLBUserId(userEmail || u.uid);
 
-      let originalJoinedDate = '';
+      // Recover existing profile data permanently from Firestore
+      let existingData: Partial<UserProfile> = {};
       try {
         const userDocSnap = await getDoc(doc(db, 'users', lbId));
         if (userDocSnap.exists()) {
-          const cloudData = userDocSnap.data() as UserProfile;
-          if (cloudData.joinedDate) {
-            originalJoinedDate = cloudData.joinedDate;
-          }
+          existingData = userDocSnap.data() as UserProfile;
         }
       } catch {}
 
+      let originalJoinedDate = existingData.joinedDate || '';
       if (!originalJoinedDate && u.metadata?.creationTime) {
         const cDate = new Date(u.metadata.creationTime);
         if (!isNaN(cDate.getTime())) {
@@ -501,13 +500,15 @@ export default function HomePage() {
       }
 
       const userProfile: UserProfile = {
+        ...existingData,
         id: lbId,
         uid: u.uid,
-        name: u.displayName || 'Member User',
-        email: userEmail,
-        photoURL: u.photoURL || '',
-        role: 'user',
-        joinedDate: originalJoinedDate
+        name: u.displayName || existingData.name || 'Member User',
+        email: userEmail || existingData.email || '',
+        photoURL: u.photoURL || existingData.photoURL || '',
+        role: existingData.role || 'Member',
+        joinedDate: originalJoinedDate,
+        verified: existingData.verified ?? true,
       };
 
       setCurrentUser(userProfile);
