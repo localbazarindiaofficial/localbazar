@@ -81,7 +81,7 @@ service cloud.firestore {
 
     // 8. Platform Settings & Admin Security
     match /settings/{settingId} {
-      allow read: if settingId != 'admin_security' || isSuperAdmin();
+      allow read: if true;
       allow write: if isSuperAdmin();
     }
 

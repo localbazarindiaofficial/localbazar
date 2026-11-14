@@ -38,18 +38,16 @@ export default function AuthPage() {
 
       const lbId = formatLBUserId(userEmail || userUid || userName);
 
-      // Recover original first joinedDate permanently
-      let originalJoinedDate = '';
+      // Recover existing profile data permanently from Firestore
+      let existingData: Partial<UserProfile> = {};
       try {
         const userDocSnap = await getDoc(doc(db, 'users', lbId));
         if (userDocSnap.exists()) {
-          const cloudData = userDocSnap.data() as UserProfile;
-          if (cloudData.joinedDate) {
-            originalJoinedDate = cloudData.joinedDate;
-          }
+          existingData = userDocSnap.data() as UserProfile;
         }
       } catch {}
 
+      let originalJoinedDate = existingData.joinedDate || '';
       if (!originalJoinedDate && u.metadata?.creationTime) {
         const cDate = new Date(u.metadata.creationTime);
         if (!isNaN(cDate.getTime())) {
@@ -62,17 +60,18 @@ export default function AuthPage() {
       }
 
       const userProfile: UserProfile = {
+        ...existingData,
         id: lbId,
         uid: userUid,
-        name: userName,
-        email: userEmail,
-        photoURL: userPhoto,
-        role: 'Member',
+        name: userName || existingData.name || 'Member User',
+        email: userEmail || existingData.email || '',
+        photoURL: userPhoto || existingData.photoURL || '',
+        role: existingData.role || 'Member',
         joinedDate: originalJoinedDate,
-        verified: true,
+        verified: existingData.verified ?? true,
       };
 
-      // Keep only active user auth in localStorage, persist full data to Cloud Firestore
+      // Keep active user in localStorage, persist full data to Cloud Firestore
       localStorage.setItem('lb_current_user', JSON.stringify(userProfile));
       await cloudSync.saveUser(userProfile);
 
