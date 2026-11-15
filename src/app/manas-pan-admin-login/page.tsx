@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl } from '@/types';
 import { cloudSync, uploadImageToCloud, formatLBUserId, auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import '@/styles/admin.css';
 
 const DEFAULT_ADMIN_EMAIL = 'localbazar@adminmanaspan.com';
@@ -38,6 +38,27 @@ export default function SuperAdminPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [cloudAdminEmail, setCloudAdminEmail] = useState<string>('');
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setCloudAdminEmail(u?.email || '');
+    });
+    return () => unsub();
+  }, []);
+
+  const handleConnectCloudSuperAdmin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      if (res?.user?.email) {
+        setCloudAdminEmail(res.user.email);
+        alert(`Super Admin Cloud Authority activated successfully as: ${res.user.email}`);
+      }
+    } catch (err: any) {
+      alert('Cloud authority activation failed: ' + (err?.message || 'Check popup'));
+    }
+  };
 
   // Panel View Navigation
   type AdminView = 'dashboard' | 'listings' | 'users' | 'claims' | 'trust' | 'cities' | 'categories' | 'mailbox' | 'news' | 'settings';
@@ -560,12 +581,21 @@ export default function SuperAdminPage() {
     }
 
     const targetId = deletingListingModal.id;
-    const nextListings = listings.filter((l) => String(l.id) !== String(targetId));
-    setListings(nextListings);
-    await cloudSync.deleteListing(targetId);
-
-    setDeletingListingModal(null);
-    setDeleteListingConfirmText('');
+    try {
+      if (!auth.currentUser || (auth.currentUser.email !== 'localbazarindia.official@gmail.com' && auth.currentUser.email !== 'localbazar@adminmanaspan.com')) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      }
+      await cloudSync.deleteListing(targetId);
+      const nextListings = listings.filter((l) => String(l.id) !== String(targetId));
+      setListings(nextListings);
+      setDeletingListingModal(null);
+      setDeleteListingConfirmText('');
+      alert('Listing permanently deleted from database!');
+    } catch (err: any) {
+      console.error('Error deleting listing:', err);
+      alert('Failed to delete listing: ' + (err?.message || 'Permission denied. Please verify official Google account.'));
+    }
   };
 
   const handleToggleVerifiedBadge = async (listingId: string) => {
@@ -668,22 +698,32 @@ export default function SuperAdminPage() {
     const targetUser = deletingUserModal;
     const userOwnedListings = getUserListings(targetUser);
 
-    // 1. Delete all user listings
-    const listingIdsToDelete = new Set(userOwnedListings.map((l) => String(l.id)));
-    const nextListings = listings.filter((l) => !listingIdsToDelete.has(String(l.id)));
-    setListings(nextListings);
+    try {
+      if (!auth.currentUser || (auth.currentUser.email !== 'localbazarindia.official@gmail.com' && auth.currentUser.email !== 'localbazar@adminmanaspan.com')) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      }
 
-    for (const l of userOwnedListings) {
-      await cloudSync.deleteListing(l.id);
+      // 1. Delete all user listings
+      const listingIdsToDelete = new Set(userOwnedListings.map((l) => String(l.id)));
+      for (const l of userOwnedListings) {
+        await cloudSync.deleteListing(l.id);
+      }
+      const nextListings = listings.filter((l) => !listingIdsToDelete.has(String(l.id)));
+      setListings(nextListings);
+
+      // 2. Delete user profile
+      await cloudSync.deleteUser(targetUser.id);
+      const nextUsers = users.filter((u) => String(u.id) !== String(targetUser.id));
+      setUsers(nextUsers);
+
+      setDeletingUserModal(null);
+      setDeleteConfirmText('');
+      alert('User and all associated listings permanently deleted from database!');
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      alert('Failed to delete user: ' + (err?.message || 'Permission denied. Please verify official Google account.'));
     }
-
-    // 2. Delete user profile
-    const nextUsers = users.filter((u) => String(u.id) !== String(targetUser.id));
-    setUsers(nextUsers);
-    await cloudSync.deleteUser(targetUser.id);
-
-    setDeletingUserModal(null);
-    setDeleteConfirmText('');
   };
 
   // City operations
@@ -2020,7 +2060,7 @@ export default function SuperAdminPage() {
         {/* Main Content Arena */}
         <main className={`admin-main ${sidebarCollapsed ? 'expanded' : ''}`} style={{ flex: 1, minHeight: '100vh', background: '#f8fafc', overflowX: 'hidden' }}>
           {/* Top Header */}
-          <header className="main-topbar">
+          <header className="main-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
             <div className="topbar-left-group">
               <button
                 type="button"
@@ -2030,6 +2070,25 @@ export default function SuperAdminPage() {
               >
                 <i className="fa-solid fa-bars"></i>
               </button>
+            </div>
+
+            <div className="topbar-right-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {cloudAdminEmail ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.35rem 0.8rem', borderRadius: 999, fontSize: '0.8rem', color: '#047857', fontWeight: 600 }}>
+                  <i className="fa-solid fa-shield-check" style={{ color: '#10b981' }}></i>
+                  <span>Cloud Authority: <strong>{cloudAdminEmail}</strong></span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectCloudSuperAdmin}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.35rem 0.85rem', borderRadius: 999, fontSize: '0.8rem', color: '#334155', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  title="Connect your official Google account to unlock cloud deletion authority"
+                >
+                  <i className="fa-brands fa-google" style={{ color: '#ea4335' }}></i>
+                  <span>Connect Cloud Authority</span>
+                </button>
+              )}
             </div>
           </header>
 
