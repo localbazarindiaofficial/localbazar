@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl } from '@/types';
-import { cloudSync, uploadImageToCloud, formatLBUserId } from '@/lib/firebase';
+import { cloudSync, uploadImageToCloud, formatLBUserId, auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import '@/styles/admin.css';
 
 const DEFAULT_ADMIN_EMAIL = 'localbazar@adminmanaspan.com';
@@ -388,6 +389,17 @@ export default function SuperAdminPage() {
       if (res.ok && data?.success) {
         setIsAuthenticated(true);
         setGatePwd('');
+
+        // Authenticate Firebase client SDK session as Super Admin
+        try {
+          await signInWithEmailAndPassword(auth, email, pwd);
+        } catch (fErr: any) {
+          if (fErr?.code === 'auth/user-not-found' || fErr?.code === 'auth/invalid-credential') {
+            try {
+              await createUserWithEmailAndPassword(auth, email, pwd);
+            } catch {}
+          }
+        }
       } else {
         setAuthError(data?.error || 'Invalid Admin ID or Secret Password.');
       }
@@ -407,6 +419,9 @@ export default function SuperAdminPage() {
           credentials: 'include',
           body: JSON.stringify({ action: 'logout' }),
         });
+      } catch {}
+      try {
+        await signOut(auth);
       } catch {}
       setIsAuthenticated(false);
       setGatePwd('');

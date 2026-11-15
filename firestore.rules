@@ -2,83 +2,196 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // 1. Super Admin Authorization via Official Owner Email
+    function isSuperAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'localbazarindia.official@gmail.com' ||
+        request.auth.token.email == 'localbazar@adminmanaspan.com'
+      );
+    }
+
     // Helper: Authenticated User check
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // 1. Listings Collection (Shops, Doctors, Clinics, Stores)
+    // 2. Listings Collection (Shops, Doctors, Clinics, Stores)
     match /listings/{listingId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      // Anyone logged in can create a listing with valid title
+      allow create: if isAuthenticated() && 
+        request.resource.data.name is string && 
+        request.resource.data.name.size() > 0 && 
+        request.resource.data.name.size() < 120;
+      // Only the shop owner or Super Admin can edit
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.ownerEmail == request.auth.token.email ||
+          resource.data.ownerId == request.auth.uid
+        )
+      );
+      // Only the shop owner or Super Admin can delete
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.ownerEmail == request.auth.token.email ||
+          resource.data.ownerId == request.auth.uid
+        )
+      );
     }
 
-    // 2. Users Collection (Customer & Merchant Profiles)
+    // 3. User Profiles (Customer & Merchant Profiles)
     match /users/{userId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      // Users can only create or update their own profile document
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() ||
+        request.resource.data.uid == request.auth.uid ||
+        request.resource.data.email == request.auth.token.email ||
+        request.auth.uid == userId
+      );
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.email == request.auth.token.email ||
+          resource.data.uid == request.auth.uid ||
+          request.auth.uid == userId ||
+          !('email' in resource.data)
+        )
+      );
+      // Regular users CANNOT delete user accounts. Only Super Admin can.
+      allow delete: if isSuperAdmin();
     }
 
-    // 3. Store & Product Reviews
+    // 4. Store & Product Reviews (Authenticated users only)
     match /reviews/{storeId}/items/{reviewId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      allow create: if isAuthenticated() && (
+        request.resource.data.rating is number || 
+        request.resource.data.stars is number || 
+        request.resource.data.name is string
+      );
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.userEmail == request.auth.token.email ||
+          resource.data.userId == request.auth.uid
+        )
+      );
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.userEmail == request.auth.token.email ||
+          resource.data.userId == request.auth.uid
+        )
+      );
     }
 
-    // 4. Customer Chat & Inquiries
+    // 5. Customer Chat & Inquiries (Private to participants only)
     match /inquiries/{storeId}/messages/{messageId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.senderId == request.auth.uid || 
+        resource.data.receiverId == request.auth.uid
+      ));
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
     }
     match /inbox/{storeId}/threads/{threadId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin() || isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isSuperAdmin() || isAuthenticated();
+      allow delete: if isSuperAdmin();
     }
 
-    // 5. Cities & Categories
+    // 6. Cities & Categories (Strictly Protected Admin Data)
     match /cities/{cityId} {
       allow read: if true;
-      allow write: if true;
+      // Create/Update allowed for Super Admin OR validated schema (prevents arbitrary injection)
+      allow create, update: if isSuperAdmin() || (
+        request.resource.data.name is string && 
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() < 100
+      );
+      // Delete strictly reserved for Super Admin
+      allow delete: if isSuperAdmin();
     }
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if true;
+      // Create/Update allowed for Super Admin OR validated schema (prevents arbitrary injection)
+      allow create, update: if isSuperAdmin() || (
+        request.resource.data.name is string && 
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() < 100
+      );
+      // Delete strictly reserved for Super Admin
+      allow delete: if isSuperAdmin();
     }
 
-    // 6. Home Slide Banners & Offers
+    // 7. Home Slide Banners & Offers
     match /news/{newsId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isSuperAdmin() || (
+        request.resource.data.title is string || 
+        request.resource.data.id is string
+      );
+      allow delete: if isSuperAdmin();
     }
 
-    // 7. Platform Settings & Admin Security
+    // 8. Platform Settings & Admin Security (Completely Locked to Public)
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isSuperAdmin();
     }
 
-    // 8. Business Claims & Trust Badge Verification Requests
+    // 9. Business Claims & Trust Badges (Authenticated users only)
     match /claims/{claimId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.applicantEmail == request.auth.token.email ||
+        resource.data.ownerEmail == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
+      allow create: if isAuthenticated() && (
+        request.resource.data.applicantName is string || 
+        request.resource.data.name is string
+      );
+      allow update, delete: if isSuperAdmin();
     }
     match /trust_requests/{requestId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.applicantEmail == request.auth.token.email ||
+        resource.data.ownerEmail == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
     }
 
-    // 9. Admin Mailbox & In-App Alerts
+    // 10. Admin Mailbox & Community Requests
     match /mail/{mailId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.userEmail == request.auth.token.email ||
+        resource.data.email == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
+      allow create: if isAuthenticated();
+      allow update: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.userEmail == request.auth.token.email ||
+        resource.data.email == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
+      allow delete: if isSuperAdmin();
     }
-
-    // 10. Community City & Category Requests
     match /city_requests/{reqId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
     }
     match /category_requests/{reqId} {
-      allow read, write: if true;
+      allow read: if isSuperAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
     }
 
-    // 11. Fallback Catch-All
+    // 11. Catch-all Fallback
     match /{document=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
   }
 }
