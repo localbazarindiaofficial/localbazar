@@ -141,7 +141,7 @@ export default function SuperAdminPage() {
   const [catRequests, setCatRequests] = useState<CategoryRequestItem[]>([]);
   // News & Banner States (Home / Target / Empty Store / Product Promotion)
   const [newsTab, setNewsTab] = useState<'home' | 'target' | 'empty_store' | 'product_promotion'>('home');
-  const [newsTicker, setNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
+  const [newsTicker, setNewsTicker] = useState('');
   const [newsTickerLink, setNewsTickerLink] = useState('');
   
   // Product Promotion States
@@ -1378,6 +1378,10 @@ export default function SuperAdminPage() {
       return;
     }
     await cloudSync.saveNewsTicker(newsTicker, newsTickerLink).catch(() => {});
+    try {
+      localStorage.setItem('lb_cached_news_ticker', newsTicker.trim());
+      localStorage.setItem('lb_cached_news_ticker_link', newsTickerLink.trim());
+    } catch {}
     alert('Home marquee announcement updated successfully!');
   };
 
@@ -1386,6 +1390,10 @@ export default function SuperAdminPage() {
     await cloudSync.deleteNewsTicker().catch(() => {});
     setNewsTicker('');
     setNewsTickerLink('');
+    try {
+      localStorage.removeItem('lb_cached_news_ticker');
+      localStorage.removeItem('lb_cached_news_ticker_link');
+    } catch {}
     alert('Home marquee announcement deleted successfully!');
   };
 

@@ -50,8 +50,24 @@ export default function HomePage() {
   const [cityInput, setCityInput] = useState('');
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [homeNewsTicker, setHomeNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
-  const [homeNewsTickerLink, setHomeNewsTickerLink] = useState('');
+  const [homeNewsTicker, setHomeNewsTicker] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('lb_cached_news_ticker');
+        if (cached !== null) return cached;
+      } catch {}
+    }
+    return '';
+  });
+  const [homeNewsTickerLink, setHomeNewsTickerLink] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('lb_cached_news_ticker_link');
+        if (cached !== null) return cached;
+      } catch {}
+    }
+    return '';
+  });
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -239,12 +255,22 @@ export default function HomePage() {
       });
 
       cloudSync.pullNewsTickerData().then((t) => {
-        if (t && t.ticker) {
-          setHomeNewsTicker(t.ticker);
-          setHomeNewsTickerLink(t.redirectUrl || '');
+        if (t && t.ticker && t.ticker.trim()) {
+          const tick = t.ticker.trim();
+          const link = (t.redirectUrl || '').trim();
+          setHomeNewsTicker(tick);
+          setHomeNewsTickerLink(link);
+          try {
+            localStorage.setItem('lb_cached_news_ticker', tick);
+            localStorage.setItem('lb_cached_news_ticker_link', link);
+          } catch {}
         } else {
           setHomeNewsTicker('');
           setHomeNewsTickerLink('');
+          try {
+            localStorage.removeItem('lb_cached_news_ticker');
+            localStorage.removeItem('lb_cached_news_ticker_link');
+          } catch {}
         }
       });
 
