@@ -15,8 +15,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'LocalBazar - Explore Your City',
+  metadataBase: new URL('https://www.localbazarindia.com'),
+  title: {
+    default: 'LocalBazar - Explore Your City | Local Shops, Doctors & Services',
+    template: '%s | LocalBazar',
+  },
   description: 'Explore verified local shops, clinics, offices, and services in your city on LocalBazar. Real-time timings, photos, and ratings.',
+  keywords: ['LocalBazar', 'Local shops near me', 'Doctors near me', 'Pharmacy shop', 'Local business directory India', 'Online marketplace city'],
+  authors: [{ name: 'LocalBazar Team' }],
+  creator: 'LocalBazar',
+  publisher: 'LocalBazar',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -27,7 +35,27 @@ export const metadata: Metadata = {
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180' }
     ]
-  }
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://www.localbazarindia.com',
+    siteName: 'LocalBazar',
+    title: 'LocalBazar - Explore Your City',
+    description: 'Explore verified local shops, clinics, offices, and services in your city on LocalBazar. Real-time timings, photos, and ratings.',
+    images: [{ url: '/icon-512.png', width: 512, height: 512, alt: 'LocalBazar Logo' }],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
