@@ -19,7 +19,7 @@ import {
   Firestore
 } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
-import { Listing, UserProfile, CategoryItem, CityItem, MailItem, ClaimItem, TrustRequest, TrustBadgeSettings, NewsItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, ReviewItem, PromotedProductItem } from '@/types';
+import { Listing, UserProfile, CategoryItem, CityItem, MailItem, ClaimItem, TrustRequest, TrustBadgeSettings, NewsItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, ReviewItem, PromotedProductItem, NewsTickerData } from '@/types';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyB8TjyRJ7uCx-YaaxPFYanv6nEWFowt4Vo",
@@ -1051,18 +1051,55 @@ export const cloudSync = {
     } catch {}
   },
 
-  pullNewsTicker: async (): Promise<string | null> => {
+  pullNewsTickerData: async (): Promise<NewsTickerData | null> => {
     try {
       const snap = await getDoc(doc(db, 'settings', 'news_ticker'));
-      if (snap.exists() && snap.data()?.ticker) {
-        return snap.data()?.ticker as string;
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && data.ticker && String(data.ticker).trim()) {
+          return {
+            ticker: String(data.ticker).trim(),
+            redirectUrl: data.redirectUrl ? String(data.redirectUrl).trim() : '',
+            updatedAt: data.updatedAt || 0,
+          };
+        }
       }
     } catch {}
     return null;
   },
 
-  saveNewsTicker: async (ticker: string): Promise<void> => {
-    await setDoc(doc(db, 'settings', 'news_ticker'), { ticker, updatedAt: Date.now() }, { merge: true });
+  pullNewsTicker: async (): Promise<string | null> => {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'news_ticker'));
+      if (snap.exists() && snap.data()?.ticker) {
+        return String(snap.data()?.ticker).trim() || null;
+      }
+    } catch {}
+    return null;
+  },
+
+  saveNewsTicker: async (ticker: string, redirectUrl?: string): Promise<void> => {
+    await setDoc(
+      doc(db, 'settings', 'news_ticker'),
+      {
+        ticker: String(ticker || '').trim(),
+        redirectUrl: String(redirectUrl || '').trim(),
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+  },
+
+  deleteNewsTicker: async (): Promise<void> => {
+    await setDoc(
+      doc(db, 'settings', 'news_ticker'),
+      {
+        ticker: '',
+        redirectUrl: '',
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
   },
 
   // Store Reviews Sync (Strictly for Shop / Business Home)

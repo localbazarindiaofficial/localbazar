@@ -142,6 +142,7 @@ export default function SuperAdminPage() {
   // News & Banner States (Home / Target / Empty Store / Product Promotion)
   const [newsTab, setNewsTab] = useState<'home' | 'target' | 'empty_store' | 'product_promotion'>('home');
   const [newsTicker, setNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
+  const [newsTickerLink, setNewsTickerLink] = useState('');
   
   // Product Promotion States
   const [promotedProducts, setPromotedProducts] = useState<PromotedProductItem[]>([]);
@@ -308,7 +309,7 @@ export default function SuperAdminPage() {
         cloudSync.pullHomeBanners(true).catch(() => []),
         cloudSync.pullTargetNewsBanners().catch(() => []),
         cloudSync.pullEmptyStoreBanners().catch(() => []),
-        cloudSync.pullNewsTicker().catch(() => null),
+        cloudSync.pullNewsTickerData().catch(() => null),
         cloudSync.pullPromotedProducts().catch(() => [])
       ]);
 
@@ -379,7 +380,11 @@ export default function SuperAdminPage() {
       }
 
       if (cloudTicker) {
-        setNewsTicker(cloudTicker);
+        setNewsTicker(cloudTicker.ticker || '');
+        setNewsTickerLink(cloudTicker.redirectUrl || '');
+      } else {
+        setNewsTicker('');
+        setNewsTickerLink('');
       }
 
       if (Array.isArray(cloudPromos)) {
@@ -1368,8 +1373,20 @@ export default function SuperAdminPage() {
   // 1. Home News & Banners Handlers
   const handleSaveHomeNewsTicker = async (e: React.FormEvent) => {
     e.preventDefault();
-    await cloudSync.saveNewsTicker(newsTicker).catch(() => {});
+    if (!newsTicker.trim()) {
+      alert('Please enter announcement text before saving.');
+      return;
+    }
+    await cloudSync.saveNewsTicker(newsTicker, newsTickerLink).catch(() => {});
     alert('Home marquee announcement updated successfully!');
+  };
+
+  const handleDeleteHomeNewsTicker = async () => {
+    if (!confirm('Are you sure you want to delete and remove this Home Text News announcement?')) return;
+    await cloudSync.deleteNewsTicker().catch(() => {});
+    setNewsTicker('');
+    setNewsTickerLink('');
+    alert('Home marquee announcement deleted successfully!');
   };
 
   const handleAddHomeBanner = async (e: React.FormEvent) => {
@@ -4940,31 +4957,78 @@ export default function SuperAdminPage() {
                 <div style={{ display: 'grid', gap: '1.5rem', maxWidth: 1100 }}>
                   {/* Card 1: Home Text News Ticker */}
                   <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <i className="fa-solid fa-bullhorn"></i>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <i className="fa-solid fa-bullhorn"></i>
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Home Text News (Marquee Ticker)</h3>
+                          <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Headline notice scrolling across the homepage banner bar</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Home Text News (Marquee Ticker)</h3>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Headline notice scrolling across the homepage banner bar</p>
-                      </div>
+                      {newsTicker.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleDeleteHomeNewsTicker}
+                          title="Delete Marquee Announcement"
+                          style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', padding: '0.45rem 0.85rem', borderRadius: 8, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <i className="fa-solid fa-trash-can"></i> Delete Announcement
+                        </button>
+                      )}
                     </div>
 
                     <form onSubmit={handleSaveHomeNewsTicker} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <textarea
-                        rows={3}
-                        required
-                        value={newsTicker}
-                        onChange={(e) => setNewsTicker(e.target.value)}
-                        placeholder="Enter announcement text to scroll on the homepage..."
-                        style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
-                      />
-                      <button
-                        type="submit"
-                        style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.65rem 1.25rem', borderRadius: 8, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                      >
-                        <i className="fa-solid fa-floppy-disk"></i> Save Home Headline
-                      </button>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Enter Announcement <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={newsTicker}
+                            onChange={(e) => setNewsTicker(e.target.value)}
+                            placeholder="Enter announcement text to scroll on the homepage..."
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Redirect Link (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={newsTickerLink}
+                            onChange={(e) => setNewsTickerLink(e.target.value)}
+                            placeholder="e.g. /explore?city=Ghatal or https://... or /shops/123"
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                          />
+                          <p style={{ margin: '6px 0 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                            Optional: Clicking the marquee ticker on the homepage will redirect to this link.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          type="submit"
+                          style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.65rem 1.35rem', borderRadius: 8, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                        >
+                          <i className="fa-solid fa-floppy-disk"></i> Save Announcement
+                        </button>
+                        {newsTicker.trim() && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteHomeNewsTicker}
+                            style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', padding: '0.65rem 1.15rem', borderRadius: 8, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                          >
+                            <i className="fa-solid fa-trash-can"></i> Delete
+                          </button>
+                        )}
+                      </div>
                     </form>
                   </div>
 

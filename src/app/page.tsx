@@ -51,6 +51,7 @@ export default function HomePage() {
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [homeNewsTicker, setHomeNewsTicker] = useState('Welcome to LocalBazar - India\'s Trusted Hyperlocal Directory.');
+  const [homeNewsTickerLink, setHomeNewsTickerLink] = useState('');
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -237,8 +238,14 @@ export default function HomePage() {
         }
       });
 
-      cloudSync.pullNewsTicker().then((t) => {
-        if (t) setHomeNewsTicker(t);
+      cloudSync.pullNewsTickerData().then((t) => {
+        if (t && t.ticker) {
+          setHomeNewsTicker(t.ticker);
+          setHomeNewsTickerLink(t.redirectUrl || '');
+        } else {
+          setHomeNewsTicker('');
+          setHomeNewsTickerLink('');
+        }
       });
 
       cloudSync.pullHomeBanners(true).then((banners) => {
@@ -544,15 +551,51 @@ export default function HomePage() {
         <div className="header-left" id="headerTickerSlot" style={{ flex: 1, minWidth: 0, overflow: 'hidden', maxWidth: '75vw' }}>
           {homeNewsTicker && (
             <div className="header-ticker-bar" style={{ width: '100%', overflow: 'hidden' }}>
-              <div className="lb-ticker-track">
-                <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
-                  {homeNewsTicker}
-                </span>
-                <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
-                <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
-                  {homeNewsTicker}
-                </span>
-              </div>
+              {homeNewsTickerLink ? (
+                homeNewsTickerLink.startsWith('http://') || homeNewsTickerLink.startsWith('https://') ? (
+                  <a
+                    href={homeNewsTickerLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lb-ticker-track"
+                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                    title={`Click to open: ${homeNewsTickerLink}`}
+                  >
+                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
+                      {homeNewsTicker}
+                    </span>
+                    <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
+                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
+                      {homeNewsTicker}
+                    </span>
+                  </a>
+                ) : (
+                  <Link
+                    href={homeNewsTickerLink}
+                    className="lb-ticker-track"
+                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                    title={`Click to open: ${homeNewsTickerLink}`}
+                  >
+                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
+                      {homeNewsTicker}
+                    </span>
+                    <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
+                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
+                      {homeNewsTicker}
+                    </span>
+                  </Link>
+                )
+              ) : (
+                <div className="lb-ticker-track">
+                  <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
+                    {homeNewsTicker}
+                  </span>
+                  <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
+                  <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
+                    {homeNewsTicker}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

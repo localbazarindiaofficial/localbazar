@@ -409,3 +409,9 @@ export function formatTelUrl(rawPhone: string | undefined | null): string {
   const cleaned = String(rawPhone).trim().replace(/[^\d+]/g, '');
   return cleaned ? `tel:${cleaned}` : '#';
 }
+
+export interface NewsTickerData {
+  ticker: string;
+  redirectUrl?: string;
+  updatedAt?: number;
+}
