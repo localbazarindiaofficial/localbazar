@@ -725,10 +725,16 @@ export default function SuperAdminPage() {
     };
     try {
       if (origName.toLowerCase() !== updatedCity.name.toLowerCase()) {
-        await cloudSync.deleteCity(origName).catch(() => {});
+        await cloudSync.deleteCity(origName);
       }
       await cloudSync.saveCity(updatedCity);
-      const nextCities = cities.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCity : c));
+      const nextCities = [
+        ...cities.filter((c) => 
+          c.name.toLowerCase() !== origName.toLowerCase() && 
+          c.name.toLowerCase() !== updatedCity.name.toLowerCase()
+        ),
+        updatedCity
+      ].sort((a, b) => a.name.localeCompare(b.name));
       setCities(nextCities);
       setEditingCity(null);
       setEditingCityOriginalName('');
@@ -852,10 +858,16 @@ export default function SuperAdminPage() {
     };
     try {
       if (origName.toLowerCase() !== updatedCat.name.toLowerCase()) {
-        await cloudSync.deleteCategory(origName).catch(() => {});
+        await cloudSync.deleteCategory(origName);
       }
       await cloudSync.saveCategory(updatedCat);
-      const nextCats = categories.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCat : c));
+      const nextCats = [
+        ...categories.filter((c) => 
+          c.name.toLowerCase() !== origName.toLowerCase() && 
+          c.name.toLowerCase() !== updatedCat.name.toLowerCase()
+        ),
+        updatedCat
+      ].sort((a, b) => a.name.localeCompare(b.name));
       setCategories(nextCats);
       setEditingCat(null);
       setEditingCatOriginalName('');

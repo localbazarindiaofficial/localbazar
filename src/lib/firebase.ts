@@ -358,7 +358,7 @@ export const cloudSync = {
     const cities: CityItem[] = [];
     snap.forEach((d) => {
       const data = d.data() as CityItem;
-      if (data && data.name) cities.push(data);
+      if (data && data.name) cities.push({ ...data, id: data.id || d.id });
     });
     cities.sort((a, b) => a.name.localeCompare(b.name));
     memoryCache.cities = cities;
@@ -380,7 +380,19 @@ export const cloudSync = {
   deleteCity: async (cityName: string): Promise<void> => {
     if (!cityName) return;
     const docId = cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    await deleteDoc(doc(db, 'cities', docId));
+    await deleteDoc(doc(db, 'cities', docId)).catch(() => {});
+    if (cityName !== docId) {
+      await deleteDoc(doc(db, 'cities', cityName)).catch(() => {});
+    }
+    try {
+      const q = query(collection(db, 'cities'), where('name', '==', cityName));
+      const snaps = await getDocs(q);
+      const delPromises: Promise<any>[] = [];
+      snaps.forEach((docSnap) => {
+        delPromises.push(deleteDoc(docSnap.ref).catch(() => {}));
+      });
+      await Promise.all(delPromises);
+    } catch {}
     memoryCache.cities = null; // Invalidate
     try {
       if (typeof window !== 'undefined') {
@@ -410,7 +422,7 @@ export const cloudSync = {
     const cats: CategoryItem[] = [];
     snap.forEach((d) => {
       const data = d.data() as CategoryItem;
-      if (data && data.name) cats.push(data);
+      if (data && data.name) cats.push({ ...data, id: data.id || d.id });
     });
     cats.sort((a, b) => a.name.localeCompare(b.name));
     memoryCache.categories = cats;
@@ -437,7 +449,19 @@ export const cloudSync = {
   deleteCategory: async (categoryName: string): Promise<void> => {
     if (!categoryName) return;
     const docId = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    await deleteDoc(doc(db, 'categories', docId));
+    await deleteDoc(doc(db, 'categories', docId)).catch(() => {});
+    if (categoryName !== docId) {
+      await deleteDoc(doc(db, 'categories', categoryName)).catch(() => {});
+    }
+    try {
+      const q = query(collection(db, 'categories'), where('name', '==', categoryName));
+      const snaps = await getDocs(q);
+      const delPromises: Promise<any>[] = [];
+      snaps.forEach((docSnap) => {
+        delPromises.push(deleteDoc(docSnap.ref).catch(() => {}));
+      });
+      await Promise.all(delPromises);
+    } catch {}
     memoryCache.categories = null; // Invalidate
     try {
       if (typeof window !== 'undefined') {

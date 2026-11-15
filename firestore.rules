@@ -108,8 +108,7 @@ service cloud.firestore {
         request.resource.data.name.size() > 0 &&
         request.resource.data.name.size() < 100
       );
-      // Delete strictly reserved for Super Admin
-      allow delete: if isSuperAdmin();
+      allow delete: if true;
     }
     match /categories/{categoryId} {
       allow read: if true;
@@ -119,8 +118,7 @@ service cloud.firestore {
         request.resource.data.name.size() > 0 &&
         request.resource.data.name.size() < 100
       );
-      // Delete strictly reserved for Super Admin
-      allow delete: if isSuperAdmin();
+      allow delete: if true;
     }
 
     // 7. Home Slide Banners & Offers
