@@ -939,6 +939,20 @@ export default function AccountPage() {
     };
   }, [router]);
 
+  // Auto-Cascade Safeguard: Clean up and purge any orphaned Trust Badge requests whose listing was deleted
+  useEffect(() => {
+    if (!listingsLoading && userTrustRequests.length > 0) {
+      const validListingIds = new Set(allListings.map((l) => String(l.id)));
+      const orphans = userTrustRequests.filter((r) => r.listingId && !validListingIds.has(String(r.listingId)));
+      if (orphans.length > 0) {
+        setUserTrustRequests((prev) => prev.filter((r) => !orphans.some((o) => o.id === r.id)));
+        orphans.forEach((o) => {
+          cloudSync.deleteTrustRequest(String(o.id)).catch(() => {});
+        });
+      }
+    }
+  }, [listingsLoading, allListings, userTrustRequests]);
+
   // Reset form
   const resetForm = () => {
     setEditingId(null);
@@ -1267,6 +1281,8 @@ export default function AccountPage() {
         try { localStorage.setItem('lb_cached_my_listings', JSON.stringify(next)); } catch {}
         return next;
       });
+      setUserTrustRequests((prev) => prev.filter((t) => String(t.listingId) !== String(listingId)));
+      setUserClaims((prev) => prev.filter((c) => String(c.listingId) !== String(listingId)));
       await cloudSync.deleteListing(listingId);
     } catch (err) {
       console.error('Error deleting listing:', err);

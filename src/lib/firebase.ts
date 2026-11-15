@@ -239,13 +239,41 @@ export const cloudSync = {
 
   deleteListing: async (listingId: string): Promise<void> => {
     if (!listingId) return;
-    const docRef = doc(db, 'listings', String(listingId));
+    const strId = String(listingId);
+    const docRef = doc(db, 'listings', strId);
     await deleteDoc(docRef);
 
     if (memoryCache.listings) {
-      memoryCache.listings = memoryCache.listings.filter((l) => l.id !== listingId);
+      memoryCache.listings = memoryCache.listings.filter((l) => l.id !== listingId && String(l.id) !== strId);
     }
-    memoryCache.listingById.delete(String(listingId));
+    memoryCache.listingById.delete(strId);
+
+    // Auto-Cascade: Delete associated Trust Badge applications permanently
+    try {
+      const trustRef = collection(db, 'trust_requests');
+      const q1 = query(trustRef, where('listingId', '==', strId));
+      const snap1 = await getDocs(q1);
+      snap1.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+
+      // Also clean up by numeric or raw ID if different
+      if (!isNaN(Number(strId))) {
+        const q1b = query(trustRef, where('listingId', '==', Number(strId)));
+        const snap1b = await getDocs(q1b);
+        snap1b.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+      }
+    } catch (e) {
+      console.warn('Cascade trust_requests delete notice:', e);
+    }
+
+    // Auto-Cascade: Delete associated Claims permanently
+    try {
+      const claimsRef = collection(db, 'claims');
+      const q2 = query(claimsRef, where('listingId', '==', strId));
+      const snap2 = await getDocs(q2);
+      snap2.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+    } catch (e) {
+      console.warn('Cascade claims delete notice:', e);
+    }
   },
 
   pullListings: async (limitCount?: number, forceRefresh = false): Promise<Listing[]> => {

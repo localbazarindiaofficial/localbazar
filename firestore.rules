@@ -148,7 +148,12 @@ service cloud.firestore {
         request.resource.data.applicantName is string || 
         request.resource.data.name is string
       );
-      allow update, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.applicantEmail == request.auth.token.email ||
+        resource.data.ownerEmail == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
     }
     match /trust_requests/{requestId} {
       allow read: if isSuperAdmin() || (isAuthenticated() && (
@@ -157,7 +162,12 @@ service cloud.firestore {
         resource.data.userUid == request.auth.uid
       ));
       allow create: if isAuthenticated();
-      allow update, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.applicantEmail == request.auth.token.email ||
+        resource.data.ownerEmail == request.auth.token.email ||
+        resource.data.userUid == request.auth.uid
+      ));
     }
 
     // 10. Admin Mailbox & Community Requests

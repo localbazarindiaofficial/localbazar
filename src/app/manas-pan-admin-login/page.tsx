@@ -337,7 +337,16 @@ export default function SuperAdminPage() {
       }
 
       if (Array.isArray(cloudTrust)) {
-        setTrustRequests(cloudTrust);
+        const validListingIds = new Set((cloudListings || []).map((l) => String(l.id)));
+        const validTrust = cloudTrust.filter((t) => !t.listingId || validListingIds.has(String(t.listingId)));
+        const orphanTrust = cloudTrust.filter((t) => t.listingId && !validListingIds.has(String(t.listingId)));
+        setTrustRequests(validTrust);
+        // Auto-purge any historical orphan trust requests from Cloud Firestore in background
+        if (orphanTrust.length > 0) {
+          orphanTrust.forEach((o) => {
+            cloudSync.deleteTrustRequest(String(o.id)).catch(() => {});
+          });
+        }
       }
 
       if (cloudSettings) {
@@ -589,6 +598,9 @@ export default function SuperAdminPage() {
       await cloudSync.deleteListing(targetId);
       const nextListings = listings.filter((l) => String(l.id) !== String(targetId));
       setListings(nextListings);
+      // Auto-cascade: clean up trust requests and claims from local state as well
+      setTrustRequests((prev) => prev.filter((t) => String(t.listingId) !== String(targetId)));
+      setClaims((prev) => prev.filter((c) => String(c.listingId) !== String(targetId)));
       setDeletingListingModal(null);
       setDeleteListingConfirmText('');
       alert('Listing permanently deleted from database!');
@@ -711,6 +723,8 @@ export default function SuperAdminPage() {
       }
       const nextListings = listings.filter((l) => !listingIdsToDelete.has(String(l.id)));
       setListings(nextListings);
+      setTrustRequests((prev) => prev.filter((t) => !listingIdsToDelete.has(String(t.listingId))));
+      setClaims((prev) => prev.filter((c) => !listingIdsToDelete.has(String(c.listingId))));
 
       // 2. Delete user profile
       await cloudSync.deleteUser(targetUser.id);
