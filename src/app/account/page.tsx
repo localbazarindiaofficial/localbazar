@@ -869,6 +869,18 @@ export default function AccountPage() {
       }
     };
 
+    // Instant 0ms cached listings hydration (Never block UI on cloud fetch)
+    try {
+      const cachedMine = localStorage.getItem('lb_cached_my_listings');
+      if (cachedMine) {
+        const parsed = JSON.parse(cachedMine);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMyListings(parsed);
+          setListingsLoading(false);
+        }
+      }
+    } catch {}
+
     // Load purely live from Cloud Firestore
     cloudSync.pullListings().then((cloudItems) => {
       if (cloudItems && Array.isArray(cloudItems)) {
@@ -1387,14 +1399,25 @@ export default function AccountPage() {
     );
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    // 1. Instant state & local storage purge (0ms responsive UI)
     try {
       localStorage.removeItem('lb_current_user');
-      await signOut(auth);
-    } catch (e) {
-      console.warn('Sign out error:', e);
+      sessionStorage.removeItem('lb_current_user');
+    } catch {}
+    setCurrentUser(null);
+
+    // 2. Client-side SPA navigation to Home (0ms instant transition, zero page reload)
+    try {
+      router.replace('/');
+    } catch {
+      window.location.replace('/');
     }
-    window.location.assign('/');
+
+    // 3. Complete remote token invalidation in background without blocking UI
+    signOut(auth).catch((e) => {
+      console.warn('Sign out background sync:', e);
+    });
   };
 
   const handleRemoveBookmark = (e: React.MouseEvent, id: string, name: string) => {

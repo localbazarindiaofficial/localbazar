@@ -17,7 +17,11 @@ export default function AuthPage() {
   useEffect(() => {
     // Intercept hardware Back button on Android mobile so it never exits the app, safely returning to '/'
     const onPopState = () => {
-      window.location.assign('/');
+      try {
+        router.replace('/');
+      } catch {
+        window.location.replace('/');
+      }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -71,11 +75,16 @@ export default function AuthPage() {
         verified: existingData.verified ?? true,
       };
 
-      // Keep active user in localStorage, persist full data to Cloud Firestore
+      // Keep active user in localStorage, persist full data to Cloud Firestore in background
       localStorage.setItem('lb_current_user', JSON.stringify(userProfile));
-      await cloudSync.saveUser(userProfile);
+      cloudSync.saveUser(userProfile).catch((e) => console.warn('Background saveUser notice:', e));
 
-      router.push('/');
+      // Instant SPA client-side route transition (0ms, no lag)
+      try {
+        router.replace('/');
+      } catch {
+        router.push('/');
+      }
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
       setErrorMsg(err.message || 'Failed to sign in with Google. Please try again.');

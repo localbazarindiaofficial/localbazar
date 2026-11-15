@@ -513,7 +513,7 @@ export default function HomePage() {
 
       setCurrentUser(userProfile);
       localStorage.setItem('lb_current_user', JSON.stringify(userProfile));
-      await cloudSync.saveUser(userProfile);
+      cloudSync.saveUser(userProfile).catch((e) => console.warn('Background saveUser notice:', e));
 
       setShowAuthModal(false);
 
