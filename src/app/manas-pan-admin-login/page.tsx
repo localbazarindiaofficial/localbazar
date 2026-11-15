@@ -273,10 +273,10 @@ export default function SuperAdminPage() {
         cloudTicker,
         cloudPromos
       ] = await Promise.all([
-        cloudSync.pullListings().catch(() => []),
+        cloudSync.pullListings(500, true).catch(() => []),
         cloudSync.pullUsers().catch(() => []),
-        cloudSync.pullCities().catch(() => []),
-        cloudSync.pullCategories().catch(() => []),
+        cloudSync.pullCities(true).catch(() => []),
+        cloudSync.pullCategories(true).catch(() => []),
         cloudSync.pullMail().catch(() => []),
         cloudSync.pullClaims().catch(() => []),
         cloudSync.pullTrustRequests().catch(() => []),
@@ -675,26 +675,32 @@ export default function SuperAdminPage() {
   const handleAddCity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCityName.trim()) return;
-    const newCity: CityItem = {
-      name: newCityName.trim(),
-      district: newCityDistrict.trim(),
-      state: newCityState.trim() || 'India',
-      pinCode: newCityPinCode.replace(/^[#\s]+/, '').trim()
-    };
-    const nextCities = [...cities.filter((c) => c.name.toLowerCase() !== newCity.name.toLowerCase()), newCity].sort((a, b) => a.name.localeCompare(b.name));
-    setCities(nextCities);
-    await cloudSync.saveCity(newCity);
-    setNewCityName('');
-    setNewCityDistrict('');
-    setNewCityState('West Bengal');
-    setNewCityPinCode('');
-    setIsCityModalOpen(false);
+    try {
+      const newCity: CityItem = {
+        name: newCityName.trim(),
+        district: newCityDistrict.trim(),
+        state: newCityState.trim() || 'India',
+        pinCode: newCityPinCode.replace(/^[#\s]+/, '').trim()
+      };
+      await cloudSync.saveCity(newCity);
+      const nextCities = [...cities.filter((c) => c.name.toLowerCase() !== newCity.name.toLowerCase()), newCity].sort((a, b) => a.name.localeCompare(b.name));
+      setCities(nextCities);
+      setNewCityName('');
+      setNewCityDistrict('');
+      setNewCityState('West Bengal');
+      setNewCityPinCode('');
+      setIsCityModalOpen(false);
+      alert(`City "${newCity.name}" added successfully!`);
+    } catch (err: any) {
+      console.error('Error adding city:', err);
+      alert('Failed to add city: ' + (err?.message || 'Database connection error'));
+    }
   };
 
   const handleSaveEditedCity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCity || !editingCity.name.trim()) return;
-    const origName = editingCityOriginalName || editingCity.name;
+    const origName = (editingCityOriginalName || editingCity.name).trim();
     const updatedCity: CityItem = {
       ...editingCity,
       name: editingCity.name.trim(),
@@ -702,72 +708,101 @@ export default function SuperAdminPage() {
       state: (editingCity.state || '').trim() || 'India',
       pinCode: (editingCity.pinCode || '').replace(/^[#\s]+/, '').trim()
     };
-    const nextCities = cities.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCity : c));
-    setCities(nextCities);
-    if (origName.toLowerCase() !== updatedCity.name.toLowerCase()) {
-      await cloudSync.deleteCity(origName).catch(() => {});
+    try {
+      if (origName.toLowerCase() !== updatedCity.name.toLowerCase()) {
+        await cloudSync.deleteCity(origName).catch(() => {});
+      }
+      await cloudSync.saveCity(updatedCity);
+      const nextCities = cities.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCity : c));
+      setCities(nextCities);
+      setEditingCity(null);
+      setEditingCityOriginalName('');
+      alert(`City "${updatedCity.name}" updated successfully!`);
+    } catch (err: any) {
+      console.error('Error saving edited city:', err);
+      alert('Failed to update city: ' + (err?.message || 'Database connection error'));
     }
-    await cloudSync.saveCity(updatedCity);
-    setEditingCity(null);
-    setEditingCityOriginalName('');
   };
 
   const handleDeleteCity = async (cityName: string) => {
     if (!confirm(`Delete city "${cityName}"?`)) return;
-    const nextCities = cities.filter((c) => c.name.toLowerCase() !== cityName.toLowerCase());
-    setCities(nextCities);
-    await cloudSync.deleteCity(cityName);
+    try {
+      await cloudSync.deleteCity(cityName);
+      const nextCities = cities.filter((c) => c.name.toLowerCase() !== cityName.toLowerCase());
+      setCities(nextCities);
+      alert(`City "${cityName}" deleted successfully!`);
+    } catch (err: any) {
+      console.error('Error deleting city:', err);
+      alert('Failed to delete city: ' + (err?.message || 'Database error'));
+    }
   };
 
   const handleApproveCityRequest = async (id: string, name: string, district?: string, state?: string, pinCode?: string) => {
     const cleanName = name.trim();
     if (!cleanName) return;
+    try {
+      // 1. Add clean edited city to cities list
+      const newCity: CityItem = {
+        name: cleanName,
+        district: (district || '').trim(),
+        state: (state || '').trim() || 'India',
+        pinCode: (pinCode || '').replace(/^[#\s]+/, '').trim()
+      };
+      await cloudSync.saveCity(newCity);
 
-    // 1. Add clean edited city to cities list
-    const newCity: CityItem = {
-      name: cleanName,
-      district: (district || '').trim(),
-      state: (state || '').trim() || 'India',
-      pinCode: (pinCode || '').replace(/^[#\s]+/, '').trim()
-    };
-    const nextCities = [...cities.filter((c) => c.name.toLowerCase() !== newCity.name.toLowerCase()), newCity].sort((a, b) => a.name.localeCompare(b.name));
-    setCities(nextCities);
-    await cloudSync.saveCity(newCity);
-
-    // 2. Permanently remove / delete this request from list and cloud
-    const nextReqs = cityRequests.filter((r) => r.id !== id);
-    setCityRequests(nextReqs);
-    await cloudSync.deleteCityRequest(id);
-    setEditingCityReq(null);
+      // 2. Permanently remove / delete this request from list and cloud
+      await cloudSync.deleteCityRequest(id);
+      const nextCities = [...cities.filter((c) => c.name.toLowerCase() !== newCity.name.toLowerCase()), newCity].sort((a, b) => a.name.localeCompare(b.name));
+      setCities(nextCities);
+      const nextReqs = cityRequests.filter((r) => r.id !== id);
+      setCityRequests(nextReqs);
+      setEditingCityReq(null);
+      alert(`City request for "${cleanName}" approved and added!`);
+    } catch (err: any) {
+      console.error('Error approving city request:', err);
+      alert('Failed to approve city request: ' + (err?.message || 'Database error'));
+    }
   };
 
   const handleRejectCityRequest = async (id: string) => {
     if (!confirm('Are you sure you want to reject and remove this city request?')) return;
-    const nextReqs = cityRequests.filter((r) => r.id !== id);
-    setCityRequests(nextReqs);
-    await cloudSync.deleteCityRequest(id);
-    if (editingCityReq?.id === id) setEditingCityReq(null);
+    try {
+      await cloudSync.deleteCityRequest(id);
+      const nextReqs = cityRequests.filter((r) => r.id !== id);
+      setCityRequests(nextReqs);
+      if (editingCityReq?.id === id) setEditingCityReq(null);
+      alert('City request rejected.');
+    } catch (err: any) {
+      console.error('Error rejecting city request:', err);
+      alert('Failed to reject city request: ' + (err?.message || 'Database error'));
+    }
   };
 
   // Category operations
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
-    const newCat: CategoryItem = {
-      name: newCatName.trim(),
-      alternativeName: newCatAltName.trim(),
-      icon: 'fa-store',
-      storeCategories: newCatStoreCategories
-    };
-    const nextCats = [...categories.filter((c) => c.name.toLowerCase() !== newCat.name.toLowerCase()), newCat].sort((a, b) => a.name.localeCompare(b.name));
-    setCategories(nextCats);
-    await cloudSync.saveCategory(newCat);
-    setNewCatName('');
-    setNewCatAltName('');
-    setNewCatStoreCategories([]);
-    setTempSubCatLabel('');
-    setTempSubCatIcon('🏷️');
-    setIsCatModalOpen(false);
+    try {
+      const newCat: CategoryItem = {
+        name: newCatName.trim(),
+        alternativeName: newCatAltName.trim(),
+        icon: 'fa-store',
+        storeCategories: newCatStoreCategories
+      };
+      await cloudSync.saveCategory(newCat);
+      const nextCats = [...categories.filter((c) => c.name.toLowerCase() !== newCat.name.toLowerCase()), newCat].sort((a, b) => a.name.localeCompare(b.name));
+      setCategories(nextCats);
+      setNewCatName('');
+      setNewCatAltName('');
+      setNewCatStoreCategories([]);
+      setTempSubCatLabel('');
+      setTempSubCatIcon('🏷️');
+      setIsCatModalOpen(false);
+      alert(`Category "${newCat.name}" added successfully!`);
+    } catch (err: any) {
+      console.error('Error adding category:', err);
+      alert('Failed to add category: ' + (err?.message || 'Database connection error'));
+    }
   };
 
   // Add/Remove subcategories in Add Modal
@@ -792,7 +827,7 @@ export default function SuperAdminPage() {
   const handleSaveEditedCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCat || !editingCat.name.trim()) return;
-    const origName = editingCatOriginalName || editingCat.name;
+    const origName = (editingCatOriginalName || editingCat.name).trim();
     const updatedCat: CategoryItem = {
       ...editingCat,
       name: editingCat.name.trim(),
@@ -800,14 +835,20 @@ export default function SuperAdminPage() {
       icon: editingCat.icon || 'fa-store',
       storeCategories: editingCat.storeCategories || []
     };
-    const nextCats = categories.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCat : c));
-    setCategories(nextCats);
-    if (origName.toLowerCase() !== updatedCat.name.toLowerCase()) {
-      await cloudSync.deleteCategory(origName).catch(() => {});
+    try {
+      if (origName.toLowerCase() !== updatedCat.name.toLowerCase()) {
+        await cloudSync.deleteCategory(origName).catch(() => {});
+      }
+      await cloudSync.saveCategory(updatedCat);
+      const nextCats = categories.map((c) => (c.name.toLowerCase() === origName.toLowerCase() ? updatedCat : c));
+      setCategories(nextCats);
+      setEditingCat(null);
+      setEditingCatOriginalName('');
+      alert(`Category "${updatedCat.name}" updated successfully!`);
+    } catch (err: any) {
+      console.error('Error updating category:', err);
+      alert('Failed to update category: ' + (err?.message || 'Database connection error'));
     }
-    await cloudSync.saveCategory(updatedCat);
-    setEditingCat(null);
-    setEditingCatOriginalName('');
   };
 
   // Add/Remove subcategories in Edit Modal
@@ -840,43 +881,60 @@ export default function SuperAdminPage() {
       return;
     }
     const catName = deletingCatModal.name;
-    const nextCats = categories.filter((c) => c.name.toLowerCase() !== catName.toLowerCase());
-    setCategories(nextCats);
-    await cloudSync.deleteCategory(catName);
-    setDeletingCatModal(null);
-    setDeleteCatConfirmText('');
+    try {
+      await cloudSync.deleteCategory(catName);
+      const nextCats = categories.filter((c) => c.name.toLowerCase() !== catName.toLowerCase());
+      setCategories(nextCats);
+      setDeletingCatModal(null);
+      setDeleteCatConfirmText('');
+      alert(`Category "${catName}" deleted successfully!`);
+    } catch (err: any) {
+      console.error('Error deleting category:', err);
+      alert('Failed to delete category: ' + (err?.message || 'Database error'));
+    }
   };
 
   const handleApproveCatRequest = async (id: string, name: string, icon: string) => {
     const cleanName = name.trim();
     if (!cleanName) return;
+    try {
+      // 1. Add clean edited category to categories list
+      const newCat: CategoryItem = {
+        name: cleanName,
+        icon: icon.trim() || 'fa-store',
+        storeCategories: [
+          { label: 'Popular', tag: 'popular', icon: '🔥' },
+          { label: 'Featured', tag: 'featured', icon: '⭐' }
+        ]
+      };
+      await cloudSync.saveCategory(newCat);
 
-    // 1. Add clean edited category to categories list
-    const newCat: CategoryItem = {
-      name: cleanName,
-      icon: icon.trim() || 'fa-store',
-      storeCategories: [
-        { label: 'Popular', tag: 'popular', icon: '🔥' },
-        { label: 'Featured', tag: 'featured', icon: '⭐' }
-      ]
-    };
-    const nextCats = [...categories.filter((c) => c.name.toLowerCase() !== newCat.name.toLowerCase()), newCat].sort((a, b) => a.name.localeCompare(b.name));
-    setCategories(nextCats);
-    await cloudSync.saveCategory(newCat);
-
-    // 2. Permanently remove / delete this request from list and cloud
-    const nextReqs = catRequests.filter((r) => r.id !== id);
-    setCatRequests(nextReqs);
-    await cloudSync.deleteCategoryRequest(id);
-    setEditingCatReq(null);
+      // 2. Permanently remove / delete this request from list and cloud
+      await cloudSync.deleteCategoryRequest(id);
+      const nextCats = [...categories.filter((c) => c.name.toLowerCase() !== newCat.name.toLowerCase()), newCat].sort((a, b) => a.name.localeCompare(b.name));
+      setCategories(nextCats);
+      const nextReqs = catRequests.filter((r) => r.id !== id);
+      setCatRequests(nextReqs);
+      setEditingCatReq(null);
+      alert(`Category request for "${cleanName}" approved and added!`);
+    } catch (err: any) {
+      console.error('Error approving category request:', err);
+      alert('Failed to approve category request: ' + (err?.message || 'Database error'));
+    }
   };
 
   const handleRejectCatRequest = async (id: string) => {
     if (!confirm('Are you sure you want to reject and remove this category request?')) return;
-    const nextReqs = catRequests.filter((r) => r.id !== id);
-    setCatRequests(nextReqs);
-    await cloudSync.deleteCategoryRequest(id);
-    if (editingCatReq?.id === id) setEditingCatReq(null);
+    try {
+      await cloudSync.deleteCategoryRequest(id);
+      const nextReqs = catRequests.filter((r) => r.id !== id);
+      setCatRequests(nextReqs);
+      if (editingCatReq?.id === id) setEditingCatReq(null);
+      alert('Category request rejected.');
+    } catch (err: any) {
+      console.error('Error rejecting category request:', err);
+      alert('Failed to reject category request: ' + (err?.message || 'Database error'));
+    }
   };
 
   // Claims Filter & Handlers

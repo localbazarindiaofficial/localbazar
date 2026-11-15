@@ -369,12 +369,24 @@ export const cloudSync = {
     if (!city || !city.name) return;
     const docId = city.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await setDoc(doc(db, 'cities', docId), city, { merge: true });
+    memoryCache.cities = null; // Invalidate
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lb_cached_cities');
+      }
+    } catch {}
   },
 
   deleteCity: async (cityName: string): Promise<void> => {
     if (!cityName) return;
     const docId = cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await deleteDoc(doc(db, 'cities', docId));
+    memoryCache.cities = null; // Invalidate
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lb_cached_cities');
+      }
+    } catch {}
   },
 
   // Categories
