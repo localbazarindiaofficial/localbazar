@@ -5309,7 +5309,7 @@ export default function SuperAdminPage() {
                 </div>
               )}
 
-              {/* ================= TAB 3: EMPTY STORE (4 BANNERS) ================= */}
+              {/* ================= TAB 3: EMPTY STORE (3 BANNERS) ================= */}
               {newsTab === 'empty_store' && (
                 <div style={{ display: 'grid', gap: '1.5rem', maxWidth: 1100 }}>
                   <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
@@ -5320,7 +5320,7 @@ export default function SuperAdminPage() {
                         </div>
                         <div>
                           <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                            Empty Store Fallback Banners (Default 4 Banners)
+                            Empty Store Fallback Banners (Default 3 Banners)
                           </h3>
                           <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
                             Shown under the search bar in listings where merchant has not uploaded their own store banners
