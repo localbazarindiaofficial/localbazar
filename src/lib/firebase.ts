@@ -111,15 +111,42 @@ export async function uploadImageToCloud(fileOrDataUrl: File | Blob | string, ma
 function preCompressImage(file: Blob | File, maxKB = 120, maxDimension = 900): Promise<string | null> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') return resolve(null);
-    if (!file || !file.type || !file.type.startsWith('image/')) return resolve(null);
+    if (!file) return resolve(null);
 
-    const reader = new FileReader();
-    reader.onerror = () => resolve(null);
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onerror = () => resolve(e.target?.result as string);
-      img.onload = function() {
-        let { width, height } = img;
+    const isImage = (file.type && file.type.startsWith('image/')) ||
+      (file instanceof File && /\.(jpe?g|png|webp|avif|bmp|gif)$/i.test(file.name));
+
+    if (!isImage) return resolve(null);
+
+    let objectUrl: string | null = null;
+    try {
+      objectUrl = URL.createObjectURL(file);
+    } catch {
+      objectUrl = null;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    const cleanup = () => {
+      if (objectUrl) {
+        try { URL.revokeObjectURL(objectUrl); } catch {}
+      }
+    };
+
+    const processImage = () => {
+      try {
+        const naturalW = img.naturalWidth || img.width;
+        const naturalH = img.naturalHeight || img.height;
+
+        if (!naturalW || !naturalH || naturalW <= 0 || naturalH <= 0) {
+          cleanup();
+          return resolve(null);
+        }
+
+        let width = naturalW;
+        let height = naturalH;
+
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
             height = Math.round((height * maxDimension) / width);
@@ -129,15 +156,20 @@ function preCompressImage(file: Blob | File, maxKB = 120, maxDimension = 900): P
             height = maxDimension;
           }
         }
+
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(e.target?.result as string);
+        if (!ctx) {
+          cleanup();
+          return resolve(null);
+        }
+
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
+
+        // Draw image directly onto canvas - Never pre-fill with pure solid white!
         ctx.drawImage(img, 0, 0, width, height);
 
         let quality = 0.85;
@@ -148,11 +180,43 @@ function preCompressImage(file: Blob | File, maxKB = 120, maxDimension = 900): P
           dataUrl = canvas.toDataURL('image/jpeg', quality);
           currentKB = Math.round((dataUrl.length * 3) / 4 / 1024);
         }
+
+        cleanup();
         resolve(dataUrl);
-      };
-      img.src = e.target?.result as string;
+      } catch (err) {
+        console.warn('Canvas compression error:', err);
+        cleanup();
+        resolve(null);
+      }
     };
-    reader.readAsDataURL(file);
+
+    img.onload = () => {
+      if ('decode' in img && typeof img.decode === 'function') {
+        img.decode().then(processImage).catch(processImage);
+      } else {
+        processImage();
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      // Safe fallback: Read raw file if objectUrl failed on older browser
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string || null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    };
+
+    if (objectUrl) {
+      img.src = objectUrl;
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    }
   });
 }
 

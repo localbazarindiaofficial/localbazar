@@ -2854,32 +2854,62 @@ export default function AccountPage() {
                             </span>
                           </div>
                         ) : (
-                          <label
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              padding: '0.6rem 1.15rem',
-                              borderRadius: '10px',
-                              background: '#eff6ff',
-                              color: '#2563eb',
-                              border: '1.5px dashed #93c5fd',
-                              fontWeight: 700,
-                              fontSize: '0.85rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                            }}
-                          >
-                            <i className="fa-solid fa-cloud-arrow-up"></i>
-                            <span>+ Choose Store Photos</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handlePhotoUpload}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
+                          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <label
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                padding: '0.6rem 1.15rem',
+                                borderRadius: '10px',
+                                background: '#2563eb',
+                                color: '#fff',
+                                border: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                              }}
+                            >
+                              <i className="fa-solid fa-camera"></i>
+                              <span>Take with Camera</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handlePhotoUpload}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+
+                            <label
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                padding: '0.6rem 1.15rem',
+                                borderRadius: '10px',
+                                background: '#eff6ff',
+                                color: '#2563eb',
+                                border: '1.5px dashed #93c5fd',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <i className="fa-regular fa-images"></i>
+                              <span>Choose from Gallery</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handlePhotoUpload}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+                          </div>
                         )}
                         <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
                           JPG, PNG or WebP &bull; 1st photo is used as Cover Banner
@@ -7564,16 +7594,60 @@ export default function AccountPage() {
                       <p>Upload maximum 2 photos. Choose which photo is your primary cover.</p>
                     </div>
                     {currentGallery.length < 2 ? (
-                      <label className="btn-portal-primary" style={{ cursor: 'pointer' }}>
-                        <i className="fa-solid fa-cloud-arrow-up"></i>
-                        <span>Upload Store Photos ({currentGallery.length}/2)</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePortalPhotoUpload}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <label
+                          className="btn-portal-primary"
+                          style={{
+                            cursor: 'pointer',
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '0.55rem 0.95rem',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            fontWeight: 700,
+                            fontSize: '0.84rem',
+                            boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                          }}
+                        >
+                          <i className="fa-solid fa-camera"></i>
+                          <span>Camera</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handlePortalPhotoUpload}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        <label
+                          className="btn-portal-secondary"
+                          style={{
+                            cursor: 'pointer',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1.5px solid #bfdbfe',
+                            padding: '0.55rem 0.95rem',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            fontWeight: 700,
+                            fontSize: '0.84rem',
+                          }}
+                        >
+                          <i className="fa-regular fa-image"></i>
+                          <span>Gallery ({currentGallery.length}/2)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePortalPhotoUpload}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                      </div>
                     ) : (
                       <div style={{ background: '#f1f5f9', color: '#64748b', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700 }}>
                         <i className="fa-solid fa-lock" style={{ marginRight: '6px' }}></i> Limit Reached (2/2)
@@ -7646,7 +7720,7 @@ export default function AccountPage() {
                     })}
 
                     {currentGallery.length < 2 && (
-                      <label
+                      <div
                         style={{
                           border: '2px dashed #cbd5e1',
                           borderRadius: '16px',
@@ -7655,23 +7729,72 @@ export default function AccountPage() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           minHeight: '220px',
-                          cursor: 'pointer',
                           background: '#f8fafc',
-                          transition: 'all 0.15s ease',
                           padding: '1.5rem',
                           textAlign: 'center',
+                          gap: '0.65rem',
                         }}
                       >
-                        <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '2rem', color: '#94a3b8', marginBottom: '0.5rem' }}></i>
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Upload Second Photo</span>
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Slot 2 of 2 available</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePortalPhotoUpload}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
+                        <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '2rem', color: '#94a3b8', marginBottom: '0.15rem' }}></i>
+                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b' }}>
+                          Add Store Photo ({currentGallery.length + 1}/2)
+                        </span>
+                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                          Take with Camera or Choose from Gallery
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
+                          <label
+                            style={{
+                              background: '#2563eb',
+                              color: '#fff',
+                              padding: '0.55rem 1rem',
+                              borderRadius: '10px',
+                              fontWeight: 700,
+                              fontSize: '0.84rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                            }}
+                          >
+                            <i className="fa-solid fa-camera"></i>
+                            <span>Camera</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={handlePortalPhotoUpload}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+
+                          <label
+                            style={{
+                              background: '#fff',
+                              color: '#334155',
+                              border: '1.5px solid #cbd5e1',
+                              padding: '0.55rem 1rem',
+                              borderRadius: '10px',
+                              fontWeight: 700,
+                              fontSize: '0.84rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                            }}
+                          >
+                            <i className="fa-regular fa-image"></i>
+                            <span>Gallery</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePortalPhotoUpload}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -8325,17 +8448,61 @@ export default function AccountPage() {
                     <p>Upload up to 3 custom 16:9 image banners from your local storage. If none uploaded, default system banners from admin are shown.</p>
                   </div>
                   {portalBanners.length < 3 ? (
-                    <label className="btn-portal-primary" style={{ cursor: 'pointer' }}>
-                      <i className="fa-solid fa-cloud-arrow-up"></i>
-                      <span>Upload 16:9 Banner ({portalBanners.length}/3)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handlePortalBannerUpload}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <label
+                        className="btn-portal-primary"
+                        style={{
+                          cursor: 'pointer',
+                          background: '#2563eb',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '0.55rem 0.95rem',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                          boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                        }}
+                      >
+                        <i className="fa-solid fa-camera"></i>
+                        <span>Camera</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handlePortalBannerUpload}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                      <label
+                        className="btn-portal-secondary"
+                        style={{
+                          cursor: 'pointer',
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                          border: '1.5px solid #bfdbfe',
+                          padding: '0.55rem 0.95rem',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                        }}
+                      >
+                        <i className="fa-regular fa-image"></i>
+                        <span>Gallery ({portalBanners.length}/3)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handlePortalBannerUpload}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
                   ) : (
                     <div style={{ background: '#f1f5f9', color: '#64748b', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700 }}>
                       <i className="fa-solid fa-lock" style={{ marginRight: '6px' }}></i> Banner Limit Reached (3/3)
@@ -8420,7 +8587,7 @@ export default function AccountPage() {
                       ))}
 
                       {portalBanners.length < 3 && (
-                        <label
+                        <div
                           style={{
                             border: '2px dashed #cbd5e1',
                             borderRadius: '16px',
@@ -8429,23 +8596,69 @@ export default function AccountPage() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             aspectRatio: '16 / 9',
-                            cursor: 'pointer',
                             background: '#f8fafc',
                             padding: '1.25rem',
                             textAlign: 'center',
                           }}
                         >
-                          <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '2rem', color: '#94a3b8', marginBottom: '0.5rem' }}></i>
+                          <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '0.4rem' }}></i>
                           <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Upload Next 16:9 Banner</span>
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Slot {portalBanners.length + 1} of 3</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handlePortalBannerUpload}
-                            style={{ display: 'none' }}
-                          />
-                        </label>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px', marginBottom: '0.75rem' }}>Slot {portalBanners.length + 1} of 3</span>
+                          
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <label
+                              style={{
+                                background: '#2563eb',
+                                color: '#fff',
+                                padding: '0.5rem 0.95rem',
+                                borderRadius: '10px',
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                              }}
+                            >
+                              <i className="fa-solid fa-camera"></i>
+                              <span>Camera</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handlePortalBannerUpload}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+
+                            <label
+                              style={{
+                                background: '#fff',
+                                color: '#334155',
+                                border: '1.5px solid #cbd5e1',
+                                padding: '0.5rem 0.95rem',
+                                borderRadius: '10px',
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                              }}
+                            >
+                              <i className="fa-regular fa-image"></i>
+                              <span>Gallery</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handlePortalBannerUpload}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -9219,27 +9432,71 @@ export default function AccountPage() {
                 <label className="m-prod-modal-label">
                   Product Images (Upload up to 3 photos - 1st image is Cover)
                 </label>
-                <input
-                  ref={prodFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleProductUploadFiles}
-                  style={{ display: 'none' }}
-                />
-                <div
-                  className="m-prod-upload-dropzone"
-                  onClick={() => prodFileInputRef.current?.click()}
-                >
-                  <div className="m-prod-upload-icon-circle">
-                    <i className="fa-solid fa-cloud-arrow-up"></i>
-                  </div>
-                  <span className="m-prod-upload-hint">
-                    {prodUploading
-                      ? 'Uploading photos to cloud...'
-                      : 'Click to upload photos (Max 3 photos - 1st is Cover)'}
-                  </span>
+
+                <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <label
+                    style={{
+                      flex: '1 1 130px',
+                      background: '#2563eb',
+                      color: '#fff',
+                      padding: '0.65rem 1rem',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                    }}
+                  >
+                    <i className="fa-solid fa-camera"></i>
+                    <span>Take with Camera</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleProductUploadFiles}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
+                  <label
+                    style={{
+                      flex: '1 1 130px',
+                      background: '#f8fafc',
+                      color: '#1e293b',
+                      border: '1.5px solid #cbd5e1',
+                      padding: '0.65rem 1rem',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                    }}
+                  >
+                    <i className="fa-regular fa-images"></i>
+                    <span>Choose from Gallery</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleProductUploadFiles}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
                 </div>
+
+                {prodUploading && (
+                  <div style={{ fontSize: '0.82rem', color: '#2563eb', fontWeight: 600, marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <i className="fa-solid fa-spinner fa-spin"></i>
+                    <span>Optimizing and uploading product photo...</span>
+                  </div>
+                )}
 
                 {prodImages.length > 0 && (
                   <div className="m-prod-thumb-strip">
