@@ -106,6 +106,13 @@ export default function ShopDetailPage() {
   const [shareCopied, setShareCopied] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [lightboxGallery, setLightboxGallery] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [thumbPhotoIndex, setThumbPhotoIndex] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
+
+  const isLightboxOpen = Boolean(lightboxImg || lightboxGallery.length > 0);
+  const currentLightboxImages = lightboxGallery.length > 0 ? lightboxGallery : (lightboxImg ? [lightboxImg] : []);
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -129,7 +136,7 @@ export default function ShopDetailPage() {
 
   // Native App-Like Back Navigation (PWA Android Hardware Back Button Support)
   const isAnyModalOpen = Boolean(
-    lightboxImg ||
+    isLightboxOpen ||
     activeViewerProduct ||
     showScheduleSheet ||
     showAddressSheet ||
@@ -144,6 +151,8 @@ export default function ShopDetailPage() {
 
   const closeModalStatesOnly = () => {
     setLightboxImg(null);
+    setLightboxGallery([]);
+    setLightboxIndex(0);
     setActiveViewerProduct(null);
     setShowScheduleSheet(false);
     setShowAddressSheet(false);
@@ -152,6 +161,22 @@ export default function ShopDetailPage() {
     setShowContactAuthModal(false);
     setPendingContactAction(null);
   };
+
+  // Lightbox Keyboard Navigation (ArrowLeft / ArrowRight / Escape)
+  useEffect(() => {
+    if (!isLightboxOpen || currentLightboxImages.length <= 1) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev > 0 ? prev - 1 : currentLightboxImages.length - 1));
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev < currentLightboxImages.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'Escape') {
+        closeModalStatesOnly();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, currentLightboxImages.length]);
 
   // Sync open sheet/modal with browser history
   useEffect(() => {
@@ -448,17 +473,30 @@ export default function ShopDetailPage() {
     }).catch(() => {});
   }, [shopId]);
 
-  // Gallery & Cover Image
+  // Gallery & Cover Image (Strictly deduplicated unique photos)
   const gallery = useMemo(() => {
     if (!shop) return [];
-    return [
+    const allImages: string[] = [
       shop.image,
-      ...(shop.gallery || []),
-      ...(shop.images || [])
-    ].filter((img): img is string => Boolean(img && img.trim()));
+      ...(Array.isArray(shop.gallery) ? shop.gallery : []),
+      ...(Array.isArray(shop.images) ? shop.images : [])
+    ].filter((img): img is string => Boolean(img && typeof img === 'string' && img.trim()));
+    return Array.from(new Set(allImages));
   }, [shop]);
 
   const coverImg = gallery[0] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+
+  // Smooth Auto-Slide Shop Thumbnail Photos
+  useEffect(() => {
+    if (gallery.length <= 1) {
+      setThumbPhotoIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setThumbPhotoIndex((prev) => (prev + 1) % gallery.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [gallery.length]);
 
   // Live Open / Closed computation
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1057,15 +1095,39 @@ export default function ShopDetailPage() {
                 </div>
               </div>
 
-              {/* Right: Square Thumbnail Photo Box with Counter */}
+              {/* Right: Square Thumbnail Photo Box with Counter & Auto-Slide */}
               <div
                 className="jd-app-photo-square jd-app-thumb-box"
-                onClick={() => setLightboxImg(coverImg)}
-                style={{ cursor: 'pointer' }}
-                title="Click to view photos"
+                onClick={() => {
+                  setLightboxGallery(gallery);
+                  setLightboxIndex(thumbPhotoIndex);
+                }}
+                style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+                title="Click to view all photos"
               >
-                <img src={coverImg} alt={shop.name} className="jd-app-thumb-img" />
-                <span className="jd-photo-count-badge jd-photo-counter-overlay">
+                {gallery.length > 0 ? (
+                  gallery.map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`${shop.name} photo ${idx + 1}`}
+                      className="jd-app-thumb-img"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        opacity: idx === thumbPhotoIndex ? 1 : 0,
+                        transition: 'opacity 0.65s ease-in-out',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  ))
+                ) : (
+                  <img src={coverImg} alt={shop.name} className="jd-app-thumb-img" />
+                )}
+                <span className="jd-photo-count-badge jd-photo-counter-overlay" style={{ zIndex: 3 }}>
                   <i className="fa-solid fa-camera"></i> {gallery.length || 1}
                 </span>
               </div>
@@ -1788,7 +1850,10 @@ export default function ShopDetailPage() {
                           src={src}
                           alt={`${activeViewerProduct.name} - ${i + 1}`}
                           className="dpm-slide-img"
-                          onClick={() => setLightboxImg(src)}
+                          onClick={() => {
+                            setLightboxGallery(images);
+                            setLightboxIndex(i);
+                          }}
                           style={{ cursor: 'zoom-in' }}
                         />
                       ))}
@@ -2583,24 +2648,226 @@ export default function ShopDetailPage() {
         </div>
       )}
 
-      {/* Lightbox Modal */}
-      {lightboxImg && (
+      {/* Interactive Fullscreen Lightbox Gallery Modal */}
+      {isLightboxOpen && currentLightboxImages.length > 0 && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setLightboxImg(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.93)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 10000,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            userSelect: 'none',
+          }}
+          onClick={closeModalStatesOnly}
+          onTouchStart={(e) => {
+            touchStartXRef.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartXRef.current === null) return;
+            const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+            if (diff > 40 && currentLightboxImages.length > 1) {
+              // Swiped Left -> Next Photo
+              setLightboxIndex((prev) => (prev < currentLightboxImages.length - 1 ? prev + 1 : 0));
+            } else if (diff < -40 && currentLightboxImages.length > 1) {
+              // Swiped Right -> Previous Photo
+              setLightboxIndex((prev) => (prev > 0 ? prev - 1 : currentLightboxImages.length - 1));
+            }
+            touchStartXRef.current = null;
+          }}
         >
-          <button
-            onClick={() => setLightboxImg(null)}
-            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: '1.5rem', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            &times;
-          </button>
-          <img
-            src={lightboxImg}
-            alt="Fullscreen view"
-            style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px' }}
+          {/* Top Bar: Counter Chip & Close Button */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '1.25rem',
+              left: '1.25rem',
+              right: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              zIndex: 10002,
+              pointerEvents: 'auto',
+            }}
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                padding: '0.4rem 0.95rem',
+                borderRadius: '999px',
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <i className="fa-solid fa-camera"></i>
+              <span>{lightboxIndex + 1} / {currentLightboxImages.length}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeModalStatesOnly}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '1.5rem',
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backdropFilter: 'blur(8px)',
+                transition: 'background 0.2s',
+              }}
+              title="Close (Esc)"
+            >
+              &times;
+            </button>
+          </div>
+
+          {/* Previous Arrow Button */}
+          {currentLightboxImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev > 0 ? prev - 1 : currentLightboxImages.length - 1));
+              }}
+              style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: '#ffffff',
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                backdropFilter: 'blur(6px)',
+                zIndex: 10002,
+                transition: 'background 0.2s',
+              }}
+              aria-label="Previous photo"
+            >
+              <i className="fa-solid fa-chevron-left"></i>
+            </button>
+          )}
+
+          {/* Current Main Image */}
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '92vw',
+              maxHeight: '80vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              key={lightboxIndex}
+              src={currentLightboxImages[lightboxIndex]}
+              alt={`Photo ${lightboxIndex + 1}`}
+              style={{
+                maxWidth: '92vw',
+                maxHeight: '78vh',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.6)',
+              }}
+            />
+          </div>
+
+          {/* Next Arrow Button */}
+          {currentLightboxImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev < currentLightboxImages.length - 1 ? prev + 1 : 0));
+              }}
+              style={{
+                position: 'absolute',
+                right: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: '#ffffff',
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                backdropFilter: 'blur(6px)',
+                zIndex: 10002,
+                transition: 'background 0.2s',
+              }}
+              aria-label="Next photo"
+            >
+              <i className="fa-solid fa-chevron-right"></i>
+            </button>
+          )}
+
+          {/* Bottom Dots Indicator */}
+          {currentLightboxImages.length > 1 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '1.5rem',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: 10002,
+                background: 'rgba(0, 0, 0, 0.45)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '999px',
+                backdropFilter: 'blur(6px)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {currentLightboxImages.map((_, i) => (
+                <span
+                  key={i}
+                  onClick={() => setLightboxIndex(i)}
+                  style={{
+                    width: i === lightboxIndex ? '20px' : '8px',
+                    height: '8px',
+                    borderRadius: '999px',
+                    background: i === lightboxIndex ? '#2563eb' : 'rgba(255, 255, 255, 0.45)',
+                    transition: 'all 0.25s ease',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

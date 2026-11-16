@@ -202,6 +202,8 @@ export default function AccountPage() {
   const [portalHolidays, setPortalHolidays] = useState<string[]>([]);
   const [portalBanners, setPortalBanners] = useState<string[]>([]);
   const [emptyStoreBanners, setEmptyStoreBanners] = useState<EmptyStoreBannerSlot[]>([]);
+  const [portalPhotoUploading, setPortalPhotoUploading] = useState(false);
+  const [portalBannerUploading, setPortalBannerUploading] = useState(false);
 
   // Holiday Selection Modal & Bottom Sheet States
   const [showHolidayCalModal, setShowHolidayCalModal] = useState(false);
@@ -1626,27 +1628,39 @@ export default function AccountPage() {
 
     if (currentGallery.length >= 2) {
       showAlert('Photo Limit Reached', 'You can upload a maximum of 2 listing photos. Please delete an existing photo to upload a new one.', 'warning');
+      e.target.value = '';
       return;
     }
 
     const availableSlots = 2 - currentGallery.length;
     const files = Array.from(e.target.files).slice(0, availableSlots);
-    const uploadedUrls: string[] = [];
-    for (const f of files) {
-      const url = await uploadImageToCloud(f);
-      if (url) uploadedUrls.push(url);
-    }
-    if (uploadedUrls.length > 0) {
-      const newGallery = [...currentGallery, ...uploadedUrls].slice(0, 2);
-      const newPrimary = activePortalListing.image && newGallery.includes(activePortalListing.image)
-        ? activePortalListing.image
-        : newGallery[0];
-      await handleSavePortalFields({
-        gallery: newGallery,
-        images: newGallery,
-        image: newPrimary,
-      });
-      showToast('Store photo uploaded successfully', 'success');
+    if (files.length === 0) return;
+
+    setPortalPhotoUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const f of files) {
+        const url = await uploadImageToCloud(f);
+        if (url) uploadedUrls.push(url);
+      }
+      if (uploadedUrls.length > 0) {
+        const newGallery = [...currentGallery, ...uploadedUrls].slice(0, 2);
+        const newPrimary = activePortalListing.image && newGallery.includes(activePortalListing.image)
+          ? activePortalListing.image
+          : newGallery[0];
+        await handleSavePortalFields({
+          gallery: newGallery,
+          images: newGallery,
+          image: newPrimary,
+        });
+        showToast('Store photo uploaded successfully', 'success');
+      }
+    } catch (err) {
+      console.error('Error uploading portal photo:', err);
+      showAlert('Upload Error', 'Could not upload some photos. Please check your connection and try again.', 'warning');
+    } finally {
+      setPortalPhotoUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -1705,20 +1719,30 @@ export default function AccountPage() {
     }
     const remainingSlots = 3 - currentBanners.length;
     const files = Array.from(e.target.files).slice(0, remainingSlots);
-    const uploadedUrls: string[] = [];
-    for (const f of files) {
-      const url = await uploadImageToCloud(f);
-      if (url && typeof url === 'string' && url.trim()) {
-        uploadedUrls.push(url.trim());
+    if (files.length === 0) return;
+
+    setPortalBannerUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const f of files) {
+        const url = await uploadImageToCloud(f);
+        if (url && typeof url === 'string' && url.trim()) {
+          uploadedUrls.push(url.trim());
+        }
       }
+      if (uploadedUrls.length > 0) {
+        const updated = [...currentBanners, ...uploadedUrls].slice(0, 3);
+        setPortalBanners(updated);
+        await handleSavePortalFields({ banners: updated }, true);
+        showToast('16:9 Banner uploaded successfully', 'success');
+      }
+    } catch (err) {
+      console.error('Error uploading 16:9 banner:', err);
+      showAlert('Upload Failed', 'Could not upload the banner image. Please try again.', 'warning');
+    } finally {
+      setPortalBannerUploading(false);
+      e.target.value = '';
     }
-    if (uploadedUrls.length > 0) {
-      const updated = [...currentBanners, ...uploadedUrls].slice(0, 3);
-      setPortalBanners(updated);
-      await handleSavePortalFields({ banners: updated }, true);
-      showToast('16:9 Banner uploaded successfully', 'success');
-    }
-    e.target.value = '';
   };
 
   const handleDeletePortalBanner = async (bannerUrl: string) => {
@@ -7593,7 +7617,25 @@ export default function AccountPage() {
                       <h4>Listing Images & Primary Cover</h4>
                       <p>Upload maximum 2 photos. Choose which photo is your primary cover.</p>
                     </div>
-                    {currentGallery.length < 2 ? (
+                    {portalPhotoUploading ? (
+                      <div
+                        style={{
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                          border: '1.5px solid #bfdbfe',
+                          padding: '0.55rem 1rem',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                        }}
+                      >
+                        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1rem', color: '#2563eb' }}></i>
+                        <span>Optimizing & Uploading Photo...</span>
+                      </div>
+                    ) : currentGallery.length < 2 ? (
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <label
                           className="btn-portal-primary"
@@ -7722,78 +7764,107 @@ export default function AccountPage() {
                     {currentGallery.length < 2 && (
                       <div
                         style={{
-                          border: '2px dashed #cbd5e1',
+                          border: portalPhotoUploading ? '2px dashed #93c5fd' : '2px dashed #cbd5e1',
                           borderRadius: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
                           minHeight: '220px',
-                          background: '#f8fafc',
+                          background: portalPhotoUploading ? '#eff6ff' : '#f8fafc',
                           padding: '1.5rem',
                           textAlign: 'center',
                           gap: '0.65rem',
+                          transition: 'all 0.25s ease',
                         }}
                       >
-                        <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '2rem', color: '#94a3b8', marginBottom: '0.15rem' }}></i>
-                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b' }}>
-                          Add Store Photo ({currentGallery.length + 1}/2)
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          Take with Camera or Choose from Gallery
-                        </span>
-                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
-                          <label
-                            style={{
-                              background: '#2563eb',
-                              color: '#fff',
-                              padding: '0.55rem 1rem',
-                              borderRadius: '10px',
-                              fontWeight: 700,
-                              fontSize: '0.84rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.45rem',
-                              boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
-                            }}
-                          >
-                            <i className="fa-solid fa-camera"></i>
-                            <span>Camera</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              onChange={handlePortalPhotoUpload}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
+                        {portalPhotoUploading ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+                            <div
+                              style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '50%',
+                                background: '#dbeafe',
+                                color: '#2563eb',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.5rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-spinner fa-spin"></i>
+                            </div>
+                            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1d4ed8' }}>
+                              Optimizing & Uploading Photo...
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '240px', lineHeight: 1.4 }}>
+                              Compressing photo & saving directly to store. Please wait...
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '2rem', color: '#94a3b8', marginBottom: '0.15rem' }}></i>
+                            <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b' }}>
+                              Add Store Photo ({currentGallery.length + 1}/2)
+                            </span>
+                            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                              Take with Camera or Choose from Gallery
+                            </span>
+                            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
+                              <label
+                                style={{
+                                  background: '#2563eb',
+                                  color: '#fff',
+                                  padding: '0.55rem 1rem',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.84rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.45rem',
+                                  boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                                }}
+                              >
+                                <i className="fa-solid fa-camera"></i>
+                                <span>Camera</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={handlePortalPhotoUpload}
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
 
-                          <label
-                            style={{
-                              background: '#fff',
-                              color: '#334155',
-                              border: '1.5px solid #cbd5e1',
-                              padding: '0.55rem 1rem',
-                              borderRadius: '10px',
-                              fontWeight: 700,
-                              fontSize: '0.84rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.45rem',
-                            }}
-                          >
-                            <i className="fa-regular fa-image"></i>
-                            <span>Gallery</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handlePortalPhotoUpload}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
-                        </div>
+                              <label
+                                style={{
+                                  background: '#fff',
+                                  color: '#334155',
+                                  border: '1.5px solid #cbd5e1',
+                                  padding: '0.55rem 1rem',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.84rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.45rem',
+                                }}
+                              >
+                                <i className="fa-regular fa-image"></i>
+                                <span>Gallery</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handlePortalPhotoUpload}
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -8447,7 +8518,25 @@ export default function AccountPage() {
                     <h4>16:9 Promotional Slide Banners</h4>
                     <p>Upload up to 3 custom 16:9 image banners from your local storage. If none uploaded, default system banners from admin are shown.</p>
                   </div>
-                  {portalBanners.length < 3 ? (
+                  {portalBannerUploading ? (
+                    <div
+                      style={{
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        border: '1.5px solid #bfdbfe',
+                        padding: '0.55rem 1rem',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1rem', color: '#2563eb' }}></i>
+                      <span>Optimizing & Uploading 16:9 Banner...</span>
+                    </div>
+                  ) : portalBanners.length < 3 ? (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <label
                         className="btn-portal-primary"
@@ -8589,75 +8678,104 @@ export default function AccountPage() {
                       {portalBanners.length < 3 && (
                         <div
                           style={{
-                            border: '2px dashed #cbd5e1',
+                            border: portalBannerUploading ? '2px dashed #93c5fd' : '2px dashed #cbd5e1',
                             borderRadius: '16px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
                             aspectRatio: '16 / 9',
-                            background: '#f8fafc',
+                            background: portalBannerUploading ? '#eff6ff' : '#f8fafc',
                             padding: '1.25rem',
                             textAlign: 'center',
+                            transition: 'all 0.25s ease',
                           }}
                         >
-                          <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '0.4rem' }}></i>
-                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Upload Next 16:9 Banner</span>
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px', marginBottom: '0.75rem' }}>Slot {portalBanners.length + 1} of 3</span>
-                          
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                            <label
-                              style={{
-                                background: '#2563eb',
-                                color: '#fff',
-                                padding: '0.5rem 0.95rem',
-                                borderRadius: '10px',
-                                fontWeight: 700,
-                                fontSize: '0.82rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.45rem',
-                                boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
-                              }}
-                            >
-                              <i className="fa-solid fa-camera"></i>
-                              <span>Camera</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={handlePortalBannerUpload}
-                                style={{ display: 'none' }}
-                              />
-                            </label>
+                          {portalBannerUploading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+                              <div
+                                style={{
+                                  width: '56px',
+                                  height: '56px',
+                                  borderRadius: '50%',
+                                  background: '#dbeafe',
+                                  color: '#2563eb',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '1.5rem',
+                                }}
+                              >
+                                <i className="fa-solid fa-spinner fa-spin"></i>
+                              </div>
+                              <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1d4ed8' }}>
+                                Optimizing & Uploading 16:9 Banner...
+                              </span>
+                              <span style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '260px', lineHeight: 1.4 }}>
+                                Processing banner image and updating storefront. Please wait...
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '0.4rem' }}></i>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Upload Next 16:9 Banner</span>
+                              <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px', marginBottom: '0.75rem' }}>Slot {portalBanners.length + 1} of 3</span>
+                              
+                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <label
+                                  style={{
+                                    background: '#2563eb',
+                                    color: '#fff',
+                                    padding: '0.5rem 0.95rem',
+                                    borderRadius: '10px',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    boxShadow: '0 2px 6px rgba(37,99,235,0.2)',
+                                  }}
+                                >
+                                  <i className="fa-solid fa-camera"></i>
+                                  <span>Camera</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handlePortalBannerUpload}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
 
-                            <label
-                              style={{
-                                background: '#fff',
-                                color: '#334155',
-                                border: '1.5px solid #cbd5e1',
-                                padding: '0.5rem 0.95rem',
-                                borderRadius: '10px',
-                                fontWeight: 700,
-                                fontSize: '0.82rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.45rem',
-                              }}
-                            >
-                              <i className="fa-regular fa-image"></i>
-                              <span>Gallery</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handlePortalBannerUpload}
-                                style={{ display: 'none' }}
-                              />
-                            </label>
-                          </div>
+                                <label
+                                  style={{
+                                    background: '#fff',
+                                    color: '#334155',
+                                    border: '1.5px solid #cbd5e1',
+                                    padding: '0.5rem 0.95rem',
+                                    borderRadius: '10px',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                  }}
+                                >
+                                  <i className="fa-regular fa-image"></i>
+                                  <span>Gallery</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handlePortalBannerUpload}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
