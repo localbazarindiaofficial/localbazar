@@ -270,15 +270,16 @@ export const cloudSync = {
   saveListing: async (listing: Listing): Promise<void> => {
     if (!listing || !listing.id) return;
     const docRef = doc(db, 'listings', String(listing.id));
-    await setDoc(docRef, listing, { merge: true });
+    const cleaned = cleanForFirestore(listing);
+    await setDoc(docRef, cleaned, { merge: true });
 
     // Update in-memory cache instantly
     if (memoryCache.listings) {
       const idx = memoryCache.listings.findIndex((l) => l.id === listing.id);
-      if (idx >= 0) memoryCache.listings[idx] = listing;
-      else memoryCache.listings.unshift(listing);
+      if (idx >= 0) memoryCache.listings[idx] = cleaned;
+      else memoryCache.listings.unshift(cleaned);
     }
-    memoryCache.listingById.set(String(listing.id), listing);
+    memoryCache.listingById.set(String(listing.id), cleaned);
   },
 
   updateListingFields: async (listingId: string, fields: Partial<Listing>): Promise<void> => {

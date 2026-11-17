@@ -47,13 +47,50 @@ export default function SuperAdminPage() {
     return () => unsub();
   }, []);
 
+  const isSuperAdminEmail = (email?: string | null): boolean => {
+    if (!email) return false;
+    const clean = email.trim().toLowerCase();
+    return clean === 'localbazarindia.official@gmail.com' || clean === 'localbazar@adminmanaspan.com';
+  };
+
+  const ensureSuperAdminAuth = async (): Promise<boolean> => {
+    if (auth.currentUser && isSuperAdminEmail(auth.currentUser.email)) {
+      if (!cloudAdminEmail && auth.currentUser.email) {
+        setCloudAdminEmail(auth.currentUser.email);
+      }
+      return true;
+    }
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const res = await signInWithPopup(auth, provider);
+      const email = res?.user?.email?.toLowerCase();
+      if (email && isSuperAdminEmail(email)) {
+        setCloudAdminEmail(res.user.email || '');
+        return true;
+      } else {
+        alert(`❌ Access Denied: The account "${email || 'unknown'}" is not recognized as Super Admin.\n\nPlease select the official Super Admin Google account: "localbazarindia.official@gmail.com".`);
+        return false;
+      }
+    } catch (err: any) {
+      console.warn('Super Admin cloud auth prompt failed:', err);
+      alert('Super Admin Google authorization is required to save changes in Firestore. Please connect via "localbazarindia.official@gmail.com".');
+      return false;
+    }
+  };
+
   const handleConnectCloudSuperAdmin = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
       const res = await signInWithPopup(auth, provider);
-      if (res?.user?.email) {
-        setCloudAdminEmail(res.user.email);
+      const email = res?.user?.email?.toLowerCase();
+      if (email && isSuperAdminEmail(email)) {
+        setCloudAdminEmail(res.user.email || '');
         alert(`Super Admin Cloud Authority activated successfully as: ${res.user.email}`);
+      } else {
+        alert(`⚠️ Warning: "${email || 'unknown'}" is not recognized as Super Admin.\n\nPlease connect with "localbazarindia.official@gmail.com" to enable full editing and deletion authority.`);
       }
     } catch (err: any) {
       alert('Cloud authority activation failed: ' + (err?.message || 'Check popup'));
@@ -563,19 +600,31 @@ export default function SuperAdminPage() {
   const handleApproveListing = async (listingId: string) => {
     const target = listings.find((l) => String(l.id) === String(listingId));
     if (!target) return;
-    const updated: Listing = { ...target, status: 'approved', isPublic: true };
-    const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
-    setListings(nextListings);
-    await cloudSync.saveListing(updated);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+      const updated: Listing = { ...target, status: 'approved', isPublic: true };
+      const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
+      setListings(nextListings);
+      await cloudSync.saveListing(updated);
+    } catch (err: any) {
+      alert('Failed to approve listing: ' + (err?.message || 'Permission denied.'));
+    }
   };
 
   const handleRejectListing = async (listingId: string) => {
     const target = listings.find((l) => String(l.id) === String(listingId));
     if (!target) return;
-    const updated: Listing = { ...target, status: 'rejected' };
-    const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
-    setListings(nextListings);
-    await cloudSync.saveListing(updated);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+      const updated: Listing = { ...target, status: 'rejected' };
+      const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
+      setListings(nextListings);
+      await cloudSync.saveListing(updated);
+    } catch (err: any) {
+      alert('Failed to reject listing: ' + (err?.message || 'Permission denied.'));
+    }
   };
 
   // Toggle Hide / Unhide Listing (Public vs Draft/Hidden)
@@ -587,19 +636,25 @@ export default function SuperAdminPage() {
     }
 
     const target = hidingListingModal;
-    const isCurrentlyPublic = target.isPublic !== false && target.status !== 'draft';
-    const updated: Listing = {
-      ...target,
-      isPublic: !isCurrentlyPublic,
-      status: !isCurrentlyPublic ? 'approved' : 'draft'
-    };
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+      const isCurrentlyPublic = target.isPublic !== false && target.status !== 'draft';
+      const updated: Listing = {
+        ...target,
+        isPublic: !isCurrentlyPublic,
+        status: !isCurrentlyPublic ? 'approved' : 'draft'
+      };
 
-    const nextListings = listings.map((l) => (String(l.id) === String(target.id) ? updated : l));
-    setListings(nextListings);
-    await cloudSync.saveListing(updated);
+      const nextListings = listings.map((l) => (String(l.id) === String(target.id) ? updated : l));
+      setListings(nextListings);
+      await cloudSync.saveListing(updated);
 
-    setHidingListingModal(null);
-    setHideListingConfirmText('');
+      setHidingListingModal(null);
+      setHideListingConfirmText('');
+    } catch (err: any) {
+      alert('Failed to update listing visibility: ' + (err?.message || 'Permission denied.'));
+    }
   };
 
   // Permanently Delete Single Listing with CONFIRM
@@ -612,10 +667,9 @@ export default function SuperAdminPage() {
 
     const targetId = deletingListingModal.id;
     try {
-      if (!auth.currentUser || (auth.currentUser.email !== 'localbazarindia.official@gmail.com' && auth.currentUser.email !== 'localbazar@adminmanaspan.com')) {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-      }
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+
       await cloudSync.deleteListing(targetId);
       const nextListings = listings.filter((l) => String(l.id) !== String(targetId));
       setListings(nextListings);
@@ -634,25 +688,37 @@ export default function SuperAdminPage() {
   const handleToggleVerifiedBadge = async (listingId: string) => {
     const target = listings.find((l) => String(l.id) === String(listingId));
     if (!target) return;
-    const updated: Listing = { ...target, verified: !target.verified };
-    const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
-    setListings(nextListings);
-    await cloudSync.saveListing(updated);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+      const updated: Listing = { ...target, verified: !target.verified };
+      const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
+      setListings(nextListings);
+      await cloudSync.saveListing(updated);
+    } catch (err: any) {
+      alert('Failed to update verified badge: ' + (err?.message || 'Permission denied.'));
+    }
   };
 
   const handleToggleTrustBadge = async (listingId: string) => {
     const target = listings.find((l) => String(l.id) === String(listingId));
     if (!target) return;
-    const willEnable = !target.trustBadge;
-    const updated: Listing = {
-      ...target,
-      trustBadge: willEnable,
-      trustBadgeActivatedAt: willEnable ? Date.now() : undefined,
-      trustBadgeExpiresAt: willEnable ? Date.now() + 365 * 24 * 60 * 60 * 1000 : undefined,
-    };
-    const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
-    setListings(nextListings);
-    await cloudSync.saveListing(updated);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
+      const willEnable = !target.trustBadge;
+      const updated: Listing = {
+        ...target,
+        trustBadge: willEnable,
+        trustBadgeActivatedAt: willEnable ? Date.now() : undefined,
+        trustBadgeExpiresAt: willEnable ? Date.now() + 365 * 24 * 60 * 60 * 1000 : undefined,
+      };
+      const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
+      setListings(nextListings);
+      await cloudSync.saveListing(updated);
+    } catch (err: any) {
+      alert('Failed to update trust badge: ' + (err?.message || 'Permission denied.'));
+    }
   };
 
   // Super Admin Edit Listing Handlers
@@ -683,6 +749,12 @@ export default function SuperAdminPage() {
 
     setEditSaving(true);
     try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) {
+        setEditSaving(false);
+        return;
+      }
+
       const now = Date.now();
       const updatedListing: Listing = {
         ...editingListingModal,
@@ -796,10 +868,8 @@ export default function SuperAdminPage() {
     const userOwnedListings = getUserListings(targetUser);
 
     try {
-      if (!auth.currentUser || (auth.currentUser.email !== 'localbazarindia.official@gmail.com' && auth.currentUser.email !== 'localbazar@adminmanaspan.com')) {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-      }
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) return;
 
       // 1. Delete all user listings
       const listingIdsToDelete = new Set(userOwnedListings.map((l) => String(l.id)));
@@ -2201,11 +2271,11 @@ export default function SuperAdminPage() {
                 <button
                   type="button"
                   onClick={handleConnectCloudSuperAdmin}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.35rem 0.85rem', borderRadius: 999, fontSize: '0.8rem', color: '#334155', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-                  title="Connect your official Google account to unlock cloud deletion authority"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#fffbeb', border: '1.5px solid #fcd34d', padding: '0.38rem 0.95rem', borderRadius: 999, fontSize: '0.8rem', color: '#92400e', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+                  title="Connect your official Google account (localbazarindia.official@gmail.com) to edit and delete listings in Firestore"
                 >
                   <i className="fa-brands fa-google" style={{ color: '#ea4335' }}></i>
-                  <span>Connect Cloud Authority</span>
+                  <span>⚡ Connect Cloud Authority (Required for Edits)</span>
                 </button>
               )}
             </div>
@@ -7381,6 +7451,49 @@ export default function SuperAdminPage() {
                         Grants 16:9 banners & verified shield
                       </span>
                     </div>
+                  </div>
+
+                  {/* Cloud Authority Status Banner inside Modal */}
+                  <div
+                    style={{
+                      background: cloudAdminEmail ? '#f0fdf4' : '#fffbeb',
+                      border: `1px solid ${cloudAdminEmail ? '#bbf7d0' : '#fef08a'}`,
+                      borderRadius: 8,
+                      padding: '0.65rem 0.85rem',
+                      marginBottom: '1.25rem',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      color: cloudAdminEmail ? '#166534' : '#854d0e',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className={`fa-solid ${cloudAdminEmail ? 'fa-shield-check' : 'fa-triangle-exclamation'}`}></i>
+                      <span>
+                        {cloudAdminEmail
+                          ? `Super Admin Cloud Connected: ${cloudAdminEmail}`
+                          : 'Google Super Admin authority (localbazarindia.official@gmail.com) required to save changes'}
+                      </span>
+                    </div>
+                    {!cloudAdminEmail && (
+                      <button
+                        type="button"
+                        onClick={handleConnectCloudSuperAdmin}
+                        style={{
+                          background: '#d97706',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '0.28rem 0.75rem',
+                          borderRadius: 6,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Connect Google Account
+                      </button>
+                    )}
                   </div>
 
                   {/* Actions */}
