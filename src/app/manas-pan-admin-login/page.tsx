@@ -189,6 +189,22 @@ export default function SuperAdminPage() {
   const [deletingListingModal, setDeletingListingModal] = useState<Listing | null>(null);
   const [deleteListingConfirmText, setDeleteListingConfirmText] = useState('');
 
+  // Super Admin Edit Listing State
+  const [editingListingModal, setEditingListingModal] = useState<Listing | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editMapLink, setEditMapLink] = useState('');
+  const [editScheduleTimings, setEditScheduleTimings] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editStatus, setEditStatus] = useState<string>('approved');
+  const [editIsPublic, setEditIsPublic] = useState(true);
+  const [editTrustBadge, setEditTrustBadge] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+
   // Users Filter & Modals
   const [userSearch, setUserSearch] = useState('');
   const [userFilterTab, setUserFilterTab] = useState<'all' | 'has_listings' | 'trust_badge' | 'blocked' | 'active'>('all');
@@ -637,6 +653,70 @@ export default function SuperAdminPage() {
     const nextListings = listings.map((l) => (String(l.id) === String(listingId) ? updated : l));
     setListings(nextListings);
     await cloudSync.saveListing(updated);
+  };
+
+  // Super Admin Edit Listing Handlers
+  const handleOpenEditListing = (l: Listing) => {
+    setEditingListingModal(l);
+    setEditName(l.name || '');
+    setEditCategory(l.category || '');
+    setEditCity(l.city || '');
+    setEditPhone(l.phone || '');
+    setEditWhatsapp(l.whatsapp || '');
+    setEditAddress(l.address || '');
+    setEditMapLink(l.mapLink || '');
+    setEditScheduleTimings(l.scheduleTimings || '09:00 AM - 08:30 PM');
+    setEditDesc(l.desc || '');
+    setEditStatus(l.status || 'approved');
+    setEditIsPublic(l.isPublic !== false && l.status !== 'draft');
+    setEditTrustBadge(Boolean(l.trustBadge));
+  };
+
+  const handleSaveEditListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingListingModal) return;
+
+    if (!editName.trim() || !editCategory.trim() || !editCity.trim() || !editPhone.trim()) {
+      alert('Business Name, Category, City, and Phone are required.');
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const now = Date.now();
+      const updatedListing: Listing = {
+        ...editingListingModal,
+        name: editName.trim(),
+        category: editCategory.trim(),
+        city: editCity.trim(),
+        phone: editPhone.trim(),
+        whatsapp: editWhatsapp.trim(),
+        address: editAddress.trim(),
+        mapLink: editMapLink.trim(),
+        scheduleTimings: editScheduleTimings.trim(),
+        desc: editDesc.trim(),
+        status: editStatus,
+        isPublic: editIsPublic,
+        trustBadge: editTrustBadge,
+        trustBadgeActivatedAt: editTrustBadge
+          ? (editingListingModal.trustBadgeActivatedAt || now)
+          : undefined,
+        trustBadgeExpiresAt: editTrustBadge
+          ? (editingListingModal.trustBadgeExpiresAt || now + 365 * 24 * 60 * 60 * 1000)
+          : undefined,
+        lastUpdated: new Date().toISOString()
+      };
+
+      await cloudSync.saveListing(updatedListing);
+      setListings((prev) => prev.map((l) => (String(l.id) === String(editingListingModal.id) ? updatedListing : l)));
+      setEditingListingModal(null);
+      alert(`Listing "${updatedListing.name}" successfully updated!`);
+    } catch (err: any) {
+      console.error('Error saving edited listing:', err);
+      alert('Failed to update listing: ' + (err?.message || 'Error occurred while saving.'));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // Fast O(1) user listings lookup map
@@ -2503,6 +2583,28 @@ export default function SuperAdminPage() {
                                   }}
                                 >
                                   <i className="fa-solid fa-eye"></i>
+                                </button>
+
+                                {/* 2. Edit Button: Edit Listing Details by Super Admin */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditListing(l)}
+                                  title={`Edit details of "${l.name}"`}
+                                  style={{
+                                    background: '#ede9fe',
+                                    color: '#7c3aed',
+                                    border: 'none',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s ease',
+                                  }}
+                                >
+                                  <i className="fa-solid fa-pen-to-square"></i>
                                 </button>
 
                                 {/* 2. Mail Button: Send Direct Email to Listing Owner */}
@@ -6969,6 +7071,370 @@ export default function SuperAdminPage() {
                     {(hidingListingModal.isPublic === false || hidingListingModal.status === 'draft') ? 'Confirm Unhide' : 'Confirm Hide'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Super Admin Edit Listing Modal */}
+          {editingListingModal && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.72)',
+                backdropFilter: 'blur(5px)',
+                zIndex: 10000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1rem',
+              }}
+              onClick={() => {
+                if (!editSaving) setEditingListingModal(null);
+              }}
+            >
+              <div
+                style={{
+                  background: '#ffffff',
+                  maxWidth: 720,
+                  width: '100%',
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  borderRadius: 16,
+                  padding: '1.75rem',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: '1rem',
+                    marginBottom: '1.25rem',
+                    borderBottom: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 10,
+                        background: '#ede9fe',
+                        color: '#7c3aed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.25rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                        Edit Business Listing
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                        ID: <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: 4 }}>{editingListingModal.id}</code> &bull; Owner: {editingListingModal.ownerEmail || editingListingModal.createdBy || 'Unknown'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!editSaving) setEditingListingModal(null);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      fontSize: '1.3rem',
+                      cursor: 'pointer',
+                      padding: 4,
+                    }}
+                    title="Close"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                {/* Edit Form */}
+                <form onSubmit={handleSaveEditListing}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '1rem',
+                      marginBottom: '1.25rem',
+                    }}
+                  >
+                    {/* Business Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Business / Shop Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Maa Sitala Store"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Primary Category *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        list="adminEditCatList"
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        placeholder="Select or type Category"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                      <datalist id="adminEditCatList">
+                        {categories.map((c) => (
+                          <option key={c.id || c.name} value={c.name} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* City */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        City / Town *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        list="adminEditCityList"
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        placeholder="Select or type City"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                      <datalist id="adminEditCityList">
+                        {cities.map((ct) => (
+                          <option key={ct.id || ct.name} value={ct.name} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* Primary Phone */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Contact Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="e.g. 9876543210"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* WhatsApp */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        WhatsApp Number (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={editWhatsapp}
+                        onChange={(e) => setEditWhatsapp(e.target.value)}
+                        placeholder="WhatsApp contact"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* Schedule Timings */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Schedule / Timings
+                      </label>
+                      <input
+                        type="text"
+                        value={editScheduleTimings}
+                        onChange={(e) => setEditScheduleTimings(e.target.value)}
+                        placeholder="e.g. 08:30 AM - 09:00 PM"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Full Physical Address */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Full Address *
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={editAddress}
+                      onChange={(e) => setEditAddress(e.target.value)}
+                      placeholder="Shop landmark, street, market, town, pin code"
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  {/* Google Maps Link */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Google Maps Direction URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={editMapLink}
+                      onChange={(e) => setEditMapLink(e.target.value)}
+                      placeholder="https://maps.google.com/..."
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                    />
+                  </div>
+
+                  {/* Description / About */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      About / Business Description (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      placeholder="Detailed overview of products, services, specialty, or history..."
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  {/* Controls & Badges (Status, Visibility, Trust Badge) */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      borderRadius: 12,
+                      padding: '1rem',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '1.5rem',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '1.5rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {/* Status Select */}
+                    <div style={{ minWidth: 150 }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Listing Status
+                      </label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value)}
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+                      >
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="draft">Draft / Hidden</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+
+                    {/* Public Visibility Toggle */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                        <input
+                          type="checkbox"
+                          checked={editIsPublic}
+                          onChange={(e) => setEditIsPublic(e.target.checked)}
+                          style={{ width: 17, height: 17, accentColor: '#2563eb' }}
+                        />
+                        <span>Publicly Visible on Storefront</span>
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                        Uncheck to instantly conceal from customers
+                      </span>
+                    </div>
+
+                    {/* Trust Badge Toggle */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editTrustBadge ? '#166534' : '#1e293b' }}>
+                        <input
+                          type="checkbox"
+                          checked={editTrustBadge}
+                          onChange={(e) => setEditTrustBadge(e.target.checked)}
+                          style={{ width: 17, height: 17, accentColor: '#16a34a' }}
+                        />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <i className="fa-solid fa-shield-halved" style={{ color: editTrustBadge ? '#16a34a' : '#94a3b8' }}></i>
+                          Trust Badge Verified
+                        </span>
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                        Grants 16:9 banners & verified shield
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      disabled={editSaving}
+                      onClick={() => setEditingListingModal(null)}
+                      style={{
+                        padding: '0.65rem 1.25rem',
+                        borderRadius: 8,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#f8fafc',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        color: '#475569',
+                        cursor: editSaving ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={editSaving}
+                      style={{
+                        padding: '0.65rem 1.5rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: '#2563eb',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        color: '#fff',
+                        cursor: editSaving ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                      }}
+                    >
+                      {editSaving ? (
+                        <>
+                          <i className="fa-solid fa-spinner fa-spin"></i>
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-check"></i>
+                          <span>Save Changes</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
