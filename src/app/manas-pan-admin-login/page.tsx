@@ -75,7 +75,12 @@ export default function SuperAdminPage() {
       }
     } catch (err: any) {
       console.warn('Super Admin cloud auth prompt failed:', err);
-      alert('Super Admin Google authorization is required to save changes in Firestore. Please connect via "localbazarindia.official@gmail.com".');
+      const isBlocked = err?.code === 'auth/popup-blocked' || String(err?.message || '').toLowerCase().includes('popup');
+      if (isBlocked) {
+        alert('⚠️ Browser-এ Google Sign-in পপ-আপ ব্লক করা হয়েছে!\n\nঅনুগ্রহ করে পেজের একদম উপরে ডানদিকের "⚡ Connect Cloud Authority" বাটনে সরাসরি ক্লিক করে আপনার official Google অ্যাকাউন্ট (localbazarindia.official@gmail.com) কানেক্ট করে নিন।');
+      } else {
+        alert(`Google verification failed (${err?.code || 'error'}): ${err?.message || 'Check connection'}.\n\nPlease connect via "localbazarindia.official@gmail.com".`);
+      }
       return false;
     }
   };
@@ -480,11 +485,13 @@ export default function SuperAdminPage() {
 
         // Authenticate Firebase client SDK session as Super Admin
         try {
-          await signInWithEmailAndPassword(auth, email, pwd);
+          const fbEmail = email.includes('@') ? email : 'localbazar@adminmanaspan.com';
+          await signInWithEmailAndPassword(auth, fbEmail, pwd);
         } catch (fErr: any) {
           if (fErr?.code === 'auth/user-not-found' || fErr?.code === 'auth/invalid-credential') {
             try {
-              await createUserWithEmailAndPassword(auth, email, pwd);
+              const fbEmail = email.includes('@') ? email : 'localbazar@adminmanaspan.com';
+              await createUserWithEmailAndPassword(auth, fbEmail, pwd);
             } catch {}
           }
         }
@@ -7516,36 +7523,61 @@ export default function SuperAdminPage() {
                       Cancel
                     </button>
 
-                    <button
-                      type="submit"
-                      disabled={editSaving}
-                      style={{
-                        padding: '0.65rem 1.5rem',
-                        borderRadius: 8,
-                        border: 'none',
-                        background: '#2563eb',
-                        fontWeight: 700,
-                        fontSize: '0.88rem',
-                        color: '#fff',
-                        cursor: editSaving ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
-                      }}
-                    >
-                      {editSaving ? (
-                        <>
-                          <i className="fa-solid fa-spinner fa-spin"></i>
-                          <span>Saving Changes...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fa-solid fa-check"></i>
-                          <span>Save Changes</span>
-                        </>
-                      )}
-                    </button>
+                    {!cloudAdminEmail ? (
+                      <button
+                        type="button"
+                        onClick={handleConnectCloudSuperAdmin}
+                        style={{
+                          padding: '0.65rem 1.4rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#ea4335',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 2px 8px rgba(234,67,53,0.3)',
+                        }}
+                        title="Click to authenticate official Super Admin Google account before saving"
+                      >
+                        <i className="fa-brands fa-google"></i>
+                        <span>1-Click Google Authority to Save</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={editSaving}
+                        style={{
+                          padding: '0.65rem 1.5rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#2563eb',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                          color: '#fff',
+                          cursor: editSaving ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                        }}
+                      >
+                        {editSaving ? (
+                          <>
+                            <i className="fa-solid fa-spinner fa-spin"></i>
+                            <span>Saving Changes...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-check"></i>
+                            <span>Save Changes</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
