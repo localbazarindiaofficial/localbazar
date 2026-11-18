@@ -476,7 +476,7 @@ export default function HomePage() {
 
     // 3. Instant 0ms visual feedback: trigger top progress bar & search state
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 500);
+    setTimeout(() => setIsSearching(false), 3500);
 
     const params = new URLSearchParams();
     params.set('city', city);

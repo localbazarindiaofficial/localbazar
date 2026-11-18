@@ -416,9 +416,15 @@ export default function ShopDetailPage() {
         setShop(cloudListing);
       }
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     }).catch((err) => {
       console.error('Error fetching shop:', err);
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     });
 
     // 3. Load STORE reviews directly from Cloud Firestore (Strictly store reviews, zero product reviews)

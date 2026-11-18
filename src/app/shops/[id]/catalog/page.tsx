@@ -142,9 +142,15 @@ function StoreCategoryCatalogContent() {
         setListing(cloudItem);
       }
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     }).catch((err) => {
       console.error('Error fetching listing catalog:', err);
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     });
   }, [listingId]);
 

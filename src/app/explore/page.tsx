@@ -91,10 +91,24 @@ function ExploreContent() {
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem('lb_cached_listings');
-        if (raw && JSON.parse(raw).length > 0) return false;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sCity = (new URLSearchParams(window.location.search).get('city') || '').trim().toLowerCase();
+            const sCat = (new URLSearchParams(window.location.search).get('category') || '').trim().toLowerCase();
+            // Only skip skeleton if cached data actually contains matching results for this search
+            const hasMatch = parsed.some((l: Listing) => {
+              if (l.status?.toLowerCase() === 'rejected' || l.isPublic === false) return false;
+              const matchesC = !sCity || (l.city || '').toLowerCase().includes(sCity) || sCity.includes((l.city || '').toLowerCase());
+              const matchesK = !sCat || (l.category || '').toLowerCase().includes(sCat) || sCat.includes((l.category || '').toLowerCase());
+              return matchesC && matchesK;
+            });
+            if (hasMatch) return false;
+          }
+        }
       } catch {}
     }
-    return true;
+    return true; // Keep loading active to show skeleton until fresh Firestore data arrives
   });
 
   // Progressive Infinite Scroll (Initial 10, then +5 on each scroll down)
@@ -108,6 +122,21 @@ function ExploreContent() {
   useEffect(() => {
     setVisibleCount(INITIAL_LIMIT);
     setIsLoadingMore(false);
+
+    // If current in-memory listings do not contain matching items, show skeleton while loading
+    const sCity = cityParam.trim().toLowerCase();
+    const sCat = catParam.trim().toLowerCase();
+    const hasImmediateMatch = (listings || []).some((l) => {
+      if (l.status?.toLowerCase() === 'rejected' || l.isPublic === false) return false;
+      const matchesC = matchCity(l.city || '', sCity, l.address);
+      const matchesK = matchCategory(l.category || '', sCat, categories);
+      return matchesC && matchesK;
+    });
+
+    if (!hasImmediateMatch) {
+      setLoading(true);
+    }
+
     if (typeof window !== 'undefined') {
       try {
         const fullUrl = window.location.pathname + window.location.search;
@@ -115,7 +144,7 @@ function ExploreContent() {
         sessionStorage.setItem('lb_internal_nav', 'true');
       } catch {}
     }
-  }, [cityParam, catParam]);
+  }, [cityParam, catParam, categories]);
 
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [newsAds, setNewsAds] = useState<NewsItem[]>([]);
@@ -178,9 +207,16 @@ function ExploreContent() {
         setListings([]);
       }
       setLoading(false);
+      // Synchronize finish event with top navigation bar
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     }).catch((err) => {
       console.error('Error loading live listings:', err);
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lb:finish-navigation'));
+      }
     });
   }, []);
 
@@ -364,9 +400,9 @@ function ExploreContent() {
 
           {/* Listings Feed */}
           {loading ? (
-            <div className="listings-cards-list">
-              {[1, 2, 3, 4, 5].map((idx) => (
-                <div key={idx} className="listing-row-card" style={{ pointerEvents: 'none', background: '#ffffff', opacity: 0.95 }}>
+            <div className="listings-grid-feed" style={{ marginTop: '0.5rem' }}>
+              {[1, 2, 3, 4, 5, 6].map((idx) => (
+                <div key={idx} className="listing-compact-row" style={{ pointerEvents: 'none', background: '#ffffff', opacity: 0.95 }}>
                   <div className="listing-row-left">
                     <div className="lb-skeleton" style={{ width: 68, height: 68, borderRadius: 12, flexShrink: 0 }}></div>
                     <div className="listing-row-info" style={{ width: '100%' }}>
