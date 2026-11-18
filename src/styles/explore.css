@@ -494,14 +494,21 @@ body.explore-body {
     font-weight: 600;
 }
 
+.listing-row-rating-badge.zero-rating,
 .listing-row-rating-badge.new-badge {
-    background: #f1f5f9;
+    background: #f8fafc;
     border-color: #e2e8f0;
-    color: var(--slate-600);
+    color: #64748b;
 }
 
+.listing-row-rating-badge.zero-rating i,
 .listing-row-rating-badge.new-badge i {
-    color: var(--slate-400);
+    color: #94a3b8;
+}
+
+.listing-row-rating-badge.zero-rating .rating-reviews-paren,
+.listing-row-rating-badge.new-badge .rating-reviews-paren {
+    color: #94a3b8;
 }
 
 .listing-row-meta-line {

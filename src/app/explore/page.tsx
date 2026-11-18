@@ -257,6 +257,60 @@ function ExploreContent() {
     return matchesCity && matchesCat;
   });
 
+  // Auto-sync live reviews and calculate ratings for matched listings without a known rating
+  // This guarantees that any shop with reviews is ranked at the top immediately on search without clicking!
+  useEffect(() => {
+    if (!filtered || filtered.length === 0) return;
+
+    const unrated = filtered.filter((l) => l.rating === undefined || l.rating === null);
+    if (unrated.length === 0) return;
+
+    let isMounted = true;
+    Promise.all(
+      unrated.map(async (l) => {
+        try {
+          const revs = await cloudSync.pullStoreReviews(l.id);
+          if (Array.isArray(revs) && revs.length > 0) {
+            const valids = revs.filter((r) => r && typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5);
+            if (valids.length > 0) {
+              const sum = valids.reduce((acc, r) => acc + Number(r.rating), 0);
+              const avg = Number((sum / valids.length).toFixed(1));
+              return { id: l.id, rating: avg, reviewsCount: valids.length };
+            }
+          }
+          return { id: l.id, rating: 0, reviewsCount: 0 };
+        } catch {
+          return null;
+        }
+      })
+    ).then((results) => {
+      if (!isMounted) return;
+      let hasUpdates = false;
+      const updatedListings = listings.map((l) => {
+        const found = results.find((r) => r && r.id === l.id);
+        if (found && (l.rating !== found.rating || l.reviewsCount !== found.reviewsCount)) {
+          hasUpdates = true;
+          if (found.rating > 0) {
+            cloudSync.syncStoreRating(l.id, found.rating, found.reviewsCount);
+          }
+          return { ...l, rating: found.rating, reviewsCount: found.reviewsCount };
+        }
+        return l;
+      });
+
+      if (hasUpdates) {
+        setListings(updatedListings);
+        try {
+          localStorage.setItem('lb_cached_listings', JSON.stringify(updatedListings));
+        } catch {}
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cityParam, catParam, filtered.length]);
+
   // Priority Sorting:
   // 1. Trust Badge active listings ALWAYS appear first at the top!
   // 2. Among Trust Badge stores, sort by highest rating (descending), then review count
@@ -497,15 +551,22 @@ function ExploreContent() {
                           </h3>
                           <div className="listing-row-badges-wrap">
                             <span className="listing-row-cat-pill">{item.category || 'General'}</span>
-                            {Number(item.rating) > 0 ? (
-                              <div className="listing-row-rating-badge" title={`Customer Rating: ${Number(item.rating).toFixed(1)} out of 5`}>
-                                <i className="fa-solid fa-star"></i>
-                                <span className="rating-val-num">{Number(item.rating).toFixed(1)}</span>
-                                {item.reviewsCount && Number(item.reviewsCount) > 0 ? (
-                                  <span className="rating-reviews-paren">({item.reviewsCount})</span>
-                                ) : null}
-                              </div>
-                            ) : null}
+                            <div
+                              className={`listing-row-rating-badge ${Number(item.rating) > 0 ? '' : 'zero-rating'}`}
+                              title={
+                                Number(item.rating) > 0
+                                  ? `Customer Rating: ${Number(item.rating).toFixed(1)} out of 5 (${item.reviewsCount || 1} reviews)`
+                                  : 'No customer reviews yet (0.0)'
+                              }
+                            >
+                              <i className="fa-solid fa-star"></i>
+                              <span className="rating-val-num">
+                                {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : '0'}
+                              </span>
+                              <span className="rating-reviews-paren">
+                                ({Number(item.reviewsCount) || 0})
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <div className="listing-row-meta-line">
