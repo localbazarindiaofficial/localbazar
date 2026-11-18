@@ -268,14 +268,17 @@ function ExploreContent() {
       if (aTrust !== bTrust) {
         return bTrust - aTrust; // Trust badge verified listings come first
       }
-      const aRating = a.rating || 0;
-      const bRating = b.rating || 0;
+      const aRating = Number(a.rating) || 0;
+      const bRating = Number(b.rating) || 0;
       if (bRating !== aRating) {
         return bRating - aRating; // Highest rating first
       }
-      const aReviews = a.reviewsCount || 0;
-      const bReviews = b.reviewsCount || 0;
-      return bReviews - aReviews;
+      const aReviews = Number(a.reviewsCount) || 0;
+      const bReviews = Number(b.reviewsCount) || 0;
+      if (bReviews !== aReviews) {
+        return bReviews - aReviews;
+      }
+      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
     });
   };
 
@@ -494,11 +497,11 @@ function ExploreContent() {
                           </h3>
                           <div className="listing-row-badges-wrap">
                             <span className="listing-row-cat-pill">{item.category || 'General'}</span>
-                            {item.rating ? (
-                              <div className="listing-row-rating-badge" title={`Customer Rating: ${item.rating} out of 5`}>
+                            {Number(item.rating) > 0 ? (
+                              <div className="listing-row-rating-badge" title={`Customer Rating: ${Number(item.rating).toFixed(1)} out of 5`}>
                                 <i className="fa-solid fa-star"></i>
-                                <span className="rating-val-num">{item.rating.toFixed(1)}</span>
-                                {item.reviewsCount ? (
+                                <span className="rating-val-num">{Number(item.rating).toFixed(1)}</span>
+                                {item.reviewsCount && Number(item.reviewsCount) > 0 ? (
                                   <span className="rating-reviews-paren">({item.reviewsCount})</span>
                                 ) : null}
                               </div>

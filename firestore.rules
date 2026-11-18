@@ -23,12 +23,15 @@ service cloud.firestore {
         request.resource.data.name is string && 
         request.resource.data.name.size() > 0 && 
         request.resource.data.name.size() < 120;
-      // Only the shop owner or Super Admin can edit
+      // Only the shop owner or Super Admin can edit shop details, OR any authenticated user updating aggregate stats
       allow update: if isSuperAdmin() || (
         isAuthenticated() && (
           resource.data.ownerEmail == request.auth.token.email ||
           resource.data.ownerId == request.auth.uid
         )
+      ) || (
+        isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviewsCount', 'views', 'lastUpdated'])
       );
       // Only the shop owner or Super Admin can delete
       allow delete: if isSuperAdmin() || (

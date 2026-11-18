@@ -442,6 +442,12 @@ export default function ShopDetailPage() {
           }
         });
         setReviews(valids);
+        // Seamlessly sync listing aggregate rating in cloud if missing or out of sync
+        if (valids.length > 0) {
+          const sum = valids.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+          const avg = Number((sum / valids.length).toFixed(1));
+          cloudSync.syncStoreRating(shopId, avg, valids.length);
+        }
       }
     }).catch(() => {});
 
@@ -879,6 +885,14 @@ export default function ShopDetailPage() {
     }
 
     setReviews(updatedList);
+    // Instantly calculate and sync aggregate rating to listing
+    const valids = updatedList.filter(isValidRealReview);
+    const sum = valids.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+    const avg = valids.length > 0 ? Number((sum / valids.length).toFixed(1)) : 0;
+    cloudSync.syncStoreRating(shopId, avg, valids.length);
+    if (shop) {
+      setShop((prev) => prev ? { ...prev, rating: avg, reviewsCount: valids.length } : prev);
+    }
     setReviewSubmitting(false);
     setShowReviewModal(false);
   };
@@ -888,6 +902,13 @@ export default function ShopDetailPage() {
     if (!confirm('Are you sure you want to remove this review?')) return;
     const updated = reviews.filter((r) => r.id !== reviewId);
     setReviews(updated);
+    const valids = updated.filter(isValidRealReview);
+    const sum = valids.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+    const avg = valids.length > 0 ? Number((sum / valids.length).toFixed(1)) : 0;
+    cloudSync.syncStoreRating(shopId, avg, valids.length);
+    if (shop) {
+      setShop((prev) => prev ? { ...prev, rating: avg, reviewsCount: valids.length } : prev);
+    }
     await cloudSync.deleteStoreReview(shopId, reviewId);
   };
 

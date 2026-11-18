@@ -1177,6 +1177,8 @@ export const cloudSync = {
       };
       const revRef = doc(db, 'reviews', String(shopId), 'items', String(review.id));
       await setDoc(revRef, payload, { merge: true });
+      // Recalculate & sync average rating to shop listing
+      await cloudSync.syncStoreRating(shopId);
     } catch (err) {
       console.warn('Could not save store review to cloud:', err);
     }
@@ -1208,8 +1210,87 @@ export const cloudSync = {
     try {
       const revRef = doc(db, 'reviews', String(shopId), 'items', String(reviewId));
       await deleteDoc(revRef);
+      // Recalculate & sync average rating to shop listing
+      await cloudSync.syncStoreRating(shopId);
     } catch (err) {
       console.warn('Could not delete store review from cloud:', err);
+    }
+  },
+
+  // Sync calculated store average rating and review count directly to the listing document
+  syncStoreRating: async (shopId: string, explicitRating?: number, explicitCount?: number): Promise<{ avgRating: number; count: number } | null> => {
+    if (!shopId) return null;
+    try {
+      let avgRating = 0;
+      let count = 0;
+
+      if (explicitRating !== undefined && explicitCount !== undefined) {
+        avgRating = Number(Number(explicitRating).toFixed(1));
+        count = Number(explicitCount) || 0;
+      } else {
+        const colRef = collection(db, 'reviews', String(shopId), 'items');
+        const snap = await getDocs(colRef);
+        const validRatings: number[] = [];
+        snap.forEach((d) => {
+          const item = d.data() as ReviewItem;
+          if (item && (!item.type || item.type === 'store') && !item.productId) {
+            const r = Number(item.rating);
+            if (!isNaN(r) && r >= 1 && r <= 5) {
+              validRatings.push(r);
+            }
+          }
+        });
+        count = validRatings.length;
+        avgRating = count > 0 ? Number((validRatings.reduce((acc, curr) => acc + curr, 0) / count).toFixed(1)) : 0;
+      }
+
+      // Update the listing document with calculated rating and reviewsCount
+      const listingRef = doc(db, 'listings', String(shopId));
+      const payload: Partial<Listing> = {
+        rating: avgRating,
+        reviewsCount: count,
+        lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      };
+
+      try {
+        await setDoc(listingRef, payload, { merge: true });
+      } catch (updateErr) {
+        console.warn('Could not update listing rating in cloud:', updateErr);
+      }
+
+      // Update in-memory cache instantly
+      if (memoryCache.listingById.has(String(shopId))) {
+        const existing = memoryCache.listingById.get(String(shopId))!;
+        const merged = { ...existing, ...payload };
+        memoryCache.listingById.set(String(shopId), merged);
+        if (memoryCache.listings) {
+          const idx = memoryCache.listings.findIndex((l) => String(l.id) === String(shopId));
+          if (idx >= 0) memoryCache.listings[idx] = merged;
+        }
+      }
+
+      // Update local storage cache if exists
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('lb_cached_listings');
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              const idx = list.findIndex((l: Listing) => String(l.id) === String(shopId));
+              if (idx >= 0) {
+                list[idx].rating = avgRating;
+                list[idx].reviewsCount = count;
+                localStorage.setItem('lb_cached_listings', JSON.stringify(list));
+              }
+            }
+          }
+        } catch {}
+      }
+
+      return { avgRating, count };
+    } catch (err) {
+      console.warn('Error in syncStoreRating:', err);
+      return null;
     }
   },
 

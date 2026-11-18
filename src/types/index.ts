@@ -97,6 +97,7 @@ export interface Listing {
   lastUpdated?: string;
   rating?: number;
   reviewsCount?: number;
+  createdAt?: number;
 }
 
 export interface UserProfile {
