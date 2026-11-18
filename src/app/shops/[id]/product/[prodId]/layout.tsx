@@ -15,7 +15,7 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
 
   const fallbackTitle = 'Product Details | LocalBazar';
   const fallbackDesc = 'Explore genuine products and verified local businesses on LocalBazar.';
-  const fallbackImg = 'https://localbazarindia.vercel.app/app-logo-hd-512.png';
+  const fallbackImg = 'https://www.localbazarindia.com/icon-512.png';
 
   if (!shopId) {
     return {
@@ -42,18 +42,24 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
       });
 
       if (foundProd) {
-        // Resolve 1st image of the product
-        let rawImg =
+        // Resolve 1st image of the product, with cascading fallback to shop's own images
+        const rawImg =
           (foundProd.images && foundProd.images.length > 0 && foundProd.images[0]) ||
           foundProd.image ||
           foundProd.img ||
           shop.image ||
+          (Array.isArray(shop.gallery) && shop.gallery.length > 0 && shop.gallery[0]) ||
+          (Array.isArray(shop.images) && shop.images.length > 0 && shop.images[0]) ||
+          (Array.isArray(shop.banners) && shop.banners.length > 0 && shop.banners[0]) ||
           fallbackImg;
 
-        // Ensure absolute URL (WhatsApp requires absolute https:// URLs)
-        let absoluteImgUrl = rawImg;
-        if (!absoluteImgUrl.startsWith('http://') && !absoluteImgUrl.startsWith('https://')) {
-          absoluteImgUrl = `https://localbazarindia.vercel.app${absoluteImgUrl.startsWith('/') ? '' : '/'}${absoluteImgUrl}`;
+        // Ensure absolute URL (WhatsApp and Facebook strictly require absolute https:// URLs)
+        let absoluteImgUrl = String(rawImg || '').trim();
+        if (absoluteImgUrl && !absoluteImgUrl.startsWith('http://') && !absoluteImgUrl.startsWith('https://')) {
+          absoluteImgUrl = `https://www.localbazarindia.com${absoluteImgUrl.startsWith('/') ? '' : '/'}${absoluteImgUrl}`;
+        }
+        if (!absoluteImgUrl) {
+          absoluteImgUrl = fallbackImg;
         }
 
         const priceFormatted = foundProd.price
@@ -64,7 +70,7 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
 
         const title = `${foundProd.name}${priceFormatted ? ` (${priceFormatted})` : ''} - ${shop.name} | LocalBazar`;
         const description = `Buy ${foundProd.name}${priceFormatted ? ` for ${priceFormatted}` : ''} at ${shop.name}, ${shop.city || 'India'}. Check verified photos, store timings, and customer reviews on LocalBazar.`;
-        const pageUrl = `https://localbazarindia.vercel.app/shops/${encodeURIComponent(shopId)}/product/${encodeURIComponent(prodId)}`;
+        const pageUrl = `https://www.localbazarindia.com/shops/${encodeURIComponent(shopId)}/product/${encodeURIComponent(prodId)}`;
 
         return {
           title,
@@ -74,6 +80,8 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
             description,
             url: pageUrl,
             siteName: 'LocalBazar',
+            locale: 'en_IN',
+            type: 'website',
             images: [
               {
                 url: absoluteImgUrl,
@@ -82,7 +90,6 @@ export async function generateMetadata(props: LayoutProps): Promise<Metadata> {
                 alt: foundProd.name,
               },
             ],
-            type: 'website',
           },
           twitter: {
             card: 'summary_large_image',

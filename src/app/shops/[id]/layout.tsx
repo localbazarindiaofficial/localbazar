@@ -17,26 +17,72 @@ const getShopData = cache(async (id: string) => {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: { id: string } | Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const id = decodeURIComponent(params.id || '');
+  const resolvedParams = await Promise.resolve(params);
+  const id = decodeURIComponent(resolvedParams?.id || '');
   const shop = await getShopData(id);
+
   if (shop) {
     const name = shop.name || 'Local Shop';
     const category = shop.category || 'Business';
     const city = shop.city || shop.district || 'India';
-    const desc = shop.desc || shop.description || `Visit ${name} in ${city}. Check verified store timings, address, catalog & reviews on LocalBazar.`;
-    const img = shop.bannerUrl || shop.imageUrl || shop.logoUrl || 'https://www.localbazarindia.com/icon-512.png';
+    const address = shop.address ? ` • ${shop.address}` : '';
+    const phone = shop.phone ? ` • Contact: ${shop.phone}` : '';
+    
+    // Clean and informative description for social preview (WhatsApp, Facebook, Twitter)
+    const desc = (shop.desc && shop.desc.trim().length > 10)
+      ? `${shop.desc.trim().slice(0, 150)}...`
+      : `Visit ${name} (${category}) in ${city}${address}${phone}. Check verified store timings, live photos, catalog & customer reviews on LocalBazar.`;
+
+    // Priority resolution for the listing's real photo
+    const rawImg =
+      shop.image ||
+      (Array.isArray(shop.gallery) && shop.gallery.length > 0 && shop.gallery[0]) ||
+      (Array.isArray(shop.images) && shop.images.length > 0 && shop.images[0]) ||
+      (Array.isArray(shop.banners) && shop.banners.length > 0 && shop.banners[0]) ||
+      shop.bannerUrl ||
+      shop.imageUrl ||
+      shop.logoUrl ||
+      'https://www.localbazarindia.com/icon-512.png';
+
+    // Ensure absolute URL (WhatsApp and Facebook strictly require absolute https:// URLs)
+    let absoluteImgUrl = String(rawImg || '').trim();
+    if (absoluteImgUrl && !absoluteImgUrl.startsWith('http://') && !absoluteImgUrl.startsWith('https://')) {
+      absoluteImgUrl = `https://www.localbazarindia.com${absoluteImgUrl.startsWith('/') ? '' : '/'}${absoluteImgUrl}`;
+    }
+    if (!absoluteImgUrl) {
+      absoluteImgUrl = 'https://www.localbazarindia.com/icon-512.png';
+    }
+
+    const shareTitle = `${name} - ${category} in ${city} | LocalBazar`;
+    const shopUrl = `https://www.localbazarindia.com/shops/${encodeURIComponent(id)}`;
 
     return {
       title: `${name} - Best ${category} in ${city} | LocalBazar`,
-      description: desc.slice(0, 160),
+      description: desc,
       keywords: [name, category, `${category} in ${city}`, `${city} shops`, 'LocalBazar'],
       openGraph: {
-        title: `${name} - ${category} in ${city}`,
-        description: desc.slice(0, 160),
-        url: `https://www.localbazarindia.com/shops/${encodeURIComponent(id)}`,
-        images: [{ url: img, width: 800, height: 600, alt: name }],
+        title: shareTitle,
+        description: desc,
+        url: shopUrl,
+        siteName: 'LocalBazar',
+        locale: 'en_IN',
+        type: 'website',
+        images: [
+          {
+            url: absoluteImgUrl,
+            width: 1200,
+            height: 630,
+            alt: name,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: shareTitle,
+        description: desc,
+        images: [absoluteImgUrl],
       },
     };
   }
@@ -44,6 +90,17 @@ export async function generateMetadata({
   return {
     title: 'Local Shop Details | LocalBazar',
     description: 'Explore verified local shops, doctors, and services on LocalBazar.',
+    openGraph: {
+      title: 'Local Shop Details | LocalBazar',
+      description: 'Explore verified local shops, doctors, and services on LocalBazar.',
+      images: [{ url: 'https://www.localbazarindia.com/icon-512.png', width: 512, height: 512, alt: 'LocalBazar' }],
+    },
+    twitter: {
+      card: 'summary',
+      title: 'Local Shop Details | LocalBazar',
+      description: 'Explore verified local shops, doctors, and services on LocalBazar.',
+      images: ['https://www.localbazarindia.com/icon-512.png'],
+    },
   };
 }
 
@@ -52,18 +109,34 @@ export default async function ShopLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { id: string };
+  params: { id: string } | Promise<{ id: string }>;
 }) {
-  const id = decodeURIComponent(params.id || '');
+  const resolvedParams = await Promise.resolve(params);
+  const id = decodeURIComponent(resolvedParams?.id || '');
   let jsonLd: Record<string, any> | null = null;
 
   const s = await getShopData(id);
   if (s) {
+    const rawImg =
+      s.image ||
+      (Array.isArray(s.gallery) && s.gallery.length > 0 && s.gallery[0]) ||
+      (Array.isArray(s.images) && s.images.length > 0 && s.images[0]) ||
+      (Array.isArray(s.banners) && s.banners.length > 0 && s.banners[0]) ||
+      s.bannerUrl ||
+      s.imageUrl ||
+      s.logoUrl ||
+      'https://www.localbazarindia.com/icon-512.png';
+
+    let absoluteImgUrl = String(rawImg || '').trim();
+    if (absoluteImgUrl && !absoluteImgUrl.startsWith('http://') && !absoluteImgUrl.startsWith('https://')) {
+      absoluteImgUrl = `https://www.localbazarindia.com${absoluteImgUrl.startsWith('/') ? '' : '/'}${absoluteImgUrl}`;
+    }
+
     jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'LocalBusiness',
       name: s.name || 'Local Shop',
-      image: s.bannerUrl || s.imageUrl || s.logoUrl || 'https://www.localbazarindia.com/icon-512.png',
+      image: absoluteImgUrl,
       telephone: s.phone || s.contactPhone || undefined,
       address: {
         '@type': 'PostalAddress',
