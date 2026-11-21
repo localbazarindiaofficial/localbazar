@@ -752,7 +752,7 @@ function ProductDetailPageContent() {
               {discountTag && <span className="pdp-discount-pill">{discountTag}</span>}
               <span className={`pdp-stock-chip ${isOutOfStock ? 'out' : 'in'}`}>
                 <i className={`fa-solid ${isOutOfStock ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
-                {isOutOfStock ? 'Out of Stock' : 'In Stock'}
+                {isOutOfStock ? 'Unavailable' : 'Available'}
               </span>
             </div>
           </div>
@@ -970,7 +970,7 @@ function ProductDetailPageContent() {
           {(shop.whatsapp || shop.phone) && (
             <button
               type="button"
-              onClick={() => triggerContactAuth('whatsapp', formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this in stock?`))}
+              onClick={() => triggerContactAuth('whatsapp', formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${product.name}" (${formattedPrice}) from ${shop.name} on LocalBazar. Is this available?`))}
               className="pdp-action-btn whatsapp"
               title="Buy on WhatsApp"
               style={{ border: 'none', cursor: 'pointer' }}

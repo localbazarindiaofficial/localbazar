@@ -8139,7 +8139,7 @@ export default function AccountPage() {
                         1. Products &amp; Services Catalog
                       </h3>
                       <p className="m-prod-section-desc">
-                        Manage your products &amp; services with multi-image gallery, price, details, and In Stock / Out of Stock toggle.
+                        Manage your products &amp; services with multi-image gallery, price, details, and Available / Unavailable status toggle.
                       </p>
                     </div>
                     <button
@@ -8264,7 +8264,7 @@ export default function AccountPage() {
                                         display: 'inline-block',
                                         marginRight: '4px'
                                       }}></span>
-                                      {isInStock ? 'In Stock' : 'Out of Stock'}
+                                      {isInStock ? 'Available' : 'Unavailable'}
                                     </span>
                                   </div>
                                   <p className="m-prod-cat-subtext">
@@ -9503,14 +9503,14 @@ export default function AccountPage() {
 
               {/* Field 4: Stock Status */}
               <div className="m-prod-modal-field">
-                <label className="m-prod-modal-label">Stock Status</label>
+                <label className="m-prod-modal-label">Availability / Status</label>
                 <select
                   className="m-prod-modal-select"
                   value={prodStockStatus}
                   onChange={(e) => setProdStockStatus(e.target.value as 'in_stock' | 'out_of_stock')}
                 >
-                  <option value="in_stock">In Stock (Available)</option>
-                  <option value="out_of_stock">Out of Stock</option>
+                  <option value="in_stock">Available (In Stock / Booking Open)</option>
+                  <option value="out_of_stock">Unavailable (Out of Stock / Closed)</option>
                 </select>
               </div>
 
@@ -9796,7 +9796,7 @@ export default function AccountPage() {
                         {previewProduct.price || 'On Request'}
                       </span>
                       <span className={`m-prod-stock-badge ${isInStock ? 'in' : 'out'}`}>
-                        {isInStock ? 'In Stock' : 'Out of Stock'}
+                        {isInStock ? 'Available' : 'Unavailable'}
                       </span>
                     </div>
                     <div style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '0.75rem' }}>

@@ -7024,7 +7024,7 @@ export default function SuperAdminPage() {
                               {p.price ? (p.price.startsWith('₹') ? p.price : `₹${p.price}`) : 'Price on request'}
                             </span>
                             <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '0.15rem 0.45rem', borderRadius: 6, background: (p.inStock === false || p.stockStatus === 'out_of_stock') ? '#fef2f2' : '#ecfdf5', color: (p.inStock === false || p.stockStatus === 'out_of_stock') ? '#ef4444' : '#047857' }}>
-                              {(p.inStock === false || p.stockStatus === 'out_of_stock') ? 'Out of Stock' : 'In Stock'}
+                              {(p.inStock === false || p.stockStatus === 'out_of_stock') ? 'Unavailable' : 'Available'}
                             </span>
                           </div>
                           {(p.details || p.desc || p.description) && (

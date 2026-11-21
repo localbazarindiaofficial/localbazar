@@ -340,7 +340,7 @@ function StoreCategoryCatalogContent() {
     setActiveViewerProduct(null);
     if (product) {
       const pr = product.price ? ` (${product.price})` : '';
-      setChatInputText(`Hi, I am interested in inquiring about "${product.name || 'this item'}"${pr}. Is this available in stock?`);
+      setChatInputText(`Hi, I am interested in inquiring about "${product.name || 'this item'}"${pr}. Is this available?`);
     } else {
       setChatInputText(`Hi, I would like to inquire about products at ${listing?.name || 'your store'}.`);
     }
@@ -488,7 +488,7 @@ function StoreCategoryCatalogContent() {
                 onClick={() => setFilterInStockOnly(!filterInStockOnly)}
                 style={{ padding: '0.55rem 0.95rem', borderRadius: 10, border: filterInStockOnly ? '1.5px solid #16a34a' : '1px solid #cbd5e1', background: filterInStockOnly ? '#f0fdf4' : '#fff', color: filterInStockOnly ? '#16a34a' : '#475569', fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
               >
-                <i className="fa-solid fa-check"></i> In Stock Only
+                <i className="fa-solid fa-check"></i> Available Only
               </button>
             </div>
           </div>
@@ -657,7 +657,7 @@ function StoreCategoryCatalogContent() {
                         {imgCount > 1 && (
                           <span className="fk-img-count-chip"><i className="fa-regular fa-images"></i> {imgCount}</span>
                         )}
-                        {isOutOfStock && <span className="fk-stock-out-chip">Out of Stock</span>}
+                        {isOutOfStock && <span className="fk-stock-out-chip">Unavailable</span>}
                       </div>
 
                       <div className="cat-prod-content">
@@ -685,8 +685,8 @@ function StoreCategoryCatalogContent() {
                             </li>
                           )}
                           <li className={`fk-feature-item ${isOutOfStock ? 'stock-out' : 'stock-in'}`}>
-                            <i className={`fa-solid ${isOutOfStock ? 'fa-circle-xmark' : 'fa-truck-fast'}`}></i>
-                            {isOutOfStock ? 'Currently Out of Stock' : 'In Stock • Ready for Store Pickup & Delivery'}
+                            <i className={`fa-solid ${isOutOfStock ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
+                            {isOutOfStock ? 'Currently Unavailable' : 'Available • Ready for Inquiries & Orders'}
                           </li>
                         </ul>
                       </div>

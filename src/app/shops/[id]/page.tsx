@@ -1934,7 +1934,7 @@ export default function ShopDetailPage() {
                   </div>
                   <span className={`dpm-stock-pill ${activeViewerProduct.stockStatus === 'out_of_stock' ? 'out' : 'in'}`}>
                     <i className={`fa-solid ${activeViewerProduct.stockStatus === 'out_of_stock' ? 'fa-circle-xmark' : 'fa-circle-check'}`} style={{ marginRight: '4px' }}></i>
-                    {activeViewerProduct.stockStatus === 'out_of_stock' ? 'Out of Stock' : 'In Stock'}
+                    {activeViewerProduct.stockStatus === 'out_of_stock' ? 'Unavailable' : 'Available'}
                   </span>
                 </div>
 
@@ -1975,7 +1975,7 @@ export default function ShopDetailPage() {
               {(shop.whatsapp || shop.phone) && (
                 <button
                   type="button"
-                  onClick={() => triggerContactAuth('whatsapp', formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${activeViewerProduct.name}" (${activeViewerProduct.price || ''}) from ${shop.name} on LocalBazar. Is this in stock?`))}
+                  onClick={() => triggerContactAuth('whatsapp', formatWhatsAppUrl(shop.whatsapp || shop.phone, `Hi, I am interested in purchasing "${activeViewerProduct.name}" (${activeViewerProduct.price || ''}) from ${shop.name} on LocalBazar. Is this available?`))}
                   className="btn-dpm-action whatsapp"
                   style={{ textDecoration: 'none', border: 'none', cursor: 'pointer' }}
                   title="Buy on WhatsApp"

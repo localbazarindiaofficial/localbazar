@@ -215,6 +215,22 @@ export default function RootLayout({
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
+
+        {/* Google Analytics (GA4) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-G8DHT8ZDE6"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-G8DHT8ZDE6', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
       </head>
       <body suppressHydrationWarning>
         <Suspense fallback={null}>
