@@ -106,22 +106,21 @@ function ExploreContent() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const sCity = (new URLSearchParams(window.location.search).get('city') || '').trim().toLowerCase();
-            const sCat = (new URLSearchParams(window.location.search).get('category') || '').trim().toLowerCase();
-            // Only skip skeleton if cached data actually contains matching results for this search
-            const hasMatch = parsed.some((l: Listing) => {
-              if (l.status?.toLowerCase() === 'rejected' || l.isPublic === false) return false;
-              const matchesC = !sCity || (l.city || '').toLowerCase().includes(sCity) || sCity.includes((l.city || '').toLowerCase());
-              const matchesK = !sCat || (l.category || '').toLowerCase().includes(sCat) || sCat.includes((l.category || '').toLowerCase());
-              return matchesC && matchesK;
-            });
-            if (hasMatch) return false;
+            return false; // Instant cache hit: render immediately with zero delay
           }
         }
       } catch {}
     }
-    return true; // Keep loading active to show skeleton until fresh Firestore data arrives
+    return true; // Only show skeleton on first visit if local cache is completely empty
   });
+
+  // Safety Watchdog: Guarantees loading skeleton is never stuck under any circumstance
+  useEffect(() => {
+    const watchdog = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+    return () => clearTimeout(watchdog);
+  }, []);
 
   // Progressive Infinite Scroll (Initial 10, then +5 on each scroll down)
   const INITIAL_LIMIT = 10;
@@ -130,24 +129,10 @@ function ExploreContent() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Reset pagination on search change & save active explore query URL
+  // Reset pagination on search change & save active explore query URL (Instant 0ms in-memory filter)
   useEffect(() => {
     setVisibleCount(INITIAL_LIMIT);
     setIsLoadingMore(false);
-
-    // If current in-memory listings do not contain matching items, show skeleton while loading
-    const sCity = cityParam.trim().toLowerCase();
-    const sCat = catParam.trim().toLowerCase();
-    const hasImmediateMatch = (listings || []).some((l) => {
-      if (l.status?.toLowerCase() === 'rejected' || l.isPublic === false) return false;
-      const matchesC = matchCity(l.city || '', sCity, l.address);
-      const matchesK = matchCategory(l.category || '', sCat, categories);
-      return matchesC && matchesK;
-    });
-
-    if (!hasImmediateMatch) {
-      setLoading(true);
-    }
 
     if (typeof window !== 'undefined') {
       try {
@@ -156,7 +141,7 @@ function ExploreContent() {
         sessionStorage.setItem('lb_internal_nav', 'true');
       } catch {}
     }
-  }, [cityParam, catParam, categories]);
+  }, [cityParam, catParam]);
 
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [newsAds, setNewsAds] = useState<NewsItem[]>([]);
@@ -253,82 +238,24 @@ function ExploreContent() {
     } catch {}
   };
 
-  // Filter listings
-  const cityQuery = cityParam.trim().toLowerCase();
-  const catQuery = catParam.trim().toLowerCase();
+  // Instant 0ms In-Memory Filter & Priority Sorting (Memoized for silky-smooth search & back navigation)
+  const filtered = useMemo(() => {
+    const cityQuery = cityParam.trim().toLowerCase();
+    const catQuery = catParam.trim().toLowerCase();
 
-  const filtered = listings.filter((l) => {
-    if (l.status?.toLowerCase() === 'rejected') return false;
-    if (l.isPublic === false && (l.status?.toLowerCase() === 'draft' || l.status?.toLowerCase() === 'hidden')) {
-      return false;
-    }
-
-    const matchesCity = matchCity(l.city || '', cityQuery, l.address, l.serviceCities);
-    const matchesCat = matchCategory(l.category || '', catQuery, categories);
-
-    return matchesCity && matchesCat;
-  });
-
-  // Auto-sync live reviews and calculate ratings for matched listings without a known rating
-  // This guarantees that any shop with reviews is ranked at the top immediately on search without clicking!
-  useEffect(() => {
-    if (!filtered || filtered.length === 0) return;
-
-    const unrated = filtered.filter((l) => l.rating === undefined || l.rating === null);
-    if (unrated.length === 0) return;
-
-    let isMounted = true;
-    Promise.all(
-      unrated.map(async (l) => {
-        try {
-          const revs = await cloudSync.pullStoreReviews(l.id);
-          if (Array.isArray(revs) && revs.length > 0) {
-            const valids = revs.filter((r) => r && typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5);
-            if (valids.length > 0) {
-              const sum = valids.reduce((acc, r) => acc + Number(r.rating), 0);
-              const avg = Number((sum / valids.length).toFixed(1));
-              return { id: l.id, rating: avg, reviewsCount: valids.length };
-            }
-          }
-          return { id: l.id, rating: 0, reviewsCount: 0 };
-        } catch {
-          return null;
-        }
-      })
-    ).then((results) => {
-      if (!isMounted) return;
-      let hasUpdates = false;
-      const updatedListings = listings.map((l) => {
-        const found = results.find((r) => r && r.id === l.id);
-        if (found && (l.rating !== found.rating || l.reviewsCount !== found.reviewsCount)) {
-          hasUpdates = true;
-          if (found.rating > 0) {
-            cloudSync.syncStoreRating(l.id, found.rating, found.reviewsCount);
-          }
-          return { ...l, rating: found.rating, reviewsCount: found.reviewsCount };
-        }
-        return l;
-      });
-
-      if (hasUpdates) {
-        setListings(updatedListings);
-        try {
-          localStorage.setItem('lb_cached_listings', JSON.stringify(updatedListings));
-        } catch {}
+    const matches = listings.filter((l) => {
+      if (l.status?.toLowerCase() === 'rejected') return false;
+      if (l.isPublic === false && (l.status?.toLowerCase() === 'draft' || l.status?.toLowerCase() === 'hidden')) {
+        return false;
       }
+
+      const matchesCity = matchCity(l.city || '', cityQuery, l.address, l.serviceCities);
+      const matchesCat = matchCategory(l.category || '', catQuery, categories);
+
+      return matchesCity && matchesCat;
     });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [cityParam, catParam, filtered.length]);
-
-  // Priority Sorting:
-  // 1. Trust Badge active listings ALWAYS appear first at the top!
-  // 2. Among Trust Badge stores, sort by highest rating (descending), then review count
-  // 3. Free (non-Trust Badge) stores appear below, also sorted by rating (descending), then review count
-  const sortListingsByTrustAndRating = (list: Listing[]) => {
-    return list.sort((a, b) => {
+    return matches.sort((a, b) => {
       const aTrust = isTrustBadgeActive(a) ? 1 : 0;
       const bTrust = isTrustBadgeActive(b) ? 1 : 0;
       if (aTrust !== bTrust) {
@@ -346,9 +273,71 @@ function ExploreContent() {
       }
       return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
     });
-  };
+  }, [listings, cityParam, catParam, categories]);
 
-  sortListingsByTrustAndRating(filtered);
+  // Track stores already reviewed to prevent repetitive background queries
+  const syncedReviewStoreIdsRef = useRef<Set<string>>(new Set());
+
+  // Auto-sync live reviews quietly in background without freezing UI or repeating queries
+  useEffect(() => {
+    if (!filtered || filtered.length === 0) return;
+
+    const unrated = filtered
+      .filter((l) => (l.rating === undefined || l.rating === null) && !syncedReviewStoreIdsRef.current.has(l.id))
+      .slice(0, 6);
+
+    if (unrated.length === 0) return;
+
+    unrated.forEach((l) => syncedReviewStoreIdsRef.current.add(l.id));
+
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      Promise.all(
+        unrated.map(async (l) => {
+          try {
+            const revs = await cloudSync.pullStoreReviews(l.id);
+            if (Array.isArray(revs) && revs.length > 0) {
+              const valids = revs.filter((r) => r && typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5);
+              if (valids.length > 0) {
+                const sum = valids.reduce((acc, r) => acc + Number(r.rating), 0);
+                const avg = Number((sum / valids.length).toFixed(1));
+                return { id: l.id, rating: avg, reviewsCount: valids.length };
+              }
+            }
+            return { id: l.id, rating: 0, reviewsCount: 0 };
+          } catch {
+            return null;
+          }
+        })
+      ).then((results) => {
+        if (!isMounted) return;
+        let hasUpdates = false;
+        const updatedListings = listings.map((l) => {
+          const found = results.find((r) => r && r.id === l.id);
+          if (found && (l.rating !== found.rating || l.reviewsCount !== found.reviewsCount)) {
+            hasUpdates = true;
+            if (found.rating > 0) {
+              cloudSync.syncStoreRating(l.id, found.rating, found.reviewsCount);
+            }
+            return { ...l, rating: found.rating, reviewsCount: found.reviewsCount };
+          }
+          return l;
+        });
+
+        if (hasUpdates) {
+          setListings(updatedListings);
+          try {
+            localStorage.setItem('lb_cached_listings', JSON.stringify(updatedListings));
+          } catch {}
+        }
+      });
+    }, 500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [filtered.length]);
 
   // STRICT DIRECTORY RULE: Listings stay STRICTLY in their own city and category.
   // Never bleed or show listings from another city when a city search returns 0 results.
