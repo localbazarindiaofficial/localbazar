@@ -132,6 +132,93 @@ function StoreCategoryCatalogContent() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'customer' | 'store'; text: string; time: string; product?: ProductItem | null }>>([]);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
+  // Native App-Like Back Navigation (Modal dismiss & Parent Store Return)
+  const isAnyModalOpen = Boolean(lightboxImg || isChatOpen || activeViewerProduct);
+  const isAnyModalOpenRef = useRef(false);
+  isAnyModalOpenRef.current = isAnyModalOpen;
+  const modalHistoryPushedRef = useRef(false);
+  const isHardwareBackActionRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isAnyModalOpen) {
+      if (!modalHistoryPushedRef.current) {
+        window.history.pushState({ modalOpen: true }, '');
+        modalHistoryPushedRef.current = true;
+      }
+    } else {
+      if (modalHistoryPushedRef.current) {
+        modalHistoryPushedRef.current = false;
+        if (!isHardwareBackActionRef.current && window.history.state?.modalOpen) {
+          window.history.back();
+        }
+      }
+      isHardwareBackActionRef.current = false;
+    }
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const isDirectEntry = !sessionStorage.getItem('lb_internal_nav');
+    if (isDirectEntry) {
+      try {
+        window.history.pushState({ lb_catalog_direct: true }, '', window.location.href);
+      } catch {}
+    }
+
+    const onPopState = () => {
+      if (isAnyModalOpenRef.current) {
+        isHardwareBackActionRef.current = true;
+        setLightboxImg(null);
+        setIsChatOpen(false);
+        setActiveViewerProduct(null);
+        modalHistoryPushedRef.current = false;
+        return;
+      }
+
+      const targetShopUrl = listing?.id || listingId ? `/shops/${encodeURIComponent(listing?.id || listingId)}` : '/';
+      const isDirect = !sessionStorage.getItem('lb_internal_nav');
+      if (isDirect) {
+        router.replace(targetShopUrl);
+      }
+      // For internal navigation, browser pops naturally back to the parent store
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [router, listing, listingId]);
+
+  const handleCatalogBack = () => {
+    if (isAnyModalOpenRef.current) {
+      setLightboxImg(null);
+      setIsChatOpen(false);
+      setActiveViewerProduct(null);
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
+      modalHistoryPushedRef.current = false;
+      try { window.history.back(); } catch {}
+    }
+
+    const targetShopUrl = listing?.id || listingId ? `/shops/${encodeURIComponent(listing?.id || listingId)}` : '/';
+    const isInternal = typeof window !== 'undefined' && sessionStorage.getItem('lb_internal_nav') === 'true';
+    if (isInternal && typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/catalog')) {
+          router.replace(targetShopUrl);
+        }
+      }, 200);
+      return;
+    }
+
+    router.replace(targetShopUrl);
+  };
+
   // 1. Load listing data directly from Cloud Firestore (Zero demo data)
   useEffect(() => {
     if (!listingId) return;
@@ -437,7 +524,7 @@ function StoreCategoryCatalogContent() {
             <Link href="/explore" style={{ background: '#1a73e8', color: '#ffffff', textDecoration: 'none', padding: '0.8rem 1.25rem', borderRadius: 12, fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <i className="fa-solid fa-compass"></i> Explore All Places
             </Link>
-            <Link href="/" style={{ background: '#f1f5f9', color: '#334155', textDecoration: 'none', padding: '0.8rem 1.25rem', borderRadius: 12, fontWeight: 600, fontSize: '0.92rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Link href="/" replace style={{ background: '#f1f5f9', color: '#334155', textDecoration: 'none', padding: '0.8rem 1.25rem', borderRadius: 12, fontWeight: 600, fontSize: '0.92rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <i className="fa-solid fa-magnifying-glass"></i> Back to Home Search
             </Link>
           </div>
@@ -451,9 +538,9 @@ function StoreCategoryCatalogContent() {
       {/* Sticky Top Navigation Bar */}
       <header className="store-cat-top-nav">
         <div className="store-cat-nav-container">
-          <Link href={`/shops/${encodeURIComponent(listing.id)}`} className="nav-back-btn" title="Back to Store">
+          <button type="button" onClick={handleCatalogBack} className="nav-back-btn" title="Back to Store">
             <i className="fa-solid fa-arrow-left"></i>
-          </Link>
+          </button>
           <div className="nav-store-meta">
             <h2 className="nav-store-name">{activeCategory?.label || listing.name}</h2>
             <span className="nav-store-sub">

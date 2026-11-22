@@ -114,6 +114,14 @@ function ProductDetailPageContent() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Direct entry from outside (e.g. WhatsApp / shared product link)
+    const isDirectEntry = !sessionStorage.getItem('lb_internal_nav');
+    if (isDirectEntry) {
+      try {
+        window.history.pushState({ lb_product_direct: true }, '', window.location.href);
+      } catch {}
+    }
+
     const onPopState = () => {
       if (isAnyModalOpenRef.current) {
         isHardwareBackActionRef.current = true;
@@ -125,27 +133,28 @@ function ProductDetailPageContent() {
         return;
       }
 
-      const isStandalone = (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes('android-app://')
-      );
-
-      if (isStandalone && window.history.length <= 2) {
-        router.push(shop?.id ? `/shops/${shop.id}` : '/');
+      const targetShopUrl = shop?.id || shopId ? `/shops/${encodeURIComponent(shop?.id || shopId)}` : '/';
+      const isDirect = !sessionStorage.getItem('lb_internal_nav');
+      if (isDirect) {
+        router.replace(targetShopUrl);
+        return;
       }
+
+      // For internal navigation, browser pops naturally back to the parent shop
     };
 
     window.addEventListener('popstate', onPopState);
     return () => {
       window.removeEventListener('popstate', onPopState);
     };
-  }, [router, shop]);
+  }, [router, shop, shopId]);
 
   const handleProductBack = () => {
     if (isAnyModalOpenRef.current) {
       setLightboxImg(null);
       setShowReviewModal(false);
+      setShowContactAuthModal(false);
+      setPendingContactAction(null);
       return;
     }
 
@@ -157,20 +166,18 @@ function ProductDetailPageContent() {
 
     const targetShopUrl = shop?.id || shopId ? `/shops/${encodeURIComponent(shop?.id || shopId)}` : '/';
 
-    // Attempt router.back() if internal referrer exists, with reliable instant fallback
-    try {
-      if (typeof window !== 'undefined' && document.referrer && document.referrer.includes(window.location.host)) {
-        router.back();
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.location.pathname.includes('/product/')) {
-            router.push(targetShopUrl);
-          }
-        }, 250);
-        return;
-      }
-    } catch {}
+    const isInternal = typeof window !== 'undefined' && sessionStorage.getItem('lb_internal_nav') === 'true';
+    if (isInternal && typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/product/')) {
+          router.replace(targetShopUrl);
+        }
+      }, 200);
+      return;
+    }
 
-    router.push(targetShopUrl);
+    router.replace(targetShopUrl);
   };
 
   // Auth observer

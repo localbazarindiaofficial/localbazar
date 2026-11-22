@@ -172,6 +172,49 @@ function ExploreContent() {
     } catch {}
   }, [router]);
 
+  // Native App-Like Back Navigation (Returns directly to Home)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const isDirectEntry = !sessionStorage.getItem('lb_internal_nav');
+    if (isDirectEntry) {
+      try {
+        window.history.pushState({ lb_explore_direct: true }, '', window.location.href);
+      } catch {}
+    }
+
+    const onPopState = () => {
+      // Direct external entry -> navigate smoothly to Home
+      const isDirect = !sessionStorage.getItem('lb_internal_nav');
+      if (isDirect) {
+        router.replace('/');
+      }
+      // For internal navigation, browser pops naturally back to Home
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [router]);
+
+  const handleExploreBack = () => {
+    try {
+      sessionStorage.setItem('lb_nav_origin', 'home');
+    } catch {}
+    const isInternal = typeof window !== 'undefined' && sessionStorage.getItem('lb_internal_nav') === 'true';
+    if (isInternal && typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/explore')) {
+          router.replace('/');
+        }
+      }, 200);
+      return;
+    }
+    router.replace('/');
+  };
+
 
   useEffect(() => {
     // Load categories & campaign banners directly from Cloud
@@ -442,9 +485,7 @@ function ExploreContent() {
               <button
                 type="button"
                 className="explore-nav-back-btn"
-                onClick={() => {
-                  router.push('/');
-                }}
+                onClick={handleExploreBack}
                 title="Back to Home"
               >
                 <i className="fa-solid fa-arrow-left"></i>
@@ -523,8 +564,9 @@ function ExploreContent() {
                 We couldn&apos;t find verified {catParam ? `"${catParam}"` : 'businesses'} matching your search in{' '}
                 {cityParam ? `"${cityParam}"` : 'this city'}.
               </p>
-              <Link
-                href="/"
+              <button
+                type="button"
+                onClick={handleExploreBack}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -536,10 +578,12 @@ function ExploreContent() {
                   fontWeight: 700,
                   fontSize: '0.92rem',
                   textDecoration: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                 }}
               >
                 <i className="fa-solid fa-arrow-left"></i> Try Another Search
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="listings-grid-feed" id="listingsGridFeed">

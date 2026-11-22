@@ -288,7 +288,7 @@ export default function ShopDetailPage() {
     }
 
     const onPopState = () => {
-      // 1. If any modal/sheet is open, close modal
+      // 1. If any modal/sheet is open, close modal only
       if (isAnyModalOpenRef.current) {
         isHardwareBackActionRef.current = true;
         closeModalStatesOnly();
@@ -296,9 +296,16 @@ export default function ShopDetailPage() {
         return;
       }
 
-      // 2. Navigate smoothly to target destination
-      const target = resolveBackDestination();
-      router.push(target);
+      // 2. Direct external entry (shared link) -> navigate smoothly to target destination (Home)
+      const isDirect = !sessionStorage.getItem('lb_internal_nav') || !sessionStorage.getItem('lb_nav_origin');
+      if (isDirect) {
+        const target = resolveBackDestination();
+        router.replace(target);
+        return;
+      }
+
+      // 3. For internal navigation (from Explore or Home), browser's native pop already returns to origin.
+      // NEVER call router.push() here, because pushing creates an infinite history loop!
     };
 
     window.addEventListener('popstate', onPopState);
@@ -328,7 +335,17 @@ export default function ShopDetailPage() {
     }
 
     const target = resolveBackDestination();
-    router.push(target);
+    const isInternal = typeof window !== 'undefined' && sessionStorage.getItem('lb_internal_nav') === 'true';
+    if (isInternal && typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/shops/')) {
+          router.replace(target);
+        }
+      }, 200);
+      return;
+    }
+    router.replace(target);
   };
 
   // Track Current User
@@ -1014,7 +1031,7 @@ export default function ShopDetailPage() {
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>Listing Not Found</h2>
           <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '1.5rem' }}>The business you are looking for may have been updated or removed.</p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.replace('/')}
             style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.75rem 1.75rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
           >
             <i className="fa-solid fa-arrow-left"></i> Back to Home

@@ -589,7 +589,17 @@ export default function AccountPage() {
 
     // 2. If at main menu, return to Home page
     if (activeScreen === 'viewMainMenu') {
-      router.push('/');
+      const isInternal = typeof window !== 'undefined' && sessionStorage.getItem('lb_internal_nav') === 'true';
+      if (isInternal && typeof window !== 'undefined' && window.history.length > 1) {
+        router.back();
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/account')) {
+            router.replace('/');
+          }
+        }, 200);
+        return;
+      }
+      router.replace('/');
       return;
     }
 
@@ -599,7 +609,7 @@ export default function AccountPage() {
       window.history.back();
     } else {
       if (fallback === 'home') {
-        router.push('/');
+        router.replace('/');
       } else {
         goToScreen(fallback);
       }
@@ -689,7 +699,11 @@ export default function AccountPage() {
       }
 
       // 2. Step back to previous screen
-      const targetScreen: AccountScreen = e.state?.screen || 'viewMainMenu';
+      if (!e.state?.screen) {
+        router.replace('/');
+        return;
+      }
+      const targetScreen: AccountScreen = e.state.screen;
       setActiveScreen(targetScreen);
       window.scrollTo({ top: 0, behavior: 'instant' });
     };
