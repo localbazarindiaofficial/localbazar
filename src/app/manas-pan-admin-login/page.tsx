@@ -252,6 +252,7 @@ export default function SuperAdminPage() {
 
   // Super Admin Add Listing State
   const [isAddListingModalOpen, setIsAddListingModalOpen] = useState(false);
+  const [addListingStep, setAddListingStep] = useState<1 | 2 | 3>(1);
   const [addName, setAddName] = useState('');
   const [addCategory, setAddCategory] = useState('');
   const [addCity, setAddCity] = useState('');
@@ -929,6 +930,7 @@ export default function SuperAdminPage() {
   };
 
   const openAddListingModal = () => {
+    setAddListingStep(1);
     setAddName('');
     setAddCategory(categories[0]?.name || '');
     setAddCity(cities[0]?.name || '');
@@ -947,6 +949,34 @@ export default function SuperAdminPage() {
     setAddTrustBadge(false);
     setAddOwnerEmail('Super Admin');
     setIsAddListingModalOpen(true);
+  };
+
+  const handleNextToAddStep2 = () => {
+    if (!addName.trim()) {
+      alert('Please enter Business / Shop Name.');
+      return;
+    }
+    if (!addCategory.trim()) {
+      alert('Please select or enter Primary Category.');
+      return;
+    }
+    if (!addCity.trim()) {
+      alert('Please select or enter Primary City.');
+      return;
+    }
+    if (!addPhone.trim()) {
+      alert('Please enter Primary Phone Number.');
+      return;
+    }
+    setAddListingStep(2);
+  };
+
+  const handleNextToAddStep3 = () => {
+    if (!addAddress.trim()) {
+      alert('Please enter Full Physical Address.');
+      return;
+    }
+    setAddListingStep(3);
   };
 
   const handleSaveNewListing = async (e: React.FormEvent) => {
@@ -8032,7 +8062,7 @@ export default function SuperAdminPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     paddingBottom: '1rem',
-                    marginBottom: '1.25rem',
+                    marginBottom: '1rem',
                     borderBottom: '1px solid #e2e8f0',
                   }}
                 >
@@ -8057,7 +8087,12 @@ export default function SuperAdminPage() {
                         Add New Business Listing
                       </h3>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
-                        Super Admin Direct Addition &bull; Linked with cloud database
+                        Step {addListingStep} of 3 &bull;{' '}
+                        {addListingStep === 1
+                          ? 'Basic Details, Photos & Category'
+                          : addListingStep === 2
+                          ? 'Address & Google Map'
+                          : 'Operating Schedule & Admin Controls'}
                       </p>
                     </div>
                   </div>
@@ -8081,546 +8116,821 @@ export default function SuperAdminPage() {
                   </button>
                 </div>
 
-                {/* Add Form */}
-                <form onSubmit={handleSaveNewListing}>
-                  <div
+                {/* 3-Step Wizard Navigation Bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.65rem 0.85rem',
+                    background: '#f8fafc',
+                    borderRadius: 12,
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '1.25rem',
+                    overflowX: 'auto',
+                  }}
+                >
+                  {/* Step 1 Pill */}
+                  <button
+                    type="button"
+                    onClick={() => setAddListingStep(1)}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-                      gap: '1rem',
-                      marginBottom: '1.25rem',
+                      flex: 1,
+                      minWidth: 160,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.55rem',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: 999,
+                      border: addListingStep === 1 ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                      background: addListingStep === 1 ? '#ecfdf5' : '#ffffff',
+                      color: addListingStep === 1 ? '#15803d' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      boxShadow: addListingStep === 1 ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    {/* Business Name */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Business / Shop Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={addName}
-                        onChange={(e) => setAddName(e.target.value)}
-                        placeholder="e.g. Mondal Electronics"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                    </div>
+                    <span
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: addListingStep > 1 ? '#16a34a' : (addListingStep === 1 ? '#16a34a' : '#cbd5e1'),
+                        color: '#ffffff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                      }}
+                    >
+                      {addListingStep > 1 ? <i className="fa-solid fa-check"></i> : '1'}
+                    </span>
+                    <span>1. Basic & Photos</span>
+                  </button>
 
-                    {/* Category */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Primary Category *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        list="adminAddCatList"
-                        value={addCategory}
-                        onChange={(e) => setAddCategory(e.target.value)}
-                        placeholder="Select or type Category"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                      <datalist id="adminAddCatList">
-                        {categories.map((c) => (
-                          <option key={c.id || c.name} value={c.name} />
-                        ))}
-                      </datalist>
-                    </div>
+                  {/* Step 2 Pill */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!addName.trim() || !addPhone.trim()) {
+                        alert('Please fill Business Name and Phone Number in Step 1 first.');
+                        return;
+                      }
+                      setAddListingStep(2);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 160,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.55rem',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: 999,
+                      border: addListingStep === 2 ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                      background: addListingStep === 2 ? '#ecfdf5' : '#ffffff',
+                      color: addListingStep === 2 ? '#15803d' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      boxShadow: addListingStep === 2 ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: addListingStep > 2 ? '#16a34a' : (addListingStep === 2 ? '#16a34a' : '#cbd5e1'),
+                        color: '#ffffff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                      }}
+                    >
+                      {addListingStep > 2 ? <i className="fa-solid fa-check"></i> : '2'}
+                    </span>
+                    <span>2. Address & Map</span>
+                  </button>
 
-                    {/* City */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Primary Base City *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        list="adminAddCityList"
-                        value={addCity}
-                        onChange={(e) => setAddCity(e.target.value)}
-                        placeholder="Select or type City"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                      <datalist id="adminAddCityList">
-                        {cities.map((ct) => (
-                          <option key={ct.id || ct.name} value={ct.name} />
-                        ))}
-                      </datalist>
-                    </div>
+                  {/* Step 3 Pill */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!addName.trim() || !addPhone.trim()) {
+                        alert('Please fill Business Name and Phone Number in Step 1 first.');
+                        return;
+                      }
+                      if (!addAddress.trim()) {
+                        alert('Please fill Physical Address in Step 2 first.');
+                        return;
+                      }
+                      setAddListingStep(3);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 160,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.55rem',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: 999,
+                      border: addListingStep === 3 ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                      background: addListingStep === 3 ? '#ecfdf5' : '#ffffff',
+                      color: addListingStep === 3 ? '#15803d' : '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      boxShadow: addListingStep === 3 ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: addListingStep === 3 ? '#16a34a' : '#cbd5e1',
+                        color: '#ffffff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                      }}
+                    >
+                      3
+                    </span>
+                    <span>3. Timings & Publish</span>
+                  </button>
+                </div>
 
-                    {/* Multiple Service Cities / Nearby Areas (Optional - Max 5) */}
-                    <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '0.85rem', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
-                          <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                {/* Wizard Form */}
+                <form onSubmit={handleSaveNewListing}>
+                  {/* ================= STAGE 1: BASIC & PHOTOS ================= */}
+                  {addListingStep === 1 && (
+                    <div>
+                      {/* Photo Upload Card */}
+                      <div style={{ marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <label style={{ margin: 0, fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
+                            <i className="fa-solid fa-camera" style={{ color: '#2563eb', marginRight: 6 }}></i> Shop & Product Photos (Optional)
+                          </label>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                            {addPhotos.length} photo(s) &bull; First photo will be main cover
+                          </span>
+                        </div>
+
+                        {/* Previews */}
+                        {addPhotos.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.85rem' }}>
+                            {addPhotos.map((url, idx) => (
+                              <div key={idx} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: idx === 0 ? '2px solid #2563eb' : '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {idx === 0 && (
+                                  <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(37, 99, 235, 0.9)', color: '#fff', fontSize: '0.62rem', textAlign: 'center', fontWeight: 700, padding: '1px 0' }}>
+                                    Cover
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAddListingPhoto(idx)}
+                                  style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', cursor: 'pointer' }}
+                                  title="Delete photo"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Upload Button */}
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px dashed #cbd5e1', padding: '0.65rem 1.15rem', borderRadius: 8, cursor: addPhotosUploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
+                          {addPhotosUploading ? (
+                            <>
+                              <i className="fa-solid fa-spinner fa-spin" style={{ color: '#2563eb' }}></i>
+                              <span>Uploading to Cloud...</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-cloud-arrow-up" style={{ color: '#2563eb' }}></i>
+                              <span>Upload Photos from Device</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            disabled={addPhotosUploading}
+                            onChange={handleAddListingPhotoUpload}
+                            style={{ display: 'none' }}
+                          />
                         </label>
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                          {addServiceCities.length} / 5 Selected
-                        </span>
                       </div>
-                      <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.75rem', color: '#64748b' }}>
-                        If this business serves multiple towns (e.g. Caterer, Electrician, Plumber, Decorator, Delivery), add up to 5 nearby cities so it appears in search results for all of them.
-                      </p>
 
-                      {/* Selected Tags */}
-                      {addServiceCities.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
-                          {addServiceCities.map((sc) => (
-                            <span
-                              key={sc}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: '#e0f2fe',
-                                color: '#0369a1',
-                                border: '1px solid #bae6fd',
-                                borderRadius: '6px',
-                                padding: '3px 8px',
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
-                              {sc}
+                      {/* Main Basic Info Grid */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+                          gap: '1rem',
+                          marginBottom: '1.25rem',
+                        }}
+                      >
+                        {/* Business Name */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Business / Shop Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={addName}
+                            onChange={(e) => setAddName(e.target.value)}
+                            placeholder="e.g. Mondal Electronics"
+                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                          />
+                        </div>
+
+                        {/* Category */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Primary Category *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            list="adminAddCatList"
+                            value={addCategory}
+                            onChange={(e) => setAddCategory(e.target.value)}
+                            placeholder="Select or type Category"
+                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                          />
+                          <datalist id="adminAddCatList">
+                            {categories.map((c) => (
+                              <option key={c.id || c.name} value={c.name} />
+                            ))}
+                          </datalist>
+                        </div>
+
+                        {/* Primary Base City */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Primary Base City *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            list="adminAddCityList"
+                            value={addCity}
+                            onChange={(e) => setAddCity(e.target.value)}
+                            placeholder="Select or type City"
+                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                          />
+                          <datalist id="adminAddCityList">
+                            {cities.map((ct) => (
+                              <option key={ct.id || ct.name} value={ct.name} />
+                            ))}
+                          </datalist>
+                        </div>
+
+                        {/* Phone Number */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Primary Phone Number *
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={addPhone}
+                            onChange={(e) => setAddPhone(e.target.value)}
+                            placeholder="e.g. 9876543210"
+                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                          />
+                        </div>
+
+                        {/* WhatsApp Number */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <label style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
+                              WhatsApp Number (Optional)
+                            </label>
+                            {addPhone && (
                               <button
                                 type="button"
-                                onClick={() => handleRemoveAddListingServiceCity(sc)}
+                                onClick={() => setAddWhatsapp(addPhone)}
+                                style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                              >
+                                Same as Phone
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="tel"
+                            value={addWhatsapp}
+                            onChange={(e) => setAddWhatsapp(e.target.value)}
+                            placeholder="WhatsApp contact (defaults to primary phone if empty)"
+                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Multiple Service Cities / Nearby Areas (Optional - Max 5) */}
+                      <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: 8, border: '1px dashed #cbd5e1', marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
+                            <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                          </label>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                            {addServiceCities.length} / 5 Selected
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                          If this business serves multiple towns (e.g. Caterer, Electrician, Plumber, Decorator, Delivery), add up to 5 nearby cities so it appears in search results for all of them.
+                        </p>
+
+                        {/* Selected Tags */}
+                        {addServiceCities.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
+                            {addServiceCities.map((sc) => (
+                              <span
+                                key={sc}
                                 style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#0284c7',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  fontSize: '0.75rem',
-                                  lineHeight: 1,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  border: '1px solid #bae6fd',
+                                  borderRadius: '6px',
+                                  padding: '3px 8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 700,
                                 }}
                               >
-                                &times;
-                              </button>
-                            </span>
+                                <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
+                                {sc}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAddListingServiceCity(sc)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#0284c7',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    fontSize: '0.75rem',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Tag Input */}
+                        {addServiceCities.length < 5 && (
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              list="adminAddServiceCityOptions"
+                              value={addServiceCityInput}
+                              onChange={(e) => setAddServiceCityInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddListingServiceCity(addServiceCityInput);
+                                }
+                              }}
+                              placeholder="Type or pick nearby city and press Add..."
+                              style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                            />
+                            <datalist id="adminAddServiceCityOptions">
+                              {cities
+                                .filter((c) => c.name.toLowerCase() !== addCity.toLowerCase() && !addServiceCities.includes(c.name))
+                                .map((c) => (
+                                  <option key={c.id || c.name} value={c.name} />
+                                ))}
+                            </datalist>
+                            <button
+                              type="button"
+                              onClick={() => handleAddListingServiceCity(addServiceCityInput)}
+                              style={{
+                                padding: '0.5rem 0.9rem',
+                                borderRadius: 8,
+                                border: 'none',
+                                background: '#0284c7',
+                                color: '#fff',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                              }}
+                            >
+                              <i className="fa-solid fa-plus"></i> Add
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description / About */}
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          About / Business Description (Optional)
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={addDesc}
+                          onChange={(e) => setAddDesc(e.target.value)}
+                          placeholder="Detailed overview of products, services, specialty, or history..."
+                          style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      {/* Step 1 Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddListingModalOpen(false)}
+                          style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, fontSize: '0.88rem', color: '#475569', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleNextToAddStep2}
+                          style={{
+                            padding: '0.65rem 1.5rem',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: '#16a34a',
+                            fontWeight: 700,
+                            fontSize: '0.88rem',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                          }}
+                        >
+                          <span>Next: Address & Map</span>
+                          <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ================= STAGE 2: ADDRESS & GOOGLE MAP ================= */}
+                  {addListingStep === 2 && (
+                    <div>
+                      {/* Active Shop Context Banner */}
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                          <i className="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>
+                            {addName || 'Untitled Business'} &bull; Base City: {addCity || 'Not selected'}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#15803d' }}>
+                            Specify physical shop location and Google Map pin for easy customer navigation.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Full Physical Address */}
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          Full Physical Address *
+                        </label>
+                        <textarea
+                          required
+                          rows={3}
+                          value={addAddress}
+                          onChange={(e) => setAddAddress(e.target.value)}
+                          placeholder="Shop / Stall number, landmark, market name, street, road, town, district, PIN code..."
+                          style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                        />
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Accurate landmark and street details help local buyers find the store easily.
+                        </span>
+                      </div>
+
+                      {/* Google Maps Link */}
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          Google Maps Direction URL (Optional)
+                        </label>
+                        <input
+                          type="url"
+                          value={addMapLink}
+                          onChange={(e) => setAddMapLink(e.target.value)}
+                          placeholder="https://maps.google.com/?q=... or https://maps.app.goo.gl/..."
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                        />
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Paste a share link from Google Maps app or web so customers can get 1-click GPS driving directions.
+                        </span>
+                      </div>
+
+                      {/* Step 2 Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          type="button"
+                          onClick={() => setAddListingStep(1)}
+                          style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, fontSize: '0.88rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          <i className="fa-solid fa-arrow-left"></i>
+                          <span>Back: Basic Details</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleNextToAddStep3}
+                          style={{
+                            padding: '0.65rem 1.5rem',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: '#16a34a',
+                            fontWeight: 700,
+                            fontSize: '0.88rem',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                          }}
+                        >
+                          <span>Next: Timings & Publish</span>
+                          <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ================= STAGE 3: TIMINGS & PUBLISH ================= */}
+                  {addListingStep === 3 && (
+                    <div>
+                      {/* Schedule Timings */}
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <label style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                            Business Hours / Timings *
+                          </label>
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={addScheduleTimings}
+                          onChange={(e) => setAddScheduleTimings(e.target.value)}
+                          placeholder="e.g. 09:00 AM - 08:30 PM"
+                          style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', marginBottom: 8 }}
+                        />
+                        {/* Quick Timing Presets */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                          {['09:00 AM - 08:30 PM', '10:00 AM - 09:00 PM', '08:00 AM - 10:00 PM', '24 Hours Open'].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setAddScheduleTimings(preset)}
+                              style={{
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: 6,
+                                border: '1px solid #cbd5e1',
+                                background: addScheduleTimings === preset ? '#e0f2fe' : '#ffffff',
+                                color: addScheduleTimings === preset ? '#0369a1' : '#64748b',
+                                fontSize: '0.74rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {preset}
+                            </button>
                           ))}
                         </div>
-                      )}
+                      </div>
 
-                      {/* Add Tag Input */}
-                      {addServiceCities.length < 5 && (
+                      {/* Assign Owner Account / Link Merchant */}
+                      <div style={{ marginBottom: '1.25rem', background: '#f5f3ff', padding: '0.9rem', borderRadius: 10, border: '1px solid #ddd6fe' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', marginBottom: 4 }}>
+                          <i className="fa-solid fa-user-check"></i>
+                          <span>Assign / Link Business Owner Account (Email or Phone)</span>
+                        </label>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                          Leave as &ldquo;Super Admin&rdquo; if adding on behalf of a shop before they join. Later, when the owner registers or claims it, you can link their email here and it will instantly show in their portal.
+                        </p>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           <input
                             type="text"
-                            list="adminAddServiceCityOptions"
-                            value={addServiceCityInput}
-                            onChange={(e) => setAddServiceCityInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddListingServiceCity(addServiceCityInput);
-                              }
-                            }}
-                            placeholder="Type or pick nearby city and press Add..."
-                            style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                            value={addOwnerEmail}
+                            onChange={(e) => setAddOwnerEmail(e.target.value)}
+                            placeholder="e.g. merchant@gmail.com or leave as Super Admin"
+                            style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: 8, border: '1.5px solid #c4b5fd', fontSize: '0.88rem', background: '#fff' }}
                           />
-                          <datalist id="adminAddServiceCityOptions">
-                            {cities
-                              .filter((c) => c.name.toLowerCase() !== addCity.toLowerCase() && !addServiceCities.includes(c.name))
-                              .map((c) => (
-                                <option key={c.id || c.name} value={c.name} />
-                              ))}
-                          </datalist>
                           <button
                             type="button"
-                            onClick={() => handleAddListingServiceCity(addServiceCityInput)}
+                            onClick={() => setAddOwnerEmail('Super Admin')}
+                            style={{ padding: '0.55rem 0.85rem', borderRadius: 8, border: '1px solid #c4b5fd', background: '#ede9fe', color: '#6d28d9', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            Set Super Admin
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Controls & Badges (Status, Visibility, Trust Badge) */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          borderRadius: 12,
+                          padding: '1rem',
+                          border: '1px solid #e2e8f0',
+                          marginBottom: '1.25rem',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '1.5rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Status Select */}
+                        <div style={{ minWidth: 150 }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                            Listing Status
+                          </label>
+                          <select
+                            value={addStatus}
+                            onChange={(e) => setAddStatus(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+                          >
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="draft">Draft / Hidden</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
+                        </div>
+
+                        {/* Public Visibility Toggle */}
+                        <div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                            <input
+                              type="checkbox"
+                              checked={addIsPublic}
+                              onChange={(e) => setAddIsPublic(e.target.checked)}
+                              style={{ width: 17, height: 17, accentColor: '#2563eb' }}
+                            />
+                            <span>Publicly Visible on Storefront</span>
+                          </label>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                            Immediately searchable on Explore & Shops
+                          </span>
+                        </div>
+
+                        {/* Trust Badge Toggle */}
+                        <div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: addTrustBadge ? '#166534' : '#1e293b' }}>
+                            <input
+                              type="checkbox"
+                              checked={addTrustBadge}
+                              onChange={(e) => setAddTrustBadge(e.target.checked)}
+                              style={{ width: 17, height: 17, accentColor: '#16a34a' }}
+                            />
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <i className="fa-solid fa-shield-halved" style={{ color: addTrustBadge ? '#16a34a' : '#94a3b8' }}></i>
+                              Grant Gold Trust Badge
+                            </span>
+                          </label>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                            Activates verified gold shield & store features
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Cloud Authority Status Banner inside Modal */}
+                      <div
+                        style={{
+                          background: cloudAdminEmail ? '#f0fdf4' : '#fffbeb',
+                          border: `1px solid ${cloudAdminEmail ? '#bbf7d0' : '#fef08a'}`,
+                          borderRadius: 8,
+                          padding: '0.65rem 0.85rem',
+                          marginBottom: '1.25rem',
+                          fontSize: '0.8rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          color: cloudAdminEmail ? '#166534' : '#854d0e',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <i className={`fa-solid ${cloudAdminEmail ? 'fa-shield-check' : 'fa-triangle-exclamation'}`}></i>
+                          <span>
+                            {cloudAdminEmail
+                              ? `Super Admin Cloud Connected: ${cloudAdminEmail}`
+                              : 'Google Super Admin authority (localbazarindia.official@gmail.com) required to save changes'}
+                          </span>
+                        </div>
+                        {!cloudAdminEmail && (
+                          <button
+                            type="button"
+                            onClick={handleConnectCloudSuperAdmin}
                             style={{
-                              padding: '0.5rem 0.9rem',
+                              background: '#d97706',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '0.28rem 0.75rem',
+                              borderRadius: 6,
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Connect Google Account
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Step 3 Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          type="button"
+                          onClick={() => setAddListingStep(2)}
+                          style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, fontSize: '0.88rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          <i className="fa-solid fa-arrow-left"></i>
+                          <span>Back: Address & Map</span>
+                        </button>
+
+                        {!cloudAdminEmail ? (
+                          <button
+                            type="button"
+                            onClick={handleConnectCloudSuperAdmin}
+                            style={{
+                              padding: '0.65rem 1.4rem',
                               borderRadius: 8,
                               border: 'none',
-                              background: '#0284c7',
-                              color: '#fff',
-                              fontSize: '0.82rem',
+                              background: '#ea4335',
                               fontWeight: 700,
+                              fontSize: '0.88rem',
+                              color: '#fff',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.3rem',
+                              gap: '0.5rem',
+                              boxShadow: '0 2px 8px rgba(234,67,53,0.3)',
+                            }}
+                            title="Click to authenticate official Super Admin Google account before creating"
+                          >
+                            <i className="fa-brands fa-google"></i>
+                            <span>1-Click Google Authority to Create</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="submit"
+                            disabled={addSaving || addPhotosUploading}
+                            style={{
+                              padding: '0.65rem 1.5rem',
+                              borderRadius: 8,
+                              border: 'none',
+                              background: '#16a34a',
+                              fontWeight: 700,
+                              fontSize: '0.88rem',
+                              color: '#fff',
+                              cursor: addSaving || addPhotosUploading ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
                             }}
                           >
-                            <i className="fa-solid fa-plus"></i> Add
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Phone Number */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Primary Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={addPhone}
-                        onChange={(e) => setAddPhone(e.target.value)}
-                        placeholder="e.g. 9876543210"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                    </div>
-
-                    {/* WhatsApp */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <label style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
-                          WhatsApp Number (Optional)
-                        </label>
-                        {addPhone && (
-                          <button
-                            type="button"
-                            onClick={() => setAddWhatsapp(addPhone)}
-                            style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-                          >
-                            Same as Phone
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="tel"
-                        value={addWhatsapp}
-                        onChange={(e) => setAddWhatsapp(e.target.value)}
-                        placeholder="WhatsApp contact (defaults to phone)"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                    </div>
-
-                    {/* Schedule Timings */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Schedule / Timings
-                      </label>
-                      <input
-                        type="text"
-                        value={addScheduleTimings}
-                        onChange={(e) => setAddScheduleTimings(e.target.value)}
-                        placeholder="e.g. 08:30 AM - 09:00 PM"
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Full Physical Address */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      Full Address *
-                    </label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={addAddress}
-                      onChange={(e) => setAddAddress(e.target.value)}
-                      placeholder="Shop landmark, street, market, town, pin code"
-                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
-                    />
-                  </div>
-
-                  {/* Google Maps Link */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      Google Maps Direction URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={addMapLink}
-                      onChange={(e) => setAddMapLink(e.target.value)}
-                      placeholder="https://maps.google.com/..."
-                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
-                    />
-                  </div>
-
-                  {/* Description / About */}
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      About / Business Description (Optional)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={addDesc}
-                      onChange={(e) => setAddDesc(e.target.value)}
-                      placeholder="Detailed overview of products, services, specialty, or history..."
-                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
-                    />
-                  </div>
-
-                  {/* Photo / Images Upload */}
-                  <div style={{ marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
-                        <i className="fa-solid fa-camera" style={{ color: '#2563eb', marginRight: 6 }}></i> Shop & Product Photos (Optional)
-                      </label>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        {addPhotos.length} photo(s) uploaded &bull; First photo is cover
-                      </span>
-                    </div>
-
-                    {/* Previews */}
-                    {addPhotos.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.85rem' }}>
-                        {addPhotos.map((url, idx) => (
-                          <div key={idx} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: idx === 0 ? '2px solid #2563eb' : '1px solid #cbd5e1' }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={url} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            {idx === 0 && (
-                              <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(37, 99, 235, 0.85)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', fontWeight: 700, padding: '1px 0' }}>
-                                Cover
-                              </span>
+                            {addSaving ? (
+                              <>
+                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                <span>Creating Business...</span>
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-plus"></i>
+                                <span>Create & Publish Business</span>
+                              </>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAddListingPhoto(idx)}
-                              style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', cursor: 'pointer' }}
-                              title="Delete photo"
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Upload Input */}
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px dashed #cbd5e1', padding: '0.65rem 1.1rem', borderRadius: 8, cursor: addPhotosUploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
-                      {addPhotosUploading ? (
-                        <>
-                          <i className="fa-solid fa-spinner fa-spin" style={{ color: '#2563eb' }}></i>
-                          <span>Uploading Images to Cloud...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fa-solid fa-cloud-arrow-up" style={{ color: '#2563eb' }}></i>
-                          <span>Upload Photos from Device</span>
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        disabled={addPhotosUploading}
-                        onChange={handleAddListingPhotoUpload}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Assign Owner Account / Link Merchant */}
-                  <div style={{ marginBottom: '1.25rem', background: '#f5f3ff', padding: '0.9rem', borderRadius: 10, border: '1px solid #ddd6fe' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', marginBottom: 4 }}>
-                      <i className="fa-solid fa-user-check"></i>
-                      <span>Assign / Link Business Owner Account (Email or Phone)</span>
-                    </label>
-                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      Leave as &ldquo;Super Admin&rdquo; if adding on behalf of a shop before they join. Later, when the owner registers or claims it, you can link their email here and it will instantly show in their portal.
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        value={addOwnerEmail}
-                        onChange={(e) => setAddOwnerEmail(e.target.value)}
-                        placeholder="e.g. merchant@gmail.com or leave as Super Admin"
-                        style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: 8, border: '1.5px solid #c4b5fd', fontSize: '0.88rem', background: '#fff' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setAddOwnerEmail('Super Admin')}
-                        style={{ padding: '0.55rem 0.85rem', borderRadius: 8, border: '1px solid #c4b5fd', background: '#ede9fe', color: '#6d28d9', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      >
-                        Set Super Admin
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Controls & Badges (Status, Visibility, Trust Badge) */}
-                  <div
-                    style={{
-                      background: '#f8fafc',
-                      borderRadius: 12,
-                      padding: '1rem',
-                      border: '1px solid #e2e8f0',
-                      marginBottom: '1.5rem',
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '1.5rem',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {/* Status Select */}
-                    <div style={{ minWidth: 150 }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                        Listing Status
-                      </label>
-                      <select
-                        value={addStatus}
-                        onChange={(e) => setAddStatus(e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
-                      >
-                        <option value="approved">Approved</option>
-                        <option value="pending">Pending</option>
-                        <option value="draft">Draft / Hidden</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                    </div>
-
-                    {/* Public Visibility Toggle */}
-                    <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
-                        <input
-                          type="checkbox"
-                          checked={addIsPublic}
-                          onChange={(e) => setAddIsPublic(e.target.checked)}
-                          style={{ width: 17, height: 17, accentColor: '#2563eb' }}
-                        />
-                        <span>Publicly Visible on Storefront</span>
-                      </label>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
-                        Immediately searchable on Explore & Shops
-                      </span>
-                    </div>
-
-                    {/* Trust Badge Toggle */}
-                    <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: addTrustBadge ? '#166534' : '#1e293b' }}>
-                        <input
-                          type="checkbox"
-                          checked={addTrustBadge}
-                          onChange={(e) => setAddTrustBadge(e.target.checked)}
-                          style={{ width: 17, height: 17, accentColor: '#16a34a' }}
-                        />
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <i className="fa-solid fa-shield-halved" style={{ color: addTrustBadge ? '#16a34a' : '#94a3b8' }}></i>
-                          Grant Gold Trust Badge
-                        </span>
-                      </label>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
-                        Activates verified gold shield & store features
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Cloud Authority Status Banner inside Modal */}
-                  <div
-                    style={{
-                      background: cloudAdminEmail ? '#f0fdf4' : '#fffbeb',
-                      border: `1px solid ${cloudAdminEmail ? '#bbf7d0' : '#fef08a'}`,
-                      borderRadius: 8,
-                      padding: '0.65rem 0.85rem',
-                      marginBottom: '1.25rem',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      color: cloudAdminEmail ? '#166534' : '#854d0e',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className={`fa-solid ${cloudAdminEmail ? 'fa-shield-check' : 'fa-triangle-exclamation'}`}></i>
-                      <span>
-                        {cloudAdminEmail
-                          ? `Super Admin Cloud Connected: ${cloudAdminEmail}`
-                          : 'Google Super Admin authority (localbazarindia.official@gmail.com) required to save changes'}
-                      </span>
-                    </div>
-                    {!cloudAdminEmail && (
-                      <button
-                        type="button"
-                        onClick={handleConnectCloudSuperAdmin}
-                        style={{
-                          background: '#d97706',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '0.28rem 0.75rem',
-                          borderRadius: 6,
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Connect Google Account
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      disabled={addSaving}
-                      onClick={() => setIsAddListingModalOpen(false)}
-                      style={{
-                        padding: '0.65rem 1.25rem',
-                        borderRadius: 8,
-                        border: '1.5px solid #cbd5e1',
-                        background: '#f8fafc',
-                        fontWeight: 700,
-                        fontSize: '0.88rem',
-                        color: '#475569',
-                        cursor: addSaving ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      Cancel
-                    </button>
-
-                    {!cloudAdminEmail ? (
-                      <button
-                        type="button"
-                        onClick={handleConnectCloudSuperAdmin}
-                        style={{
-                          padding: '0.65rem 1.4rem',
-                          borderRadius: 8,
-                          border: 'none',
-                          background: '#ea4335',
-                          fontWeight: 700,
-                          fontSize: '0.88rem',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          boxShadow: '0 2px 8px rgba(234,67,53,0.3)',
-                        }}
-                        title="Click to authenticate official Super Admin Google account before creating"
-                      >
-                        <i className="fa-brands fa-google"></i>
-                        <span>1-Click Google Authority to Create</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="submit"
-                        disabled={addSaving || addPhotosUploading}
-                        style={{
-                          padding: '0.65rem 1.5rem',
-                          borderRadius: 8,
-                          border: 'none',
-                          background: '#16a34a',
-                          fontWeight: 700,
-                          fontSize: '0.88rem',
-                          color: '#fff',
-                          cursor: addSaving || addPhotosUploading ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
-                        }}
-                      >
-                        {addSaving ? (
-                          <>
-                            <i className="fa-solid fa-spinner fa-spin"></i>
-                            <span>Creating Business...</span>
-                          </>
-                        ) : (
-                          <>
-                            <i className="fa-solid fa-plus"></i>
-                            <span>Create & Publish Business</span>
-                          </>
+                          </button>
                         )}
-                      </button>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </div>
             </div>
