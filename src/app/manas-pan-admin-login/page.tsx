@@ -247,7 +247,29 @@ export default function SuperAdminPage() {
   const [editStatus, setEditStatus] = useState<string>('approved');
   const [editIsPublic, setEditIsPublic] = useState(true);
   const [editTrustBadge, setEditTrustBadge] = useState(false);
+  const [editOwnerEmail, setEditOwnerEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  // Super Admin Add Listing State
+  const [isAddListingModalOpen, setIsAddListingModalOpen] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addCategory, setAddCategory] = useState('');
+  const [addCity, setAddCity] = useState('');
+  const [addServiceCities, setAddServiceCities] = useState<string[]>([]);
+  const [addServiceCityInput, setAddServiceCityInput] = useState('');
+  const [addPhone, setAddPhone] = useState('');
+  const [addWhatsapp, setAddWhatsapp] = useState('');
+  const [addAddress, setAddAddress] = useState('');
+  const [addMapLink, setAddMapLink] = useState('');
+  const [addScheduleTimings, setAddScheduleTimings] = useState('09:00 AM - 08:30 PM');
+  const [addDesc, setAddDesc] = useState('');
+  const [addPhotos, setAddPhotos] = useState<string[]>([]);
+  const [addPhotosUploading, setAddPhotosUploading] = useState(false);
+  const [addStatus, setAddStatus] = useState<string>('approved');
+  const [addIsPublic, setAddIsPublic] = useState(true);
+  const [addTrustBadge, setAddTrustBadge] = useState(false);
+  const [addOwnerEmail, setAddOwnerEmail] = useState('Super Admin');
+  const [addSaving, setAddSaving] = useState(false);
 
   // Users Filter & Modals
   const [userSearch, setUserSearch] = useState('');
@@ -771,6 +793,7 @@ export default function SuperAdminPage() {
     setEditStatus(l.status || 'approved');
     setEditIsPublic(l.isPublic !== false && l.status !== 'draft');
     setEditTrustBadge(Boolean(l.trustBadge));
+    setEditOwnerEmail(l.ownerEmail || l.createdBy || 'Super Admin');
   };
 
   const handleSaveEditListing = async (e: React.FormEvent) => {
@@ -791,6 +814,24 @@ export default function SuperAdminPage() {
       }
 
       const now = Date.now();
+      const targetOwner = editOwnerEmail.trim() || 'Super Admin';
+      let newOwnerId = editingListingModal.ownerId;
+      let newOwnerName = editingListingModal.ownerName;
+      let newOwnerPhone = editingListingModal.ownerPhone;
+
+      if (targetOwner && targetOwner.toLowerCase() !== 'super admin') {
+        const matchedUser = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === targetOwner.toLowerCase()) ||
+            (u.phone && u.phone.trim() === targetOwner)
+        );
+        if (matchedUser) {
+          newOwnerId = matchedUser.id || matchedUser.uid;
+          newOwnerName = matchedUser.name || newOwnerName;
+          newOwnerPhone = matchedUser.phone || newOwnerPhone;
+        }
+      }
+
       const updatedListing: Listing = {
         ...editingListingModal,
         name: editName.trim(),
@@ -812,6 +853,10 @@ export default function SuperAdminPage() {
         trustBadgeExpiresAt: editTrustBadge
           ? (editingListingModal.trustBadgeExpiresAt || now + 365 * 24 * 60 * 60 * 1000)
           : undefined,
+        ownerEmail: targetOwner,
+        ownerId: targetOwner.toLowerCase() === 'super admin' ? 'admin' : (newOwnerId || editingListingModal.ownerId || 'admin'),
+        ownerName: newOwnerName,
+        ownerPhone: newOwnerPhone,
         lastUpdated: new Date().toISOString()
       };
 
@@ -824,6 +869,167 @@ export default function SuperAdminPage() {
       alert('Failed to update listing: ' + (err?.message || 'Error occurred while saving.'));
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  // Super Admin Add Listing Handlers
+  const handleAddListingServiceCity = (cityName: string) => {
+    const trimmed = cityName.trim();
+    if (!trimmed) return;
+    if (addCity && trimmed.toLowerCase() === addCity.trim().toLowerCase()) {
+      alert('Base city is already set as the primary city.');
+      return;
+    }
+    if (addServiceCities.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setAddServiceCityInput('');
+      return;
+    }
+    if (addServiceCities.length >= 5) {
+      alert('You can add up to 5 nearby service cities.');
+      return;
+    }
+    setAddServiceCities((prev) => [...prev, trimmed]);
+    setAddServiceCityInput('');
+  };
+
+  const handleRemoveAddListingServiceCity = (cityName: string) => {
+    setAddServiceCities((prev) => prev.filter((c) => c.toLowerCase() !== cityName.toLowerCase()));
+  };
+
+  const handleAddListingPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setAddPhotosUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file) {
+          const url = await uploadImageToCloud(file, 60, 1200);
+          if (url) {
+            uploadedUrls.push(url);
+          }
+        }
+      }
+      if (uploadedUrls.length > 0) {
+        setAddPhotos((prev) => [...prev, ...uploadedUrls]);
+      }
+    } catch (err: any) {
+      console.error('Photo upload failed:', err);
+      alert('Photo upload failed: ' + (err?.message || 'Error uploading image.'));
+    } finally {
+      setAddPhotosUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAddListingPhoto = (index: number) => {
+    setAddPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const openAddListingModal = () => {
+    setAddName('');
+    setAddCategory(categories[0]?.name || '');
+    setAddCity(cities[0]?.name || '');
+    setAddServiceCities([]);
+    setAddServiceCityInput('');
+    setAddPhone('');
+    setAddWhatsapp('');
+    setAddAddress('');
+    setAddMapLink('');
+    setAddScheduleTimings('09:00 AM - 08:30 PM');
+    setAddDesc('');
+    setAddPhotos([]);
+    setAddPhotosUploading(false);
+    setAddStatus('approved');
+    setAddIsPublic(true);
+    setAddTrustBadge(false);
+    setAddOwnerEmail('Super Admin');
+    setIsAddListingModalOpen(true);
+  };
+
+  const handleSaveNewListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!addName.trim() || !addCategory.trim() || !addCity.trim() || !addPhone.trim() || !addAddress.trim()) {
+      alert('Business Name, Category, City, Phone Number, and Address are required.');
+      return;
+    }
+
+    setAddSaving(true);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) {
+        setAddSaving(false);
+        return;
+      }
+
+      const now = Date.now();
+      const targetOwner = addOwnerEmail.trim() || 'Super Admin';
+      let assignedOwnerId = 'admin';
+      let assignedOwnerName = 'Super Admin';
+      let assignedOwnerPhone = addPhone.trim();
+
+      if (targetOwner && targetOwner.toLowerCase() !== 'super admin') {
+        const matchedUser = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === targetOwner.toLowerCase()) ||
+            (u.phone && u.phone.trim() === targetOwner)
+        );
+        if (matchedUser) {
+          assignedOwnerId = matchedUser.id || matchedUser.uid;
+          assignedOwnerName = matchedUser.name || 'Merchant';
+          assignedOwnerPhone = matchedUser.phone || addPhone.trim();
+        }
+      }
+
+      const coverImg = addPhotos.length > 0 ? addPhotos[0] : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
+      const newListingId = `list_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      const newListing: Listing = {
+        id: newListingId,
+        name: addName.trim(),
+        category: addCategory.trim(),
+        city: addCity.trim(),
+        serviceCities: addServiceCities,
+        phone: addPhone.trim(),
+        whatsapp: addWhatsapp.trim() || addPhone.trim(),
+        address: addAddress.trim(),
+        mapLink: addMapLink.trim(),
+        scheduleTimings: addScheduleTimings.trim() || '09:00 AM - 08:30 PM',
+        desc: addDesc.trim(),
+        image: coverImg,
+        photos: addPhotos,
+        gallery: addPhotos,
+        images: addPhotos,
+        status: addStatus,
+        isPublic: addIsPublic && addStatus === 'approved',
+        trustBadge: addTrustBadge,
+        trustBadgeActivatedAt: addTrustBadge ? now : undefined,
+        trustBadgeExpiresAt: addTrustBadge ? now + 365 * 24 * 60 * 60 * 1000 : undefined,
+        ownerEmail: targetOwner,
+        ownerId: assignedOwnerId,
+        ownerName: assignedOwnerName,
+        ownerPhone: assignedOwnerPhone,
+        createdBy: 'Super Admin',
+        date: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+        rating: 5.0,
+        reviewsCount: 0,
+        reviews: [],
+        products: [],
+      };
+
+      await cloudSync.saveListing(newListing);
+      setListings((prev) => [newListing, ...prev]);
+      setIsAddListingModalOpen(false);
+      alert(`New business "${newListing.name}" successfully created and saved to cloud!`);
+    } catch (err: any) {
+      console.error('Error creating new listing:', err);
+      alert('Failed to create listing: ' + (err?.message || 'Error occurred while saving.'));
+    } finally {
+      setAddSaving(false);
     }
   };
 
@@ -2472,41 +2678,65 @@ export default function SuperAdminPage() {
                   <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>All Business Listings</h1>
                   <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Manage approvals, visibility, gold trust badges, and listings database.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setListingFilterTab('all')}
+                      style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #cbd5e1', background: listingFilterTab === 'all' ? '#0f172a' : '#ffffff', color: listingFilterTab === 'all' ? '#ffffff' : '#334155', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      All ({listings.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setListingFilterTab('published')}
+                      style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #10b981', background: listingFilterTab === 'published' ? '#10b981' : '#ecfdf5', color: listingFilterTab === 'published' ? '#ffffff' : '#047857', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      Published ({metrics.publishedListings})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setListingFilterTab('draft')}
+                      style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #f59e0b', background: listingFilterTab === 'draft' ? '#f59e0b' : '#fffbeb', color: listingFilterTab === 'draft' ? '#ffffff' : '#b45309', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      Drafts ({metrics.draftListings})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setListingFilterTab('pending')}
+                      style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #6366f1', background: listingFilterTab === 'pending' ? '#6366f1' : '#e0e7ff', color: listingFilterTab === 'pending' ? '#ffffff' : '#4338ca', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      Pending ({metrics.pendingListings})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setListingFilterTab('rejected')}
+                      style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #ef4444', background: listingFilterTab === 'rejected' ? '#ef4444' : '#fef2f2', color: listingFilterTab === 'rejected' ? '#ffffff' : '#b91c1c', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      Rejected ({metrics.rejectedListings})
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setListingFilterTab('all')}
-                    style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #cbd5e1', background: listingFilterTab === 'all' ? '#0f172a' : '#ffffff', color: listingFilterTab === 'all' ? '#ffffff' : '#334155', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                    onClick={openAddListingModal}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.55rem 1.1rem',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                    }}
                   >
-                    All ({listings.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setListingFilterTab('published')}
-                    style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #10b981', background: listingFilterTab === 'published' ? '#10b981' : '#ecfdf5', color: listingFilterTab === 'published' ? '#ffffff' : '#047857', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
-                  >
-                    Published ({metrics.publishedListings})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setListingFilterTab('draft')}
-                    style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #f59e0b', background: listingFilterTab === 'draft' ? '#f59e0b' : '#fffbeb', color: listingFilterTab === 'draft' ? '#ffffff' : '#b45309', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
-                  >
-                    Drafts ({metrics.draftListings})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setListingFilterTab('pending')}
-                    style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #6366f1', background: listingFilterTab === 'pending' ? '#6366f1' : '#e0e7ff', color: listingFilterTab === 'pending' ? '#ffffff' : '#4338ca', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
-                  >
-                    Pending ({metrics.pendingListings})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setListingFilterTab('rejected')}
-                    style={{ padding: '0.45rem 0.9rem', borderRadius: 8, border: '1px solid #ef4444', background: listingFilterTab === 'rejected' ? '#ef4444' : '#fef2f2', color: listingFilterTab === 'rejected' ? '#ffffff' : '#b91c1c', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
-                  >
-                    Rejected ({metrics.rejectedListings})
+                    <i className="fa-solid fa-plus"></i>
+                    <span>Add New Business</span>
                   </button>
                 </div>
               </div>
@@ -2601,7 +2831,19 @@ export default function SuperAdminPage() {
                                 />
                                 <div>
                                   <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
-                                  <div style={{ color: '#64748b', fontSize: '0.78rem' }}>ID: <span style={{ color: '#1a73e8', fontWeight: 600 }}>{l.id}</span></div>
+                                  <div style={{ color: '#64748b', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                    <span>ID: <span style={{ color: '#1a73e8', fontWeight: 600 }}>{l.id}</span></span>
+                                    {(l.createdBy === 'Super Admin' || l.ownerEmail === 'Super Admin' || l.ownerId === 'admin') && (
+                                      <span style={{ background: '#ede9fe', color: '#6d28d9', padding: '1px 6px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700 }}>
+                                        Admin Added
+                                      </span>
+                                    )}
+                                  </div>
+                                  {l.ownerEmail && l.ownerEmail !== 'Super Admin' && (
+                                    <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: 2 }}>
+                                      Owner: <span style={{ color: '#0369a1', fontWeight: 600 }}>{l.ownerEmail}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -7534,6 +7776,33 @@ export default function SuperAdminPage() {
                     />
                   </div>
 
+                  {/* Assign / Link Business Owner Account */}
+                  <div style={{ marginBottom: '1.25rem', background: '#f5f3ff', padding: '0.9rem', borderRadius: 10, border: '1px solid #ddd6fe' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', marginBottom: 4 }}>
+                      <i className="fa-solid fa-user-check"></i>
+                      <span>Assign / Transfer Owner Account (Email or Phone)</span>
+                    </label>
+                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      Assign this business to a merchant user. As soon as linked, this listing will appear in their &ldquo;Manage Your Business&rdquo; portal. Enter &ldquo;Super Admin&rdquo; to keep it under admin ownership.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={editOwnerEmail}
+                        onChange={(e) => setEditOwnerEmail(e.target.value)}
+                        placeholder="e.g. merchant@gmail.com or Super Admin"
+                        style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: 8, border: '1.5px solid #c4b5fd', fontSize: '0.88rem', background: '#fff' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditOwnerEmail('Super Admin')}
+                        style={{ padding: '0.55rem 0.85rem', borderRadius: 8, border: '1px solid #c4b5fd', background: '#ede9fe', color: '#6d28d9', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Set Super Admin
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Controls & Badges (Status, Visibility, Trust Badge) */}
                   <div
                     style={{
@@ -7715,6 +7984,638 @@ export default function SuperAdminPage() {
                           <>
                             <i className="fa-solid fa-check"></i>
                             <span>Save Changes</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Super Admin Add New Business Listing Modal */}
+          {isAddListingModalOpen && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.65)',
+                zIndex: 9999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1.25rem',
+                backdropFilter: 'blur(4px)',
+              }}
+              onClick={() => {
+                if (!addSaving) setIsAddListingModalOpen(false);
+              }}
+            >
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 16,
+                  maxWidth: 860,
+                  width: '100%',
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  padding: '1.75rem',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: '1rem',
+                    marginBottom: '1.25rem',
+                    borderBottom: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 10,
+                        background: '#dcfce7',
+                        color: '#16a34a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.3rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-store"></i>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                        Add New Business Listing
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                        Super Admin Direct Addition &bull; Linked with cloud database
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!addSaving) setIsAddListingModalOpen(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      fontSize: '1.3rem',
+                      cursor: 'pointer',
+                      padding: 4,
+                    }}
+                    title="Close"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                {/* Add Form */}
+                <form onSubmit={handleSaveNewListing}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+                      gap: '1rem',
+                      marginBottom: '1.25rem',
+                    }}
+                  >
+                    {/* Business Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Business / Shop Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={addName}
+                        onChange={(e) => setAddName(e.target.value)}
+                        placeholder="e.g. Mondal Electronics"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Primary Category *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        list="adminAddCatList"
+                        value={addCategory}
+                        onChange={(e) => setAddCategory(e.target.value)}
+                        placeholder="Select or type Category"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                      <datalist id="adminAddCatList">
+                        {categories.map((c) => (
+                          <option key={c.id || c.name} value={c.name} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* City */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Primary Base City *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        list="adminAddCityList"
+                        value={addCity}
+                        onChange={(e) => setAddCity(e.target.value)}
+                        placeholder="Select or type City"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                      <datalist id="adminAddCityList">
+                        {cities.map((ct) => (
+                          <option key={ct.id || ct.name} value={ct.name} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* Multiple Service Cities / Nearby Areas (Optional - Max 5) */}
+                    <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '0.85rem', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
+                          <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                          {addServiceCities.length} / 5 Selected
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                        If this business serves multiple towns (e.g. Caterer, Electrician, Plumber, Decorator, Delivery), add up to 5 nearby cities so it appears in search results for all of them.
+                      </p>
+
+                      {/* Selected Tags */}
+                      {addServiceCities.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
+                          {addServiceCities.map((sc) => (
+                            <span
+                              key={sc}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                border: '1px solid #bae6fd',
+                                borderRadius: '6px',
+                                padding: '3px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
+                              {sc}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAddListingServiceCity(sc)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#0284c7',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  fontSize: '0.75rem',
+                                  lineHeight: 1,
+                                }}
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Tag Input */}
+                      {addServiceCities.length < 5 && (
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            list="adminAddServiceCityOptions"
+                            value={addServiceCityInput}
+                            onChange={(e) => setAddServiceCityInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddListingServiceCity(addServiceCityInput);
+                              }
+                            }}
+                            placeholder="Type or pick nearby city and press Add..."
+                            style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          />
+                          <datalist id="adminAddServiceCityOptions">
+                            {cities
+                              .filter((c) => c.name.toLowerCase() !== addCity.toLowerCase() && !addServiceCities.includes(c.name))
+                              .map((c) => (
+                                <option key={c.id || c.name} value={c.name} />
+                              ))}
+                          </datalist>
+                          <button
+                            type="button"
+                            onClick={() => handleAddListingServiceCity(addServiceCityInput)}
+                            style={{
+                              padding: '0.5rem 0.9rem',
+                              borderRadius: 8,
+                              border: 'none',
+                              background: '#0284c7',
+                              color: '#fff',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <i className="fa-solid fa-plus"></i> Add
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Primary Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={addPhone}
+                        onChange={(e) => setAddPhone(e.target.value)}
+                        placeholder="e.g. 9876543210"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* WhatsApp */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <label style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
+                          WhatsApp Number (Optional)
+                        </label>
+                        {addPhone && (
+                          <button
+                            type="button"
+                            onClick={() => setAddWhatsapp(addPhone)}
+                            style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                          >
+                            Same as Phone
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="tel"
+                        value={addWhatsapp}
+                        onChange={(e) => setAddWhatsapp(e.target.value)}
+                        placeholder="WhatsApp contact (defaults to phone)"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    {/* Schedule Timings */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Schedule / Timings
+                      </label>
+                      <input
+                        type="text"
+                        value={addScheduleTimings}
+                        onChange={(e) => setAddScheduleTimings(e.target.value)}
+                        placeholder="e.g. 08:30 AM - 09:00 PM"
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Full Physical Address */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Full Address *
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={addAddress}
+                      onChange={(e) => setAddAddress(e.target.value)}
+                      placeholder="Shop landmark, street, market, town, pin code"
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  {/* Google Maps Link */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Google Maps Direction URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={addMapLink}
+                      onChange={(e) => setAddMapLink(e.target.value)}
+                      placeholder="https://maps.google.com/..."
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
+                    />
+                  </div>
+
+                  {/* Description / About */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      About / Business Description (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={addDesc}
+                      onChange={(e) => setAddDesc(e.target.value)}
+                      placeholder="Detailed overview of products, services, specialty, or history..."
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  {/* Photo / Images Upload */}
+                  <div style={{ marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
+                        <i className="fa-solid fa-camera" style={{ color: '#2563eb', marginRight: 6 }}></i> Shop & Product Photos (Optional)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        {addPhotos.length} photo(s) uploaded &bull; First photo is cover
+                      </span>
+                    </div>
+
+                    {/* Previews */}
+                    {addPhotos.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.85rem' }}>
+                        {addPhotos.map((url, idx) => (
+                          <div key={idx} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: idx === 0 ? '2px solid #2563eb' : '1px solid #cbd5e1' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`Photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            {idx === 0 && (
+                              <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(37, 99, 235, 0.85)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', fontWeight: 700, padding: '1px 0' }}>
+                                Cover
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAddListingPhoto(idx)}
+                              style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', cursor: 'pointer' }}
+                              title="Delete photo"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upload Input */}
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1.5px dashed #cbd5e1', padding: '0.65rem 1.1rem', borderRadius: 8, cursor: addPhotosUploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
+                      {addPhotosUploading ? (
+                        <>
+                          <i className="fa-solid fa-spinner fa-spin" style={{ color: '#2563eb' }}></i>
+                          <span>Uploading Images to Cloud...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-cloud-arrow-up" style={{ color: '#2563eb' }}></i>
+                          <span>Upload Photos from Device</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        disabled={addPhotosUploading}
+                        onChange={handleAddListingPhotoUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Assign Owner Account / Link Merchant */}
+                  <div style={{ marginBottom: '1.25rem', background: '#f5f3ff', padding: '0.9rem', borderRadius: 10, border: '1px solid #ddd6fe' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', marginBottom: 4 }}>
+                      <i className="fa-solid fa-user-check"></i>
+                      <span>Assign / Link Business Owner Account (Email or Phone)</span>
+                    </label>
+                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      Leave as &ldquo;Super Admin&rdquo; if adding on behalf of a shop before they join. Later, when the owner registers or claims it, you can link their email here and it will instantly show in their portal.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={addOwnerEmail}
+                        onChange={(e) => setAddOwnerEmail(e.target.value)}
+                        placeholder="e.g. merchant@gmail.com or leave as Super Admin"
+                        style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: 8, border: '1.5px solid #c4b5fd', fontSize: '0.88rem', background: '#fff' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAddOwnerEmail('Super Admin')}
+                        style={{ padding: '0.55rem 0.85rem', borderRadius: 8, border: '1px solid #c4b5fd', background: '#ede9fe', color: '#6d28d9', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Set Super Admin
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Controls & Badges (Status, Visibility, Trust Badge) */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      borderRadius: 12,
+                      padding: '1rem',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '1.5rem',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '1.5rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {/* Status Select */}
+                    <div style={{ minWidth: 150 }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                        Listing Status
+                      </label>
+                      <select
+                        value={addStatus}
+                        onChange={(e) => setAddStatus(e.target.value)}
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+                      >
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="draft">Draft / Hidden</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+
+                    {/* Public Visibility Toggle */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                        <input
+                          type="checkbox"
+                          checked={addIsPublic}
+                          onChange={(e) => setAddIsPublic(e.target.checked)}
+                          style={{ width: 17, height: 17, accentColor: '#2563eb' }}
+                        />
+                        <span>Publicly Visible on Storefront</span>
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                        Immediately searchable on Explore & Shops
+                      </span>
+                    </div>
+
+                    {/* Trust Badge Toggle */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: addTrustBadge ? '#166534' : '#1e293b' }}>
+                        <input
+                          type="checkbox"
+                          checked={addTrustBadge}
+                          onChange={(e) => setAddTrustBadge(e.target.checked)}
+                          style={{ width: 17, height: 17, accentColor: '#16a34a' }}
+                        />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <i className="fa-solid fa-shield-halved" style={{ color: addTrustBadge ? '#16a34a' : '#94a3b8' }}></i>
+                          Grant Gold Trust Badge
+                        </span>
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 2 }}>
+                        Activates verified gold shield & store features
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Cloud Authority Status Banner inside Modal */}
+                  <div
+                    style={{
+                      background: cloudAdminEmail ? '#f0fdf4' : '#fffbeb',
+                      border: `1px solid ${cloudAdminEmail ? '#bbf7d0' : '#fef08a'}`,
+                      borderRadius: 8,
+                      padding: '0.65rem 0.85rem',
+                      marginBottom: '1.25rem',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      color: cloudAdminEmail ? '#166534' : '#854d0e',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className={`fa-solid ${cloudAdminEmail ? 'fa-shield-check' : 'fa-triangle-exclamation'}`}></i>
+                      <span>
+                        {cloudAdminEmail
+                          ? `Super Admin Cloud Connected: ${cloudAdminEmail}`
+                          : 'Google Super Admin authority (localbazarindia.official@gmail.com) required to save changes'}
+                      </span>
+                    </div>
+                    {!cloudAdminEmail && (
+                      <button
+                        type="button"
+                        onClick={handleConnectCloudSuperAdmin}
+                        style={{
+                          background: '#d97706',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '0.28rem 0.75rem',
+                          borderRadius: 6,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Connect Google Account
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      disabled={addSaving}
+                      onClick={() => setIsAddListingModalOpen(false)}
+                      style={{
+                        padding: '0.65rem 1.25rem',
+                        borderRadius: 8,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#f8fafc',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        color: '#475569',
+                        cursor: addSaving ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+
+                    {!cloudAdminEmail ? (
+                      <button
+                        type="button"
+                        onClick={handleConnectCloudSuperAdmin}
+                        style={{
+                          padding: '0.65rem 1.4rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#ea4335',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 2px 8px rgba(234,67,53,0.3)',
+                        }}
+                        title="Click to authenticate official Super Admin Google account before creating"
+                      >
+                        <i className="fa-brands fa-google"></i>
+                        <span>1-Click Google Authority to Create</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={addSaving || addPhotosUploading}
+                        style={{
+                          padding: '0.65rem 1.5rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#16a34a',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                          color: '#fff',
+                          cursor: addSaving || addPhotosUploading ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                        }}
+                      >
+                        {addSaving ? (
+                          <>
+                            <i className="fa-solid fa-spinner fa-spin"></i>
+                            <span>Creating Business...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-plus"></i>
+                            <span>Create & Publish Business</span>
                           </>
                         )}
                       </button>

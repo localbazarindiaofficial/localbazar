@@ -73,6 +73,7 @@ export interface Listing {
   image?: string;
   gallery?: string[];
   images?: string[];
+  photos?: string[];
   banners?: string[];
   openDays?: string[];
   scheduleTimings?: string;
