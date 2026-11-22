@@ -139,6 +139,7 @@ function ExploreContent() {
         const fullUrl = window.location.pathname + window.location.search;
         sessionStorage.setItem('lb_last_explore_url', fullUrl);
         sessionStorage.setItem('lb_internal_nav', 'true');
+        sessionStorage.setItem('lb_nav_origin', 'explore');
       } catch {}
     }
   }, [cityParam, catParam]);
@@ -546,13 +547,30 @@ function ExploreContent() {
                   }
                 }
 
+                const queryParams = new URLSearchParams();
+                if (cityParam && cityParam.toLowerCase() !== 'all' && cityParam.toLowerCase() !== 'all cities') {
+                  queryParams.set('city', cityParam);
+                }
+                if (catParam && catParam.toLowerCase() !== 'all' && catParam.toLowerCase() !== 'all categories') {
+                  queryParams.set('category', catParam);
+                }
+                const queryString = queryParams.toString();
+                const targetShopHref = `/shops/${encodeURIComponent(item.id)}${queryString ? `?${queryString}` : ''}`;
+
                 return (
                   <Link
                     key={item.id}
-                    href={`/shops/${encodeURIComponent(item.id)}${cityParam && cityParam.toLowerCase() !== 'all' && cityParam.toLowerCase() !== 'all cities' ? `?city=${encodeURIComponent(cityParam)}` : ''}`}
+                    href={targetShopHref}
                     prefetch={true}
                     className="listing-compact-row"
                     title={`View details of ${item.name}`}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('lb_nav_origin', 'explore');
+                        sessionStorage.setItem('lb_last_explore_url', window.location.pathname + window.location.search);
+                        sessionStorage.setItem('lb_internal_nav', 'true');
+                      } catch {}
+                    }}
                   >
                     <div className="listing-row-left">
                       <img src={coverImg} alt={item.name} className="listing-row-thumb" />

@@ -230,22 +230,58 @@ export default function ShopDetailPage() {
     }
   }, [isAnyModalOpen]);
 
+  // Helper to resolve exact back target destination:
+  // 1. Direct or shared link visitor -> LocalBazar Home (/)
+  // 2. Navigated from Home -> LocalBazar Home (/)
+  // 3. Navigated from Explore Search -> That exact filtered query (/explore?city=...&category=...)
+  // 4. Default safe fallback -> LocalBazar Home (/) (NEVER bare '/explore' without search query)
+  const resolveBackDestination = (): string => {
+    if (typeof window === 'undefined') return '/';
+    try {
+      const navOrigin = sessionStorage.getItem('lb_nav_origin');
+      const isInternal = sessionStorage.getItem('lb_internal_nav') === 'true';
+
+      // Direct external / shared link visitor -> always go to Home
+      if (!isInternal || !navOrigin) {
+        return '/?src=shared_back';
+      }
+
+      // Home page origin -> return to Home
+      if (navOrigin === 'home') {
+        return '/';
+      }
+
+      // Explore search origin: return to exact filtered search
+      if (navOrigin === 'explore') {
+        const savedExplore = sessionStorage.getItem('lb_last_explore_url');
+        if (savedExplore && savedExplore.startsWith('/explore') && savedExplore.includes('?')) {
+          return savedExplore;
+        }
+
+        const sp = new URLSearchParams(window.location.search);
+        const c = sp.get('city') || sp.get('searchCity');
+        const cat = sp.get('category') || sp.get('cat');
+        if (c || cat) {
+          const q = new URLSearchParams();
+          if (c && c.toLowerCase() !== 'all' && c.toLowerCase() !== 'all cities') q.set('city', c);
+          if (cat && cat.toLowerCase() !== 'all' && cat.toLowerCase() !== 'all categories') q.set('category', cat);
+          const qs = q.toString();
+          return qs ? `/explore?${qs}` : '/';
+        }
+      }
+    } catch {}
+
+    // Default safe fallback is ALWAYS website home
+    return '/';
+  };
+
   // Intercept Android hardware back / popstate to dismiss open modals smoothly & Smart Funnel Back for shared guests
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const isStandalone = (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true ||
-      document.referrer.includes('android-app://')
-    );
-    const isInternal = (
-      (document.referrer && document.referrer.includes(window.location.host)) ||
-      sessionStorage.getItem('lb_internal_nav') === 'true'
-    );
-
-    // If external unauthenticated guest visitor, push entry state to intercept mobile hardware back to Home
-    if (!currentUserRef.current && !isStandalone && !isInternal) {
+    // Direct entry from outside (e.g. WhatsApp / shared link) -> push entry state so hardware back smoothly redirects to Home
+    const isDirectEntry = !sessionStorage.getItem('lb_internal_nav') || !sessionStorage.getItem('lb_nav_origin');
+    if (isDirectEntry) {
       try {
         window.history.pushState({ lb_shared_entry: true }, '', window.location.href);
       } catch {}
@@ -260,27 +296,9 @@ export default function ShopDetailPage() {
         return;
       }
 
-      // 2. Check current visitor state
-      const isStandaloneNow = (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes('android-app://')
-      );
-      const isInternalNow = (
-        (document.referrer && document.referrer.includes(window.location.host)) ||
-        sessionStorage.getItem('lb_internal_nav') === 'true'
-      );
-
-      // Smart Guest Navigation: unauthenticated external visitor navigating back is directed to LocalBazar Home
-      if (!currentUserRef.current && !isStandaloneNow && !isInternalNow) {
-        router.push('/?src=shared_back');
-        return;
-      }
-
-      // If at root of shop navigation in PWA standalone, navigate to Explore safely instead of exiting app
-      if (isStandaloneNow && window.history.length <= 2) {
-        router.push('/explore');
-      }
+      // 2. Navigate smoothly to target destination
+      const target = resolveBackDestination();
+      router.push(target);
     };
 
     window.addEventListener('popstate', onPopState);
@@ -309,48 +327,8 @@ export default function ShopDetailPage() {
       try { window.history.back(); } catch {}
     }
 
-    const isStandalone = typeof window !== 'undefined' && (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true ||
-      document.referrer.includes('android-app://')
-    );
-    const isInternal = typeof window !== 'undefined' && (
-      (document.referrer && document.referrer.includes(window.location.host)) ||
-      sessionStorage.getItem('lb_internal_nav') === 'true'
-    );
-
-    // Smart Guest Funnel: unauthenticated external visitor clicking top-left back goes straight to Home
-    if (!currentUser && !isStandalone && !isInternal) {
-      router.push('/?src=shared_back');
-      return;
-    }
-
-    // Professional hierarchical navigation for logged-in users and PWA app:
-    // Resolve previous explore URL if available
-    let targetExploreUrl = '/explore';
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUrl = sessionStorage.getItem('lb_last_explore_url');
-        if (savedUrl && savedUrl.startsWith('/explore')) {
-          targetExploreUrl = savedUrl;
-        }
-      } catch {}
-    }
-
-    // Attempt router.back() if internal referrer exists, with reliable instant fallback
-    try {
-      if (typeof window !== 'undefined' && document.referrer && document.referrer.includes(window.location.host)) {
-        router.back();
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/shops/')) {
-            router.push(targetExploreUrl);
-          }
-        }, 250);
-        return;
-      }
-    } catch {}
-
-    router.push(targetExploreUrl);
+    const target = resolveBackDestination();
+    router.push(target);
   };
 
   // Track Current User

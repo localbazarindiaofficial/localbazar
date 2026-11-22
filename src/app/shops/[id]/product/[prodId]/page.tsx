@@ -132,7 +132,7 @@ function ProductDetailPageContent() {
       );
 
       if (isStandalone && window.history.length <= 2) {
-        router.push(shop?.id ? `/shops/${shop.id}` : '/explore');
+        router.push(shop?.id ? `/shops/${shop.id}` : '/');
       }
     };
 
@@ -155,7 +155,7 @@ function ProductDetailPageContent() {
       try { window.history.back(); } catch {}
     }
 
-    const targetShopUrl = shop?.id || shopId ? `/shops/${encodeURIComponent(shop?.id || shopId)}` : '/explore';
+    const targetShopUrl = shop?.id || shopId ? `/shops/${encodeURIComponent(shop?.id || shopId)}` : '/';
 
     // Attempt router.back() if internal referrer exists, with reliable instant fallback
     try {

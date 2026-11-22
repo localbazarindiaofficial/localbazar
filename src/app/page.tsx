@@ -1369,6 +1369,10 @@ export default function HomePage() {
                         }
                         setNavigatingProdId(p.id);
                         try {
+                          sessionStorage.setItem('lb_nav_origin', 'home');
+                          sessionStorage.setItem('lb_internal_nav', 'true');
+                        } catch {}
+                        try {
                           router.push(targetUrl);
                         } catch {
                           window.location.assign(targetUrl);
