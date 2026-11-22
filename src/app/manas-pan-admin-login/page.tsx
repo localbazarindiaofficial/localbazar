@@ -4701,14 +4701,17 @@ export default function SuperAdminPage() {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Alternative Name (Optional)</label>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Alternative Names & Keywords (Optional)</label>
                         <input
                           type="text"
-                          placeholder="e.g. Food, Cafe, Hotel, Dhaba, Dining"
+                          placeholder="e.g. Daktar, Chamber, Hospital, Clinic or Mudi, Kirana, Ration, Bajar"
                           value={newCatAltName}
                           onChange={(e) => setNewCatAltName(e.target.value)}
                           style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1px solid #cbd5e1', marginTop: 4, fontSize: '0.9rem' }}
                         />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Comma-separated alternate search words. When users search for any of these keywords, this main category will automatically be suggested!
+                        </span>
                       </div>
 
                       {/* In-Store Category Builder inside Add Modal */}
@@ -4817,14 +4820,17 @@ export default function SuperAdminPage() {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Alternative Name (Optional)</label>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Alternative Names & Keywords (Optional)</label>
                         <input
                           type="text"
-                          placeholder="e.g. Food, Cafe, Hotel, Dhaba, Dining"
+                          placeholder="e.g. Daktar, Chamber, Hospital, Clinic or Mudi, Kirana, Ration, Bajar"
                           value={editingCat.alternativeName || ''}
                           onChange={(e) => setEditingCat({ ...editingCat, alternativeName: e.target.value })}
                           style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1px solid #cbd5e1', marginTop: 4, fontSize: '0.9rem' }}
                         />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Comma-separated alternate search words. When users search for any of these keywords, this main category will automatically be suggested!
+                        </span>
                       </div>
 
                       {/* In-Store Subcategories Management Section */}

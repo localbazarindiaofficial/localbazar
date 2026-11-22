@@ -7,7 +7,7 @@ import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
 import '@/styles/explore.css';
 
-// Smart Category Matching Helper (Strictly category-accurate, no loose bleeding)
+// Smart Category Matching Helper (Supports Primary Category & Alternative Names / Search Keywords)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
   if (!listingCat) return false;
@@ -21,18 +21,32 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   // 2. Direct containment (e.g. "Grocery" matches "Grocery Store" or "Grocery & Supermarket")
   if (lCat.includes(sCat) || sCat.includes(lCat)) return true;
 
-  // 3. Synonym / Taxonomy match through categories definition
+  // 3. Synonym / Taxonomy match through categories definition (Primary Name & Alternative Aliases)
   const matchedDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
-    const cAlt = (c.alternativeName || '').trim().toLowerCase();
-    const subList = (c.storeCategories || []).map((sc) => (typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()));
+    const altRaw = (c.alternativeName || '').toLowerCase();
+    const altArray = Array.isArray(c.altNames) ? c.altNames.map((x) => x.toLowerCase()) : [];
+    const aliases = [
+      ...altRaw.split(/[,;|/]+/).map((s) => s.trim()),
+      ...altArray,
+    ].filter(Boolean);
+
+    const subList = (c.storeCategories || []).map((sc) =>
+      typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
+    );
     if (Array.isArray(c.subcategories)) {
       c.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
     }
 
-    const matchesL = cName === lCat || cAlt === lCat || subList.includes(lCat);
-    const matchesS = cName === sCat || cAlt === sCat || subList.includes(sCat);
-    return matchesL && matchesS;
+    const checkMatch = (target: string) => {
+      if (!target) return false;
+      if (cName === target || cName.includes(target) || target.includes(cName)) return true;
+      if (aliases.some((a) => a === target || a.includes(target) || target.includes(a))) return true;
+      if (subList.some((sub) => sub === target || sub.includes(target) || target.includes(sub))) return true;
+      return false;
+    };
+
+    return checkMatch(lCat) && checkMatch(sCat);
   });
 
   return Boolean(matchedDef);
@@ -392,11 +406,28 @@ function ExploreContent() {
     };
   }, [hasMore, isLoadingMore, totalListings.length]);
 
+  // Resolve primary category name if catParam matches an alternative alias / keyword
+  const matchedCategoryDef = catParam
+    ? categories.find((c) => {
+        const cName = (c.name || '').toLowerCase();
+        const altRaw = (c.alternativeName || '').toLowerCase();
+        const altArray = Array.isArray(c.altNames) ? c.altNames.map((x) => x.toLowerCase()) : [];
+        const aliases = [
+          ...altRaw.split(/[,;|/]+/).map((s) => s.trim()),
+          ...altArray,
+        ].filter(Boolean);
+        const s = catParam.trim().toLowerCase();
+        return cName === s || aliases.includes(s) || aliases.some((a) => a.includes(s) || s.includes(a));
+      })
+    : null;
+
+  const displayCategoryTitle = matchedCategoryDef ? matchedCategoryDef.name : catParam;
+
   let title = 'All Verified Places';
-  if (catParam && cityParam) {
-    title = `${catParam} in ${cityParam}`;
-  } else if (catParam) {
-    title = `${catParam}`;
+  if (displayCategoryTitle && cityParam) {
+    title = `${displayCategoryTitle} in ${cityParam}`;
+  } else if (displayCategoryTitle) {
+    title = `${displayCategoryTitle}`;
   } else if (cityParam) {
     title = `Places in ${cityParam}`;
   }

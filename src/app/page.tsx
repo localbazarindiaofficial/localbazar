@@ -395,36 +395,77 @@ export default function HomePage() {
         .slice(0, 8)
     : [];
 
-  // Filtered Categories: ONLY categories starting with typed query (strictly like City)
+  // Filtered Categories: Intelligent matching across Primary Name & Alternative Names / Search Keywords
   const catQuery = queryInput.trim().toLowerCase();
   const filteredCategories: CategoryItem[] = catQuery
     ? (() => {
-        // 1. Direct name prefix match (e.g. "Doc" -> "Doctor & Clinics", "G" -> "Grocery & Supermarket")
-        const directMatches = categories.filter((cat) =>
-          (cat.name || '').toLowerCase().startsWith(catQuery)
-        );
+        const seenNames = new Set<string>();
+        const results: CategoryItem[] = [];
 
-        if (directMatches.length > 0) {
-          return directMatches
-            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-            .slice(0, 8);
-        }
-
-        // 2. If no direct match and typed at least 2 chars, match words in category name
-        // (e.g. "clinic", "cafe", "garage", "mobiles", "medical")
-        if (catQuery.length >= 2) {
-          const wordMatches = categories.filter((cat) => {
-            const words = (cat.name || '').toLowerCase().split(/[\s,/-]+/);
-            return words.some((w) => w.startsWith(catQuery));
-          });
-          if (wordMatches.length > 0) {
-            return wordMatches
-              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-              .slice(0, 8);
+        const addCat = (cat: CategoryItem) => {
+          const key = (cat.name || '').trim().toLowerCase();
+          if (key && !seenNames.has(key)) {
+            seenNames.add(key);
+            results.push(cat);
           }
+        };
+
+        // 1. Direct name prefix match (e.g. "Doc" -> "Doctor & Clinics", "G" -> "Grocery & Supermarket")
+        categories
+          .filter((cat) => (cat.name || '').toLowerCase().startsWith(catQuery))
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+          .forEach(addCat);
+
+        // 2. Word in category name starts with query (e.g. "clinic", "cafe", "garage", "mobiles", "medical")
+        if (catQuery.length >= 2) {
+          categories
+            .filter((cat) => {
+              const words = (cat.name || '').toLowerCase().split(/[\s,/-]+/);
+              return words.some((w) => w.startsWith(catQuery));
+            })
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            .forEach(addCat);
         }
 
-        return [];
+        // 3. Alternative Name / Alias match (e.g. "daktar", "mudi", "kirana", "hospital", "chamber", "ration")
+        if (catQuery.length >= 2) {
+          categories
+            .filter((cat) => {
+              const altRaw = (cat.alternativeName || '').toLowerCase();
+              const altArray = Array.isArray(cat.altNames) ? cat.altNames.map((x) => x.toLowerCase()) : [];
+              const aliases = [
+                ...altRaw.split(/[,;|/]+/).map((s) => s.trim()),
+                ...altArray,
+              ].filter(Boolean);
+
+              return aliases.some(
+                (alias) =>
+                  alias.startsWith(catQuery) ||
+                  alias.split(/\s+/).some((w) => w.startsWith(catQuery)) ||
+                  alias.includes(catQuery)
+              );
+            })
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            .forEach(addCat);
+        }
+
+        // 4. Subcategories / In-Store Categories match
+        if (catQuery.length >= 2) {
+          categories
+            .filter((cat) => {
+              const subList = (cat.storeCategories || []).map((sc) =>
+                typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
+              );
+              if (Array.isArray(cat.subcategories)) {
+                cat.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
+              }
+              return subList.some((sub) => sub.startsWith(catQuery) || sub.includes(catQuery));
+            })
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            .forEach(addCat);
+        }
+
+        return results.slice(0, 8);
       })()
     : [];
 
@@ -478,9 +519,25 @@ export default function HomePage() {
     setIsSearching(true);
     setTimeout(() => setIsSearching(false), 3500);
 
+    // Resolve matching category if query matches an alternative name / keyword
+    const qLower = query.toLowerCase();
+    const matchedCategory = categories.find((cat) => {
+      const cName = (cat.name || '').toLowerCase();
+      if (cName === qLower) return true;
+      const altRaw = (cat.alternativeName || '').toLowerCase();
+      const altArray = Array.isArray(cat.altNames) ? cat.altNames.map((x) => x.toLowerCase()) : [];
+      const aliases = [
+        ...altRaw.split(/[,;|/]+/).map((s) => s.trim()),
+        ...altArray,
+      ].filter(Boolean);
+      return aliases.some((a) => a === qLower || a.includes(qLower));
+    });
+
+    const finalCategory = matchedCategory ? matchedCategory.name : query;
+
     const params = new URLSearchParams();
     params.set('city', city);
-    params.set('category', query);
+    params.set('category', finalCategory);
     const targetUrl = `/explore?${params.toString()}`;
 
     // Mark navigated away so returning via Back button resets cleanly
