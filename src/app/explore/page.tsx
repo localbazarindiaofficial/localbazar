@@ -38,22 +38,34 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   return Boolean(matchedDef);
 };
 
-// Smart City Matching Helper (Strict city separation - never bleeds into other cities)
-const matchCity = (listingCity: string, searchCity: string, listingAddress?: string): boolean => {
+// Smart City Matching Helper (Supports Primary City & Authorized Service Areas)
+const matchCity = (
+  listingCity: string,
+  searchCity: string,
+  listingAddress?: string,
+  serviceCities?: string[]
+): boolean => {
   if (!searchCity || searchCity === 'all' || searchCity === 'all cities') return true;
   const sCity = searchCity.trim().toLowerCase();
   const lCity = (listingCity || '').trim().toLowerCase();
   const lAddr = (listingAddress || '').trim().toLowerCase();
 
-  // If a listing has an explicit city assigned:
+  // 1. Direct match on listing's primary city
   if (lCity) {
-    if (lCity === sCity) return true;
-    if (lCity.includes(sCity) || sCity.includes(lCity)) return true;
-    return false; // Strict isolation: listings stay strictly in their assigned city
+    if (lCity === sCity || lCity.includes(sCity) || sCity.includes(lCity)) return true;
   }
 
-  // Fallback to address only if listing has no explicit city defined
-  if (lAddr) {
+  // 2. Match on listing's authorized nearby service cities/areas
+  if (Array.isArray(serviceCities) && serviceCities.length > 0) {
+    const matchedService = serviceCities.some((sc) => {
+      const s = (sc || '').trim().toLowerCase();
+      return s && (s === sCity || s.includes(sCity) || sCity.includes(s));
+    });
+    if (matchedService) return true;
+  }
+
+  // 3. Fallback to address only if listing has no explicit primary city defined
+  if (!lCity && lAddr) {
     const cleanAddr = lAddr.replace(/[^a-z0-9\s]/g, ' ');
     const addrTokens = cleanAddr.split(/\s+/).filter(Boolean);
     if (addrTokens.includes(sCity)) return true;
@@ -251,7 +263,7 @@ function ExploreContent() {
       return false;
     }
 
-    const matchesCity = matchCity(l.city || '', cityQuery, l.address);
+    const matchesCity = matchCity(l.city || '', cityQuery, l.address, l.serviceCities);
     const matchesCat = matchCategory(l.category || '', catQuery, categories);
 
     return matchesCity && matchesCat;
@@ -520,8 +532,24 @@ function ExploreContent() {
                 const isSaved = savedIds.includes(item.id);
                 const isTrusted = isTrustBadgeActive(item);
 
+                const isNearbyService = Boolean(
+                  cityParam &&
+                  cityParam.toLowerCase() !== 'all' &&
+                  cityParam.toLowerCase() !== 'all cities' &&
+                  (item.city || '').trim().toLowerCase() !== cityParam.trim().toLowerCase() &&
+                  !((item.city || '').trim().toLowerCase().includes(cityParam.trim().toLowerCase()) || cityParam.trim().toLowerCase().includes((item.city || '').trim().toLowerCase())) &&
+                  Array.isArray(item.serviceCities) &&
+                  item.serviceCities.some((sc) => {
+                    const s = (sc || '').trim().toLowerCase();
+                    const q = cityParam.trim().toLowerCase();
+                    return s && (s === q || s.includes(q) || q.includes(s));
+                  })
+                );
+
                 let displayLocation = item.city || '';
-                if (item.address) {
+                if (isNearbyService) {
+                  displayLocation = `Serves in ${cityParam} • Base: ${item.city || 'Nearby'}`;
+                } else if (item.address) {
                   if (item.address.toLowerCase().includes((item.city || '').toLowerCase())) {
                     displayLocation = item.address;
                   } else {
@@ -570,8 +598,15 @@ function ExploreContent() {
                           </div>
                         </div>
                         <div className="listing-row-meta-line">
-                          <span className="meta-item-loc">
-                            <i className="fa-solid fa-location-dot"></i>
+                          <span
+                            className="meta-item-loc"
+                            style={isNearbyService ? { color: '#0284c7', fontWeight: 600 } : undefined}
+                            title={isNearbyService ? `Provides service in ${cityParam} (Based in ${item.city || 'Nearby'})` : displayLocation}
+                          >
+                            <i
+                              className={isNearbyService ? 'fa-solid fa-truck-ramp-box' : 'fa-solid fa-location-dot'}
+                              style={isNearbyService ? { color: '#0284c7' } : undefined}
+                            ></i>
                             <span>{displayLocation}</span>
                           </span>
                           <span className="meta-item-time">

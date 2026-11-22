@@ -62,6 +62,7 @@ export interface Listing {
   name: string;
   category: string;
   city: string;
+  serviceCities?: string[];
   phone: string;
   address: string;
   mapLink?: string;

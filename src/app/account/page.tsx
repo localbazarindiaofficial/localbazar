@@ -149,6 +149,9 @@ export default function AccountPage() {
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formCity, setFormCity] = useState('');
+  const [formServiceCities, setFormServiceCities] = useState<string[]>([]);
+  const [serviceCityInput, setServiceCityInput] = useState('');
+  const [showServiceCitySuggestions, setShowServiceCitySuggestions] = useState(false);
   const [formPhone, setFormPhone] = useState('');
   const [formAddress, setFormAddress] = useState('');
   const [formMapLink, setFormMapLink] = useState('');
@@ -193,6 +196,9 @@ export default function AccountPage() {
   const [showPortalCatSuggestions, setShowPortalCatSuggestions] = useState(false);
   const [portalCity, setPortalCity] = useState('');
   const [showPortalCitySuggestions, setShowPortalCitySuggestions] = useState(false);
+  const [portalServiceCities, setPortalServiceCities] = useState<string[]>([]);
+  const [portalServiceCityInput, setPortalServiceCityInput] = useState('');
+  const [showPortalServiceCitySuggestions, setShowPortalServiceCitySuggestions] = useState(false);
   const [portalAddress, setPortalAddress] = useState('');
   const [portalMapLink, setPortalMapLink] = useState('');
   const [portalDesc, setPortalDesc] = useState('');
@@ -962,6 +968,9 @@ export default function AccountPage() {
     setFormName('');
     setFormCategory('');
     setFormCity('');
+    setFormServiceCities([]);
+    setServiceCityInput('');
+    setShowServiceCitySuggestions(false);
     setFormPhone(currentUser?.phone || '');
     setFormAddress('');
     setFormMapLink('');
@@ -973,7 +982,57 @@ export default function AccountPage() {
     setFormDoctors([]);
   };
 
+  // Service Cities Handlers for Add/Edit Form
+  const handleAddFormServiceCity = (cityName: string) => {
+    const trimmed = cityName.trim();
+    if (!trimmed) return;
+    if (formCity && trimmed.toLowerCase() === formCity.trim().toLowerCase()) {
+      showAlert('Duplicate City', 'Your base city is already set as the primary city.', 'warning');
+      return;
+    }
+    if (formServiceCities.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setServiceCityInput('');
+      setShowServiceCitySuggestions(false);
+      return;
+    }
+    if (formServiceCities.length >= 5) {
+      showAlert('Limit Reached', 'You can select up to 5 nearby service cities.', 'warning');
+      return;
+    }
+    setFormServiceCities((prev) => [...prev, trimmed]);
+    setServiceCityInput('');
+    setShowServiceCitySuggestions(false);
+  };
 
+  const handleRemoveFormServiceCity = (cityToRemove: string) => {
+    setFormServiceCities((prev) => prev.filter((c) => c.toLowerCase() !== cityToRemove.toLowerCase()));
+  };
+
+  // Service Cities Handlers for Portal Form
+  const handleAddPortalServiceCity = (cityName: string) => {
+    const trimmed = cityName.trim();
+    if (!trimmed) return;
+    if (portalCity && trimmed.toLowerCase() === portalCity.trim().toLowerCase()) {
+      showAlert('Duplicate City', 'Your base city is already set as the primary city.', 'warning');
+      return;
+    }
+    if (portalServiceCities.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setPortalServiceCityInput('');
+      setShowPortalServiceCitySuggestions(false);
+      return;
+    }
+    if (portalServiceCities.length >= 5) {
+      showAlert('Limit Reached', 'You can select up to 5 nearby service cities.', 'warning');
+      return;
+    }
+    setPortalServiceCities((prev) => [...prev, trimmed]);
+    setPortalServiceCityInput('');
+    setShowPortalServiceCitySuggestions(false);
+  };
+
+  const handleRemovePortalServiceCity = (cityToRemove: string) => {
+    setPortalServiceCities((prev) => prev.filter((c) => c.toLowerCase() !== cityToRemove.toLowerCase()));
+  };
 
   // Open Edit Mode
   const openEditMode = (listing: Listing) => {
@@ -981,6 +1040,9 @@ export default function AccountPage() {
     setFormName(listing.name);
     setFormCategory(listing.category);
     setFormCity(listing.city);
+    setFormServiceCities(Array.isArray(listing.serviceCities) ? listing.serviceCities : []);
+    setServiceCityInput('');
+    setShowServiceCitySuggestions(false);
     setFormPhone(listing.phone || '');
     setFormAddress(listing.address || '');
     setFormMapLink(listing.mapLink || '');
@@ -1089,6 +1151,7 @@ export default function AccountPage() {
           name: formName.trim(),
           category: formCategory.trim(),
           city: formCity.trim(),
+          serviceCities: formServiceCities,
           phone: formPhone.trim(),
           address: formAddress.trim(),
           mapLink: formMapLink.trim(),
@@ -1120,6 +1183,7 @@ export default function AccountPage() {
           name: formName.trim(),
           category: formCategory.trim(),
           city: formCity.trim(),
+          serviceCities: formServiceCities,
           phone: formPhone.trim(),
           address: formAddress.trim(),
           mapLink: formMapLink.trim(),
@@ -1553,6 +1617,9 @@ export default function AccountPage() {
     setShowPortalCatSuggestions(false);
     setPortalCity(listing.city || '');
     setShowPortalCitySuggestions(false);
+    setPortalServiceCities(Array.isArray(listing.serviceCities) ? listing.serviceCities : []);
+    setPortalServiceCityInput('');
+    setShowPortalServiceCitySuggestions(false);
     setPortalAddress(listing.address || '');
     setPortalMapLink(listing.mapLink || '');
     setPortalDesc(listing.desc || '');
@@ -3140,6 +3207,176 @@ export default function AccountPage() {
                               </div>
                             );
                           })()}
+                        </div>
+
+                        {/* Multiple Service Cities / Nearby Areas (Optional - Max 5) */}
+                        <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '0.85rem', borderRadius: 10, border: '1px dashed #cbd5e1' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                              <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                            </label>
+                            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                              {formServiceCities.length} / 5 Selected
+                            </span>
+                          </div>
+                          <p style={{ margin: '0 0 0.65rem 0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
+                            If you provide services (e.g. Catering, Electrician, Plumber, Decorator, Tutor) or delivery in neighboring towns, add them here so customers searching those areas can find your business!
+                          </p>
+
+                          {/* Selected Tags */}
+                          {formServiceCities.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
+                              {formServiceCities.map((sc) => (
+                                <span
+                                  key={sc}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: '#e0f2fe',
+                                    color: '#0369a1',
+                                    border: '1px solid #bae6fd',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
+                                  {sc}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFormServiceCity(sc)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#0284c7',
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      marginLeft: 2,
+                                      fontSize: '0.9rem',
+                                      lineHeight: 1,
+                                    }}
+                                    title={`Remove ${sc}`}
+                                  >
+                                    &times;
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* City Input with Autocomplete & Add Button */}
+                          {formServiceCities.length < 5 && (
+                            <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
+                              <div style={{ position: 'relative', flex: 1 }}>
+                                <input
+                                  type="text"
+                                  placeholder="Type nearby city to add (e.g. Howrah, Kolkata)..."
+                                  value={serviceCityInput}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setServiceCityInput(val);
+                                    setShowServiceCitySuggestions(val.trim().length > 0);
+                                  }}
+                                  onFocus={() => {
+                                    if (serviceCityInput.trim().length > 0) setShowServiceCitySuggestions(true);
+                                  }}
+                                  onBlur={() => setTimeout(() => setShowServiceCitySuggestions(false), 200)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleAddFormServiceCity(serviceCityInput);
+                                    }
+                                  }}
+                                  autoComplete="off"
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.55rem 0.85rem',
+                                    borderRadius: 8,
+                                    border: '1.5px solid #cbd5e1',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    background: '#ffffff',
+                                  }}
+                                />
+                                {showServiceCitySuggestions && serviceCityInput.trim().length > 0 && cities.length > 0 && (() => {
+                                  const filtered = cities
+                                    .filter(
+                                      (c) =>
+                                        c.name.toLowerCase().includes(serviceCityInput.trim().toLowerCase()) &&
+                                        c.name.toLowerCase() !== formCity.trim().toLowerCase() &&
+                                        !formServiceCities.some((sc) => sc.toLowerCase() === c.name.toLowerCase())
+                                    )
+                                    .slice(0, 6);
+                                  if (filtered.length === 0) return null;
+                                  return (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        right: 0,
+                                        marginTop: 4,
+                                        background: '#fff',
+                                        borderRadius: 8,
+                                        border: '1px solid #cbd5e1',
+                                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                        zIndex: 100,
+                                        maxHeight: '180px',
+                                        overflowY: 'auto',
+                                      }}
+                                    >
+                                      {filtered.map((c) => (
+                                        <div
+                                          key={c.name}
+                                          style={{
+                                            padding: '0.5rem 0.85rem',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px solid #f1f5f9',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '0.84rem',
+                                          }}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddFormServiceCity(c.name);
+                                          }}
+                                        >
+                                          <i className="fa-solid fa-location-dot" style={{ color: '#0284c7', fontSize: '0.8rem' }}></i>
+                                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                                          <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: 'auto' }}>
+                                            {c.district || c.state}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleAddFormServiceCity(serviceCityInput)}
+                                style={{
+                                  background: '#0284c7',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: 8,
+                                  padding: '0.55rem 1rem',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                <i className="fa-solid fa-plus"></i> Add
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Phone Number with +91 Country Badge */}
@@ -7991,6 +8228,176 @@ export default function AccountPage() {
                       placeholder="Building, street, market area, landmark, PIN"
                     />
                   </div>
+
+                  {/* Multiple Service Cities / Nearby Areas */}
+                  <div className="m-field span-2" style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: 10, border: '1px dashed #cbd5e1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
+                        <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                        {portalServiceCities.length} / 5 Selected
+                      </span>
+                    </div>
+                    <p style={{ margin: '0 0 0.65rem 0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
+                      Select up to 5 nearby cities where your business offers service or delivery. You will appear in explore results for all of these cities!
+                    </p>
+
+                    {/* Selected Tags */}
+                    {portalServiceCities.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
+                        {portalServiceCities.map((sc) => (
+                          <span
+                            key={sc}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
+                            {sc}
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePortalServiceCity(sc)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#0284c7',
+                                cursor: 'pointer',
+                                padding: 0,
+                                marginLeft: 2,
+                                fontSize: '0.9rem',
+                                lineHeight: 1,
+                              }}
+                              title={`Remove ${sc}`}
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Input with Autocomplete & Add Button */}
+                    {portalServiceCities.length < 5 && (
+                      <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <input
+                            type="text"
+                            placeholder="Type nearby city (e.g. Howrah, Kolkata)..."
+                            value={portalServiceCityInput}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setPortalServiceCityInput(val);
+                              setShowPortalServiceCitySuggestions(val.trim().length > 0);
+                            }}
+                            onFocus={() => {
+                              if (portalServiceCityInput.trim().length > 0) setShowPortalServiceCitySuggestions(true);
+                            }}
+                            onBlur={() => setTimeout(() => setShowPortalServiceCitySuggestions(false), 200)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddPortalServiceCity(portalServiceCityInput);
+                              }
+                            }}
+                            autoComplete="off"
+                            style={{
+                              width: '100%',
+                              padding: '0.55rem 0.85rem',
+                              borderRadius: 8,
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              outline: 'none',
+                              background: '#ffffff',
+                            }}
+                          />
+                          {showPortalServiceCitySuggestions && portalServiceCityInput.trim().length > 0 && cities.length > 0 && (() => {
+                            const filtered = cities
+                              .filter(
+                                (c) =>
+                                  c.name.toLowerCase().includes(portalServiceCityInput.trim().toLowerCase()) &&
+                                  c.name.toLowerCase() !== portalCity.trim().toLowerCase() &&
+                                  !portalServiceCities.some((sc) => sc.toLowerCase() === c.name.toLowerCase())
+                              )
+                              .slice(0, 6);
+                            if (filtered.length === 0) return null;
+                            return (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  left: 0,
+                                  right: 0,
+                                  marginTop: 4,
+                                  background: '#fff',
+                                  borderRadius: 8,
+                                  border: '1px solid #cbd5e1',
+                                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                  zIndex: 100,
+                                  maxHeight: '180px',
+                                  overflowY: 'auto',
+                                }}
+                              >
+                                {filtered.map((c) => (
+                                  <div
+                                    key={c.name}
+                                    style={{
+                                      padding: '0.5rem 0.85rem',
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid #f1f5f9',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      fontSize: '0.84rem',
+                                    }}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      handleAddPortalServiceCity(c.name);
+                                    }}
+                                  >
+                                    <i className="fa-solid fa-location-dot" style={{ color: '#0284c7', fontSize: '0.8rem' }}></i>
+                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: 'auto' }}>
+                                      {c.district || c.state}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddPortalServiceCity(portalServiceCityInput)}
+                          style={{
+                            background: '#0284c7',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '0.55rem 1rem',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <i className="fa-solid fa-plus"></i> Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="m-form-action-row">
@@ -8014,6 +8421,7 @@ export default function AccountPage() {
                         name: portalName.trim(),
                         category: portalCategory.trim(),
                         city: portalCity.trim(),
+                        serviceCities: portalServiceCities,
                         address: portalAddress.trim(),
                       });
                       showToast('Business identity & address updated', 'success');

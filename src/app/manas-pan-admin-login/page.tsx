@@ -236,6 +236,8 @@ export default function SuperAdminPage() {
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editCity, setEditCity] = useState('');
+  const [editServiceCities, setEditServiceCities] = useState<string[]>([]);
+  const [editServiceCityInput, setEditServiceCityInput] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editWhatsapp, setEditWhatsapp] = useState('');
   const [editAddress, setEditAddress] = useState('');
@@ -728,12 +730,38 @@ export default function SuperAdminPage() {
     }
   };
 
+  // Service Cities Handlers for Admin Edit Modal
+  const handleAddEditServiceCity = (cityName: string) => {
+    const trimmed = cityName.trim();
+    if (!trimmed) return;
+    if (editCity && trimmed.toLowerCase() === editCity.trim().toLowerCase()) {
+      alert('Base city is already set as the primary city.');
+      return;
+    }
+    if (editServiceCities.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setEditServiceCityInput('');
+      return;
+    }
+    if (editServiceCities.length >= 5) {
+      alert('You can add up to 5 nearby service cities.');
+      return;
+    }
+    setEditServiceCities((prev) => [...prev, trimmed]);
+    setEditServiceCityInput('');
+  };
+
+  const handleRemoveEditServiceCity = (cityName: string) => {
+    setEditServiceCities((prev) => prev.filter((c) => c.toLowerCase() !== cityName.toLowerCase()));
+  };
+
   // Super Admin Edit Listing Handlers
   const handleOpenEditListing = (l: Listing) => {
     setEditingListingModal(l);
     setEditName(l.name || '');
     setEditCategory(l.category || '');
     setEditCity(l.city || '');
+    setEditServiceCities(Array.isArray(l.serviceCities) ? l.serviceCities : []);
+    setEditServiceCityInput('');
     setEditPhone(l.phone || '');
     setEditWhatsapp(l.whatsapp || '');
     setEditAddress(l.address || '');
@@ -768,6 +796,7 @@ export default function SuperAdminPage() {
         name: editName.trim(),
         category: editCategory.trim(),
         city: editCity.trim(),
+        serviceCities: editServiceCities,
         phone: editPhone.trim(),
         whatsapp: editWhatsapp.trim(),
         address: editAddress.trim(),
@@ -7304,6 +7333,118 @@ export default function SuperAdminPage() {
                           <option key={ct.id || ct.name} value={ct.name} />
                         ))}
                       </datalist>
+                    </div>
+
+                    {/* Multiple Service Cities / Nearby Areas (Optional - Max 5) */}
+                    <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '0.85rem', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#334155' }}>
+                          <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7', marginRight: 6 }}></i> Multiple Service Cities / Nearby Areas (Optional)
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                          {editServiceCities.length} / 5 Selected
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.75rem', color: '#64748b' }}>
+                        If this business serves multiple towns (e.g. Caterer, Electrician, Plumber, Decorator, Tutor), add up to 5 nearby cities so it appears in search results for all of them.
+                      </p>
+
+                      {/* Selected Tags */}
+                      {editServiceCities.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.65rem' }}>
+                          {editServiceCities.map((sc) => (
+                            <span
+                              key={sc}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                border: '1px solid #bae6fd',
+                                borderRadius: '6px',
+                                padding: '3px 8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              <i className="fa-solid fa-location-dot" style={{ fontSize: '0.72rem', color: '#0284c7' }}></i>
+                              {sc}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveEditServiceCity(sc)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#0284c7',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  marginLeft: 2,
+                                  fontSize: '0.9rem',
+                                  lineHeight: 1,
+                                }}
+                                title={`Remove ${sc}`}
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* City Input with Datalist & Add Button */}
+                      {editServiceCities.length < 5 && (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            list="adminServiceCitiesList"
+                            placeholder="Select or type nearby city to add..."
+                            value={editServiceCityInput}
+                            onChange={(e) => setEditServiceCityInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddEditServiceCity(editServiceCityInput);
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '0.55rem 0.85rem',
+                              borderRadius: 8,
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              background: '#ffffff',
+                            }}
+                          />
+                          <datalist id="adminServiceCitiesList">
+                            {cities
+                              .filter((c) => c.name.toLowerCase() !== editCity.trim().toLowerCase() && !editServiceCities.some((sc) => sc.toLowerCase() === c.name.toLowerCase()))
+                              .map((ct) => (
+                                <option key={ct.id || ct.name} value={ct.name} />
+                              ))}
+                          </datalist>
+                          <button
+                            type="button"
+                            onClick={() => handleAddEditServiceCity(editServiceCityInput)}
+                            style={{
+                              background: '#0284c7',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '0.55rem 1rem',
+                              fontWeight: 700,
+                              fontSize: '0.82rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <i className="fa-solid fa-plus"></i> Add
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Primary Phone */}

@@ -1101,6 +1101,39 @@ export default function ShopDetailPage() {
                   </button>
                 </div>
 
+                {/* Nearby Service Areas if any */}
+                {Array.isArray(shop.serviceCities) && shop.serviceCities.length > 0 && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      flexWrap: 'wrap',
+                      marginTop: '3px',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#0369a1',
+                        background: '#f0f9ff',
+                        border: '1px solid #bae6fd',
+                        borderRadius: '6px',
+                        padding: '2px 8px',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                      title={`Also serves in: ${shop.serviceCities.join(', ')}`}
+                    >
+                      <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7' }}></i>
+                      <span>Serves: <strong>{shop.serviceCities.join(', ')}</strong></span>
+                    </span>
+                  </div>
+                )}
+
                 {/* 4. Category Under City • Live Open/Closed Status + Arrow to Open Weekly Schedule & Holidays */}
                 <div className="jd-app-meta-line">
                   <strong className="jd-meta-cat" id="detailCatPill">
@@ -2066,6 +2099,47 @@ export default function ShopDetailPage() {
                   <span>Get Directions on Google Maps</span>
                 </a>
               </div>
+
+              {/* Service Areas / Nearby Cities Served */}
+              {Array.isArray(shop.serviceCities) && shop.serviceCities.length > 0 && (
+                <div className="addr-sheet-card" style={{ marginBottom: '0.85rem' }}>
+                  <div className="addr-sheet-card-header" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <span className="addr-sheet-icon" style={{ fontSize: '1.25rem', color: '#0284c7', marginTop: '2px' }}>
+                      <i className="fa-solid fa-truck-ramp-box"></i>
+                    </span>
+                    <div className="addr-sheet-info-col" style={{ flex: 1 }}>
+                      <span className="addr-sheet-label" style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Service Areas / Nearby Cities Served
+                      </span>
+                      <p style={{ margin: '0.2rem 0 0.5rem 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        This business provides delivery, on-site services, or appointments in the following locations:
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {shop.serviceCities.map((sc, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              background: '#f0f9ff',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '6px',
+                              padding: '0.25rem 0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            <i className="fa-solid fa-location-dot" style={{ fontSize: '0.75rem', color: '#0284c7' }}></i>
+                            {sc}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Contact & Phone Card */}
               <div className="addr-sheet-card" style={{ marginBottom: '0.85rem' }}>
