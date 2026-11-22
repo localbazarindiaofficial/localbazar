@@ -50,6 +50,37 @@ export default function ShopDetailPage() {
   });
   const [loading, setLoading] = useState(!shop);
 
+  // Read URL query city if customer navigated from a city search
+  const [searchCity, setSearchCity] = useState('');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        const c = sp.get('city') || sp.get('searchCity') || '';
+        if (c) setSearchCity(c.trim());
+      } catch {}
+    }
+  }, []);
+
+  const displayHeaderCity = useMemo(() => {
+    if (!shop) return '';
+    if (
+      searchCity &&
+      searchCity.toLowerCase() !== 'all' &&
+      searchCity.toLowerCase() !== 'all cities' &&
+      Array.isArray(shop.serviceCities) &&
+      shop.serviceCities.some(
+        (sc) =>
+          sc.trim().toLowerCase() === searchCity.toLowerCase() ||
+          sc.trim().toLowerCase().includes(searchCity.toLowerCase()) ||
+          searchCity.toLowerCase().includes(sc.trim().toLowerCase())
+      )
+    ) {
+      return searchCity;
+    }
+    return shop.city;
+  }, [shop, searchCity]);
+
   // Bottom Navigation Active Tab ('home' | 'reviews')
   const [bottomTab, setBottomTab] = useState<'home' | 'reviews'>('home');
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
@@ -1088,51 +1119,18 @@ export default function ShopDetailPage() {
                 {/* 3. City Under Rating + Arrow to Open Full Address Bottom Sheet */}
                 <div className="jd-app-city-verified-row">
                   <span className="jd-app-locality-name" id="detailCityTag">
-                    {shop.city}
+                    {displayHeaderCity}
                   </span>
                   <button
                     type="button"
                     className="btn-open-address-sheet"
                     id="btnTriggerAddressSheet"
                     onClick={() => setShowAddressSheet(true)}
-                    title="View Full Address, Phone & Map"
+                    title="View Full Address, Service Areas & Map"
                   >
                     <i className="fa-solid fa-chevron-down jd-address-arrow"></i>
                   </button>
                 </div>
-
-                {/* Nearby Service Areas if any */}
-                {Array.isArray(shop.serviceCities) && shop.serviceCities.length > 0 && (
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      flexWrap: 'wrap',
-                      marginTop: '3px',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        color: '#0369a1',
-                        background: '#f0f9ff',
-                        border: '1px solid #bae6fd',
-                        borderRadius: '6px',
-                        padding: '2px 8px',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                      }}
-                      title={`Also serves in: ${shop.serviceCities.join(', ')}`}
-                    >
-                      <i className="fa-solid fa-truck-ramp-box" style={{ color: '#0284c7' }}></i>
-                      <span>Serves: <strong>{shop.serviceCities.join(', ')}</strong></span>
-                    </span>
-                  </div>
-                )}
 
                 {/* 4. Category Under City • Live Open/Closed Status + Arrow to Open Weekly Schedule & Holidays */}
                 <div className="jd-app-meta-line">
@@ -2109,32 +2107,43 @@ export default function ShopDetailPage() {
                     </span>
                     <div className="addr-sheet-info-col" style={{ flex: 1 }}>
                       <span className="addr-sheet-label" style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                        Service Areas / Nearby Cities Served
+                        Service & Delivery Areas (পরিষেবা ও ডেলিভারি এলাকা)
                       </span>
-                      <p style={{ margin: '0.2rem 0 0.5rem 0', fontSize: '0.8rem', color: '#64748b' }}>
-                        This business provides delivery, on-site services, or appointments in the following locations:
+                      <p style={{ margin: '0.2rem 0 0.5rem 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                        This business provides on-site services, appointments, or product delivery in the following cities & towns:
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                        {shop.serviceCities.map((sc, i) => (
-                          <span
-                            key={i}
-                            style={{
-                              background: '#f0f9ff',
-                              color: '#0369a1',
-                              border: '1px solid #bae6fd',
-                              borderRadius: '6px',
-                              padding: '0.25rem 0.65rem',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}
-                          >
-                            <i className="fa-solid fa-location-dot" style={{ fontSize: '0.75rem', color: '#0284c7' }}></i>
-                            {sc}
-                          </span>
-                        ))}
+                        {shop.serviceCities.map((sc, i) => {
+                          const isSearchedCity = Boolean(
+                            searchCity &&
+                            (sc.trim().toLowerCase() === searchCity.toLowerCase() ||
+                              sc.trim().toLowerCase().includes(searchCity.toLowerCase()) ||
+                              searchCity.toLowerCase().includes(sc.trim().toLowerCase()))
+                          );
+                          return (
+                            <span
+                              key={i}
+                              style={{
+                                background: isSearchedCity ? '#ecfdf5' : '#f0f9ff',
+                                color: isSearchedCity ? '#065f46' : '#0369a1',
+                                border: `1.5px solid ${isSearchedCity ? '#10b981' : '#bae6fd'}`,
+                                borderRadius: '6px',
+                                padding: '0.25rem 0.65rem',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              <i
+                                className={isSearchedCity ? 'fa-solid fa-circle-check' : 'fa-solid fa-location-dot'}
+                                style={{ fontSize: '0.75rem', color: isSearchedCity ? '#10b981' : '#0284c7' }}
+                              ></i>
+                              {sc} {isSearchedCity && <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>(Your City)</span>}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

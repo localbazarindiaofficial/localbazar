@@ -560,7 +560,7 @@ function ExploreContent() {
                 return (
                   <Link
                     key={item.id}
-                    href={`/shops/${encodeURIComponent(item.id)}`}
+                    href={`/shops/${encodeURIComponent(item.id)}${cityParam && cityParam.toLowerCase() !== 'all' && cityParam.toLowerCase() !== 'all cities' ? `?city=${encodeURIComponent(cityParam)}` : ''}`}
                     prefetch={true}
                     className="listing-compact-row"
                     title={`View details of ${item.name}`}
