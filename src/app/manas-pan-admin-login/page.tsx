@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl } from '@/types';
+import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl, DailyScheduleDay } from '@/types';
 import { cloudSync, uploadImageToCloud, formatLBUserId, auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import '@/styles/admin.css';
@@ -10,6 +10,18 @@ import '@/styles/admin.css';
 const DEFAULT_ADMIN_EMAIL = 'localbazar@adminmanaspan.com';
 const ADMIN_AUTH_SALT = 'lb_admin_auth_salt_9876';
 const DEFAULT_ADMIN_PWD_HASH = '4e0d268d927e16d587c63f68290e711004538d0c769325991f0dcef7392145cb';
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const DEFAULT_SCHEDULE: Record<string, DailyScheduleDay> = {
+  Monday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Tuesday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Wednesday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Thursday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Friday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Saturday: { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+  Sunday: { isOpen: false, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' },
+};
 
 async function computeAdminPwdHash(pwd: string): Promise<string> {
   if (!pwd) return '';
@@ -263,6 +275,9 @@ export default function SuperAdminPage() {
   const [addAddress, setAddAddress] = useState('');
   const [addMapLink, setAddMapLink] = useState('');
   const [addScheduleTimings, setAddScheduleTimings] = useState('09:00 AM - 08:30 PM');
+  const [addSchedule, setAddSchedule] = useState<Record<string, DailyScheduleDay>>(DEFAULT_SCHEDULE);
+  const [addHolidays, setAddHolidays] = useState<string[]>([]);
+  const [newHolidayInput, setNewHolidayInput] = useState('');
   const [addDesc, setAddDesc] = useState('');
   const [addPhotos, setAddPhotos] = useState<string[]>([]);
   const [addPhotosUploading, setAddPhotosUploading] = useState(false);
@@ -941,6 +956,9 @@ export default function SuperAdminPage() {
     setAddAddress('');
     setAddMapLink('');
     setAddScheduleTimings('09:00 AM - 08:30 PM');
+    setAddSchedule(DEFAULT_SCHEDULE);
+    setAddHolidays([]);
+    setNewHolidayInput('');
     setAddDesc('');
     setAddPhotos([]);
     setAddPhotosUploading(false);
@@ -949,6 +967,59 @@ export default function SuperAdminPage() {
     setAddTrustBadge(false);
     setAddOwnerEmail('Super Admin');
     setIsAddListingModalOpen(true);
+  };
+
+  const applyAddPresetMonSat = () => {
+    const newSched: Record<string, DailyScheduleDay> = {};
+    DAYS_OF_WEEK.forEach((d) => {
+      if (d === 'Sunday') {
+        newSched[d] = { isOpen: false, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+      } else {
+        newSched[d] = { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+      }
+    });
+    setAddSchedule(newSched);
+    setAddScheduleTimings('Mon - Sat: 09:00 AM - 08:30 PM (Sunday Closed)');
+  };
+
+  const applyAddPresetOpenAllDays = () => {
+    const newSched: Record<string, DailyScheduleDay> = {};
+    DAYS_OF_WEEK.forEach((d) => {
+      newSched[d] = { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '09:00', closeAmPm: 'PM' };
+    });
+    setAddSchedule(newSched);
+    setAddScheduleTimings('All 7 Days: 09:00 AM - 09:00 PM');
+  };
+
+  const applyAddPresetCloseSunday = () => {
+    const newSched: Record<string, DailyScheduleDay> = {};
+    DAYS_OF_WEEK.forEach((d) => {
+      if (d === 'Sunday') {
+        newSched[d] = { isOpen: false, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+      } else {
+        newSched[d] = { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+      }
+    });
+    setAddSchedule(newSched);
+    setAddScheduleTimings('Mon - Sat Open (Sunday Closed)');
+  };
+
+  const handleAddHolidayDate = (dateVal: string) => {
+    const trimmed = dateVal.trim();
+    if (!trimmed) {
+      alert('Please pick a calendar date first.');
+      return;
+    }
+    if (addHolidays.includes(trimmed)) {
+      alert('This holiday date is already added.');
+      return;
+    }
+    setAddHolidays((prev) => [...prev, trimmed].sort());
+    setNewHolidayInput('');
+  };
+
+  const handleRemoveHolidayDate = (dateVal: string) => {
+    setAddHolidays((prev) => prev.filter((d) => d !== dateVal));
   };
 
   const handleNextToAddStep2 = () => {
@@ -1016,6 +1087,7 @@ export default function SuperAdminPage() {
 
       const coverImg = addPhotos.length > 0 ? addPhotos[0] : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
       const newListingId = `list_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const openDaysList = DAYS_OF_WEEK.filter((d) => addSchedule[d]?.isOpen);
 
       const newListing: Listing = {
         id: newListingId,
@@ -1028,6 +1100,9 @@ export default function SuperAdminPage() {
         address: addAddress.trim(),
         mapLink: addMapLink.trim(),
         scheduleTimings: addScheduleTimings.trim() || '09:00 AM - 08:30 PM',
+        dailySchedule: addSchedule,
+        openDays: openDaysList,
+        holidays: addHolidays,
         desc: addDesc.trim(),
         image: coverImg,
         photos: addPhotos,
@@ -8686,43 +8761,264 @@ export default function SuperAdminPage() {
                   {/* ================= STAGE 3: TIMINGS & PUBLISH ================= */}
                   {addListingStep === 3 && (
                     <div>
-                      {/* Schedule Timings */}
-                      <div style={{ marginBottom: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
-                            Business Hours / Timings *
-                          </label>
+                      {/* Operating Schedule & Daily Timings Section */}
+                      <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1.15rem', borderRadius: 14, border: '1.5px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: 4 }}>
+                          <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="fa-regular fa-clock" style={{ color: '#2563eb' }}></i>
+                            <span>Operating Schedule & Timings</span>
+                          </h3>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>Weekly Store Hours</span>
                         </div>
+                        <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.85rem 0', lineHeight: 1.4 }}>
+                          Set standard opening and closing hours for each day of the week. Turn off the toggle for scheduled weekly off-days.
+                        </p>
+
+                        {/* Quick Presets Bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '1rem', background: '#ffffff', padding: '0.6rem 0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#2563eb' }}></i> Presets:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={applyAddPresetMonSat}
+                            style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.74rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                          >
+                            Mon - Sat (9:00 AM - 8:30 PM)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={applyAddPresetOpenAllDays}
+                            style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.74rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                          >
+                            Open All 7 Days
+                          </button>
+                          <button
+                            type="button"
+                            onClick={applyAddPresetCloseSunday}
+                            style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.74rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                          >
+                            Close Sunday Only
+                          </button>
+                        </div>
+
+                        {/* Daily Schedule List for Each Day */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                          {DAYS_OF_WEEK.map((day) => {
+                            const sched = addSchedule[day] || { isOpen: true, openTime: '09:00', openAmPm: 'AM', closeTime: '08:30', closeAmPm: 'PM' };
+                            return (
+                              <div
+                                key={day}
+                                style={{
+                                  background: sched.isOpen ? '#ffffff' : '#fef2f2',
+                                  border: `1.5px solid ${sched.isOpen ? '#e2e8f0' : '#fecaca'}`,
+                                  borderRadius: 10,
+                                  padding: '0.6rem 0.85rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '0.65rem',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={sched.isOpen}
+                                      onChange={(e) => {
+                                        setAddSchedule((prev) => ({
+                                          ...prev,
+                                          [day]: { ...sched, isOpen: e.target.checked },
+                                        }));
+                                      }}
+                                      style={{ width: 18, height: 18, accentColor: '#16a34a', cursor: 'pointer' }}
+                                    />
+                                  </label>
+                                  <span style={{ fontWeight: 700, fontSize: '0.86rem', color: sched.isOpen ? '#0f172a' : '#991b1b', width: 92 }}>
+                                    {day}
+                                  </span>
+                                  <span
+                                    style={{
+                                      padding: '2px 8px',
+                                      borderRadius: 12,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      background: sched.isOpen ? '#dcfce7' : '#fee2e2',
+                                      color: sched.isOpen ? '#15803d' : '#b91c1c',
+                                    }}
+                                  >
+                                    {sched.isOpen ? 'Open' : 'Closed'}
+                                  </span>
+                                </div>
+
+                                {sched.isOpen ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                    <input
+                                      type="text"
+                                      value={sched.openTime}
+                                      placeholder="09:00"
+                                      onChange={(e) => setAddSchedule((prev) => ({ ...prev, [day]: { ...sched, openTime: e.target.value } }))}
+                                      style={{ width: 66, padding: '0.35rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem', textAlign: 'center', background: '#fff' }}
+                                    />
+                                    <select
+                                      value={sched.openAmPm}
+                                      onChange={(e) => setAddSchedule((prev) => ({ ...prev, [day]: { ...sched, openAmPm: e.target.value } }))}
+                                      style={{ padding: '0.35rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem', background: '#fff' }}
+                                    >
+                                      <option value="AM">AM</option>
+                                      <option value="PM">PM</option>
+                                    </select>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>to</span>
+                                    <input
+                                      type="text"
+                                      value={sched.closeTime}
+                                      placeholder="08:30"
+                                      onChange={(e) => setAddSchedule((prev) => ({ ...prev, [day]: { ...sched, closeTime: e.target.value } }))}
+                                      style={{ width: 66, padding: '0.35rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem', textAlign: 'center', background: '#fff' }}
+                                    />
+                                    <select
+                                      value={sched.closeAmPm}
+                                      onChange={(e) => setAddSchedule((prev) => ({ ...prev, [day]: { ...sched, closeAmPm: e.target.value } }))}
+                                      style={{ padding: '0.35rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem', background: '#fff' }}
+                                    >
+                                      <option value="AM">AM</option>
+                                      <option value="PM">PM</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <i className="fa-regular fa-circle-xmark"></i> Closed all day
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Scheduled Holidays & Special Off-Days Section */}
+                      <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1.15rem', borderRadius: 14, border: '1.5px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: 4 }}>
+                          <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <i className="fa-solid fa-umbrella-beach" style={{ color: '#ef4444' }}></i>
+                            <span>Scheduled Holidays & Special Off-Days</span>
+                          </h4>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 700, color: addHolidays.length > 0 ? '#b45309' : '#64748b' }}>
+                            {addHolidays.length} {addHolidays.length === 1 ? 'Holiday' : 'Holidays'} Scheduled
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.78rem', color: '#64748b' }}>
+                          Pick specific calendar dates when this business will be closed for festivals, maintenance, or staff holidays.
+                        </p>
+
+                        {/* Date Picker Input & Add Button */}
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+                          <input
+                            type="date"
+                            value={newHolidayInput}
+                            onChange={(e) => setNewHolidayInput(e.target.value)}
+                            style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddHolidayDate(newHolidayInput)}
+                            style={{
+                              padding: '0.5rem 0.95rem',
+                              borderRadius: 8,
+                              border: 'none',
+                              background: '#ef4444',
+                              color: '#fff',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <i className="fa-regular fa-calendar-plus"></i> Add Holiday
+                          </button>
+                          {addHolidays.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Clear all scheduled holidays?')) {
+                                  setAddHolidays([]);
+                                }
+                              }}
+                              style={{
+                                padding: '0.5rem 0.85rem',
+                                borderRadius: 8,
+                                border: '1px solid #fca5a5',
+                                background: '#fff1f2',
+                                color: '#b91c1c',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+
+                        {/* List of Holiday Badges */}
+                        {addHolidays.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                            {addHolidays.map((hDate) => (
+                              <span
+                                key={hDate}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.45rem',
+                                  background: '#fef2f2',
+                                  color: '#991b1b',
+                                  border: '1px solid #fecaca',
+                                  borderRadius: 6,
+                                  padding: '3px 8px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <i className="fa-regular fa-calendar-xmark" style={{ color: '#ef4444', fontSize: '0.75rem' }}></i>
+                                {hDate}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveHolidayDate(hDate)}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: '0.8rem', lineHeight: 1 }}
+                                  title="Remove holiday"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.76rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            No special holidays scheduled. Shop will follow the regular weekly hours above.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* General Schedule Timings Summary Text */}
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                          Storefront Timings Summary Text *
+                        </label>
                         <input
                           type="text"
                           required
                           value={addScheduleTimings}
                           onChange={(e) => setAddScheduleTimings(e.target.value)}
-                          placeholder="e.g. 09:00 AM - 08:30 PM"
-                          style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem', marginBottom: 8 }}
+                          placeholder="e.g. Mon - Sat: 09:00 AM - 08:30 PM (Sunday Closed)"
+                          style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.88rem' }}
                         />
-                        {/* Quick Timing Presets */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
-                          {['09:00 AM - 08:30 PM', '10:00 AM - 09:00 PM', '08:00 AM - 10:00 PM', '24 Hours Open'].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => setAddScheduleTimings(preset)}
-                              style={{
-                                padding: '0.25rem 0.65rem',
-                                borderRadius: 6,
-                                border: '1px solid #cbd5e1',
-                                background: addScheduleTimings === preset ? '#e0f2fe' : '#ffffff',
-                                color: addScheduleTimings === preset ? '#0369a1' : '#64748b',
-                                fontSize: '0.74rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {preset}
-                            </button>
-                          ))}
-                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          This text summary is displayed on Explore listing cards and shop header badges.
+                        </span>
                       </div>
 
                       {/* Assign Owner Account / Link Merchant */}
