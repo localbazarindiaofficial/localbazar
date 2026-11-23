@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cloudSync, auth, formatLBUserId, db } from '@/lib/firebase';
@@ -21,6 +21,79 @@ const matchStartsWithWord = (text: string, q: string): boolean => {
   // If multi-word string, check if any word starts with q
   const words = cleanText.split(/[\s,/-]+/);
   return words.some((w) => w.startsWith(cleanQ));
+};
+
+// Vibrant pastel palette for Flipkart-style category rail bubbles
+const FK_CATEGORY_PALETTES = [
+  { bg: '#eff6ff', border: '#bfdbfe', icon: '#2563eb' }, // Blue
+  { bg: '#fef2f2', border: '#fecaca', icon: '#dc2626' }, // Red
+  { bg: '#f0fdf4', border: '#bbf7d0', icon: '#16a34a' }, // Green
+  { bg: '#fffbeb', border: '#fde68a', icon: '#d97706' }, // Amber
+  { bg: '#faf5ff', border: '#e9d5ff', icon: '#9333ea' }, // Purple
+  { bg: '#fff7ed', border: '#fed7aa', icon: '#ea580c' }, // Orange
+  { bg: '#ecfeff', border: '#a5f3fc', icon: '#0891b2' }, // Cyan
+  { bg: '#fdf2f8', border: '#fbcfe8', icon: '#db2777' }, // Pink
+  { bg: '#f0fdfa', border: '#99f6e4', icon: '#0d9488' }, // Teal
+  { bg: '#f8fafc', border: '#cbd5e1', icon: '#475569' }, // Slate
+];
+
+// Helper: resolve best visual representation for each admin category
+const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emoji'; value: string } => {
+  if (cat.image && (cat.image.startsWith('http') || cat.image.startsWith('/') || cat.image.startsWith('data:'))) {
+    return { type: 'image', value: cat.image };
+  }
+
+  // 1. Direct icon set by Admin
+  if (cat.icon && typeof cat.icon === 'string' && cat.icon.trim()) {
+    const trimmed = cat.icon.trim();
+    if (trimmed.startsWith('fa-') || trimmed.includes('fa-')) {
+      return { type: 'fa', value: trimmed };
+    }
+    return { type: 'emoji', value: trimmed };
+  }
+
+  // 2. Icon from first in-store subcategory if available
+  if (Array.isArray(cat.storeCategories) && cat.storeCategories.length > 0) {
+    const firstWithIcon = cat.storeCategories.find(
+      (sc) => typeof sc !== 'string' && sc?.icon && sc.icon.trim() && sc.icon !== '🏷️'
+    );
+    if (firstWithIcon && typeof firstWithIcon !== 'string' && firstWithIcon.icon) {
+      return { type: 'emoji', value: firstWithIcon.icon };
+    }
+  }
+
+  // 3. Smart contextual emoji mapping for Indian / Bengali Bazaar categories
+  const nameLower = (cat.name || '').toLowerCase();
+  if (nameLower.includes('doctor') || nameLower.includes('clinic') || nameLower.includes('hospital')) return { type: 'emoji', value: '🩺' };
+  if (nameLower.includes('pharmacy') || nameLower.includes('medicine') || nameLower.includes('medical') || nameLower.includes('chemist')) return { type: 'emoji', value: '💊' };
+  if (nameLower.includes('grocery') || nameLower.includes('ration') || nameLower.includes('kirana') || nameLower.includes('supermarket')) return { type: 'emoji', value: '🛒' };
+  if (nameLower.includes('bakery') || nameLower.includes('cake') || nameLower.includes('sweet') || nameLower.includes('mithai')) return { type: 'emoji', value: '🎂' };
+  if (nameLower.includes('restaurant') || nameLower.includes('cafe') || nameLower.includes('hotel') || nameLower.includes('food') || nameLower.includes('dhaba') || nameLower.includes('fast food')) return { type: 'emoji', value: '🍽️' };
+  if (nameLower.includes('auto') || nameLower.includes('bike') || nameLower.includes('garage') || nameLower.includes('motor') || nameLower.includes('mechanic')) return { type: 'emoji', value: '🏍️' };
+  if (nameLower.includes('car') || nameLower.includes('cab') || nameLower.includes('taxi') || nameLower.includes('driver')) return { type: 'emoji', value: '🚗' };
+  if (nameLower.includes('parlour') || nameLower.includes('parlor') || nameLower.includes('salon') || nameLower.includes('beauty') || nameLower.includes('spa')) return { type: 'emoji', value: '💇‍♀️' };
+  if (nameLower.includes('electric') || nameLower.includes('electronic') || nameLower.includes('mobile') || nameLower.includes('repair')) return { type: 'emoji', value: '📱' };
+  if (nameLower.includes('cloth') || nameLower.includes('garment') || nameLower.includes('fashion') || nameLower.includes('boutique') || nameLower.includes('tailor') || nameLower.includes('saree')) return { type: 'emoji', value: '👕' };
+  if (nameLower.includes('jewel') || nameLower.includes('gold') || nameLower.includes('silver')) return { type: 'emoji', value: '💍' };
+  if (nameLower.includes('bank') || nameLower.includes('atm') || nameLower.includes('finance') || nameLower.includes('loan')) return { type: 'emoji', value: '🏦' };
+  if (nameLower.includes('hardware') || nameLower.includes('paint') || nameLower.includes('sanitary') || nameLower.includes('plumber')) return { type: 'emoji', value: '🔧' };
+  if (nameLower.includes('book') || nameLower.includes('stationery') || nameLower.includes('xerox') || nameLower.includes('cyber') || nameLower.includes('internet')) return { type: 'emoji', value: '📚' };
+  if (nameLower.includes('gym') || nameLower.includes('fitness') || nameLower.includes('sports')) return { type: 'emoji', value: '🏋️' };
+  if (nameLower.includes('meat') || nameLower.includes('chicken') || nameLower.includes('fish') || nameLower.includes('egg')) return { type: 'emoji', value: '🍗' };
+  if (nameLower.includes('fruit') || nameLower.includes('vegetable') || nameLower.includes('sabji')) return { type: 'emoji', value: '🍎' };
+  if (nameLower.includes('milk') || nameLower.includes('dairy')) return { type: 'emoji', value: '🥛' };
+  if (nameLower.includes('pet') || nameLower.includes('veterinary')) return { type: 'emoji', value: '🐾' };
+  if (nameLower.includes('furniture') || nameLower.includes('carpenter') || nameLower.includes('wood')) return { type: 'emoji', value: '🪑' };
+  if (nameLower.includes('education') || nameLower.includes('school') || nameLower.includes('coaching') || nameLower.includes('tuition')) return { type: 'emoji', value: '🎓' };
+  if (nameLower.includes('property') || nameLower.includes('real estate') || nameLower.includes('rent')) return { type: 'emoji', value: '🏡' };
+  if (nameLower.includes('optician') || nameLower.includes('optical') || nameLower.includes('eye') || nameLower.includes('chasma')) return { type: 'emoji', value: '👓' };
+  if (nameLower.includes('photo') || nameLower.includes('studio') || nameLower.includes('video')) return { type: 'emoji', value: '📷' };
+  if (nameLower.includes('flower') || nameLower.includes('nursery') || nameLower.includes('plant')) return { type: 'emoji', value: '💐' };
+  if (nameLower.includes('shoe') || nameLower.includes('footwear')) return { type: 'emoji', value: '👟' };
+  if (nameLower.includes('cctv') || nameLower.includes('security')) return { type: 'emoji', value: '📹' };
+  if (nameLower.includes('travel') || nameLower.includes('tour')) return { type: 'emoji', value: '✈️' };
+
+  return { type: 'emoji', value: '🏪' };
 };
 
 export default function HomePage() {
@@ -116,6 +189,86 @@ export default function HomePage() {
   const cityInputRef = useRef<HTMLInputElement>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
   const isNavigatedAwayRef = useRef(false);
+
+  // Flipkart-style Category Strip ref & scroll state
+  const fkCatTrackRef = useRef<HTMLDivElement>(null);
+  const [canScrollCatLeft, setCanScrollCatLeft] = useState(false);
+  const [canScrollCatRight, setCanScrollCatRight] = useState(false);
+
+  // Track scroll boundaries of Flipkart-style category rail for desktop navigation arrows
+  const checkCatScroll = useCallback(() => {
+    const el = fkCatTrackRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollCatLeft(scrollLeft > 6);
+    setCanScrollCatRight(scrollLeft < scrollWidth - clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    checkCatScroll();
+    const el = fkCatTrackRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkCatScroll, { passive: true });
+    window.addEventListener('resize', checkCatScroll);
+    return () => {
+      el.removeEventListener('scroll', checkCatScroll);
+      window.removeEventListener('resize', checkCatScroll);
+    };
+  }, [checkCatScroll, categories.length]);
+
+  const scrollCatTrack = (dir: 'left' | 'right') => {
+    const el = fkCatTrackRef.current;
+    if (!el) return;
+    const scrollAmount = Math.max(220, Math.floor(el.clientWidth * 0.75));
+    el.scrollBy({
+      left: dir === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  };
+
+  const handleQuickCategoryClick = (categoryName: string) => {
+    const trimmedCity = cityInput.trim();
+    let selectedCity = trimmedCity;
+
+    if (!selectedCity && typeof window !== 'undefined') {
+      try {
+        const lastCity = localStorage.getItem('lb_last_city') || localStorage.getItem('lb_user_selected_city');
+        if (lastCity && lastCity.trim()) {
+          selectedCity = lastCity.trim();
+        }
+      } catch {}
+    }
+
+    // Set query state for immediate visual feedback
+    setQueryInput(categoryName);
+    setShowCatSugg(false);
+    setShowCitySugg(false);
+
+    // Track navigation for seamless native Back button support
+    isNavigatedAwayRef.current = true;
+    try {
+      sessionStorage.setItem('lb_nav_origin', 'home');
+      sessionStorage.setItem('lb_internal_nav', 'true');
+    } catch {}
+
+    // Dispatch global navigation event for glowing top progress bar
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lb:start-navigation'));
+    }
+
+    const params = new URLSearchParams();
+    if (selectedCity) {
+      params.set('city', selectedCity);
+    }
+    params.set('category', categoryName);
+
+    const targetUrl = `/explore?${params.toString()}`;
+    try {
+      router.push(targetUrl);
+    } catch {
+      window.location.href = targetUrl;
+    }
+  };
 
   // Clean reset of search inputs strictly upon returning to Home (pageshow / popstate)
   useEffect(() => {
@@ -1026,6 +1179,94 @@ export default function HomePage() {
             </button>
           </form>
 
+          {/* Flipkart-Style Horizontal Category Slider (Strictly Live Admin Categories Only - Zero Demo Data) */}
+          {categories.length > 0 && (
+            <section className="fk-category-strip-section" aria-label="Browse Categories">
+              <div className="fk-category-strip-container">
+                {canScrollCatLeft && (
+                  <button
+                    type="button"
+                    className="fk-cat-nav-btn fk-cat-nav-prev"
+                    aria-label="Scroll categories left"
+                    onClick={() => scrollCatTrack('left')}
+                  >
+                    <i className="fa-solid fa-chevron-left"></i>
+                  </button>
+                )}
+
+                <div
+                  ref={fkCatTrackRef}
+                  className="fk-category-strip-track"
+                  tabIndex={0}
+                  aria-label="Categories list"
+                >
+                  {categories.map((cat, idx) => {
+                    const visual = resolveCategoryVisual(cat);
+                    const palette = FK_CATEGORY_PALETTES[idx % FK_CATEGORY_PALETTES.length];
+
+                    return (
+                      <button
+                        key={cat.id || cat.name || idx}
+                        type="button"
+                        className="fk-category-chip-btn"
+                        onClick={() => handleQuickCategoryClick(cat.name)}
+                        onMouseEnter={() => {
+                          try {
+                            const c = cityInput.trim() || (typeof window !== 'undefined' ? localStorage.getItem('lb_last_city') || '' : '');
+                            const p = new URLSearchParams();
+                            if (c) p.set('city', c);
+                            p.set('category', cat.name);
+                            router.prefetch(`/explore?${p.toString()}`);
+                          } catch {}
+                        }}
+                        title={`View ${cat.name}`}
+                      >
+                        <div
+                          className="fk-category-icon-bubble"
+                          style={{
+                            background: palette.bg,
+                            borderColor: palette.border,
+                          }}
+                        >
+                          {visual.type === 'image' ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={visual.value}
+                              alt={cat.name}
+                              className="fk-category-img"
+                              loading="lazy"
+                            />
+                          ) : visual.type === 'fa' ? (
+                            <i
+                              className={`fa-solid ${visual.value} fk-category-fa-icon`}
+                              style={{ color: palette.icon }}
+                            ></i>
+                          ) : (
+                            <span className="fk-category-emoji">{visual.value}</span>
+                          )}
+                        </div>
+                        <span className="fk-category-chip-name" title={cat.name}>
+                          {cat.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {canScrollCatRight && (
+                  <button
+                    type="button"
+                    className="fk-cat-nav-btn fk-cat-nav-next"
+                    aria-label="Scroll categories right"
+                    onClick={() => scrollCatTrack('right')}
+                  >
+                    <i className="fa-solid fa-chevron-right"></i>
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Home Slide Banners (Mobile: 1 Single Compact Slide | Desktop: 3 Professional Side-by-Side Cards) */}
           {homeSlideBanners.length > 0 && (
             <>
@@ -1033,7 +1274,7 @@ export default function HomePage() {
               <div
                 className="lb-banners-mobile"
                 style={{
-                  marginTop: '2rem',
+                  marginTop: '1.25rem',
                   width: '100%',
                   maxWidth: 760,
                   position: 'relative',
@@ -1158,7 +1399,7 @@ export default function HomePage() {
               <div
                 className="lb-banners-desktop"
                 style={{
-                  marginTop: '2rem',
+                  marginTop: '1.25rem',
                   width: '100%',
                   maxWidth: '860px',
                   position: 'relative',
