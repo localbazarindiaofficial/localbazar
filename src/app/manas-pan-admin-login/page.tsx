@@ -1104,7 +1104,7 @@ export default function SuperAdminPage() {
       }
 
       const coverImg = addPhotos.length > 0 ? addPhotos[0] : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
-      const newListingId = `list_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newListingId = `LB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       const openDaysList = DAYS_OF_WEEK.filter((d) => addSchedule[d]?.isOpen);
 
       const newListing: Listing = {
