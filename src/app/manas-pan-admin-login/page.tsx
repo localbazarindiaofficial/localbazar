@@ -1160,6 +1160,59 @@ export default function SuperAdminPage() {
     }
   };
 
+  const [migratingLegacyIds, setMigratingLegacyIds] = useState(false);
+  const legacyListingsCount = useMemo(() => listings.filter((l) => String(l.id).startsWith('list_')).length, [listings]);
+
+  const handleMigrateLegacyListingIds = async () => {
+    const legacyList = listings.filter((l) => String(l.id).startsWith('list_'));
+    if (legacyList.length === 0) {
+      alert('All listings already have official LB- format IDs! No migration needed.');
+      return;
+    }
+
+    const confirm = window.confirm(
+      `Found ${legacyList.length} legacy listing(s) with "list_" IDs:\n\n${legacyList.map((l) => `• ${l.name} (${l.id})`).join('\n')}\n\nDo you want to convert them to official "LB-XXXX-YYYY" format now? All store details, photos, and timings will be 100% preserved.`
+    );
+    if (!confirm) return;
+
+    setMigratingLegacyIds(true);
+    try {
+      const hasAuth = await ensureSuperAdminAuth();
+      if (!hasAuth) {
+        setMigratingLegacyIds(false);
+        return;
+      }
+
+      let updatedListings = [...listings];
+      for (const legacy of legacyList) {
+        const oldId = String(legacy.id);
+        const newId = `LB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const updatedDoc: Listing = {
+          ...legacy,
+          id: newId,
+        };
+
+        // 1. Save new document with LB ID in Firestore
+        await cloudSync.saveListing(updatedDoc);
+
+        // 2. Delete old document with list_ ID in Firestore
+        await cloudSync.deleteListing(oldId);
+
+        // 3. Update in local state
+        updatedListings = updatedListings.map((l) => (String(l.id) === oldId ? updatedDoc : l));
+        await new Promise((r) => setTimeout(r, 120));
+      }
+
+      setListings(updatedListings);
+      alert(`🎉 Successfully converted ${legacyList.length} listing(s) to official LB- format!\n\nAll listings now have uniform IDs.`);
+    } catch (err: any) {
+      console.error('Error migrating legacy listing IDs:', err);
+      alert('Migration failed: ' + (err?.message || 'Error occurred while converting IDs.'));
+    } finally {
+      setMigratingLegacyIds(false);
+    }
+  };
+
   // Fast O(1) user listings lookup map
   const userListingsMap = useMemo(() => {
     const map = new Map<string, Listing[]>();
@@ -2844,27 +2897,55 @@ export default function SuperAdminPage() {
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={openAddListingModal}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      padding: '0.55rem 1.1rem',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: '#16a34a',
-                      color: '#ffffff',
-                      fontWeight: 700,
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
-                    }}
-                  >
-                    <i className="fa-solid fa-plus"></i>
-                    <span>Add New Business</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                    {legacyListingsCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMigrateLegacyListingIds}
+                        disabled={migratingLegacyIds}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          padding: '0.55rem 1.1rem',
+                          borderRadius: 8,
+                          border: '1.5px solid #f59e0b',
+                          background: '#fffbeb',
+                          color: '#b45309',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                          cursor: migratingLegacyIds ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)',
+                        }}
+                        title="Convert older list_ IDs to official uniform LB- format in cloud"
+                      >
+                        <i className={migratingLegacyIds ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-wand-magic-sparkles"}></i>
+                        <span>{migratingLegacyIds ? 'Standardizing IDs...' : `Convert ${legacyListingsCount} Legacy ID(s) to LB-`}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={openAddListingModal}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        padding: '0.55rem 1.1rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: '#16a34a',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                      }}
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                      <span>Add New Business</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
