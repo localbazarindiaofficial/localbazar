@@ -180,6 +180,10 @@ export default function AccountPage() {
   const [formPhotosUploading, setFormPhotosUploading] = useState(false);
   const [formPhotosUploadCount, setFormPhotosUploadCount] = useState({ current: 0, total: 0 });
 
+  // Add Listing Submission & Double-Click Lock
+  const [isListingSubmitting, setIsListingSubmitting] = useState(false);
+  const isListingSubmittingRef = useRef(false);
+
   // Merchant Portal Drawer (Matching media_1793697023434_8b2f0362.jpg)
   const [activePortalListing, setActivePortalListing] = useState<Listing | null>(null);
   const activePortalListingRef = useRef<Listing | null>(null);
@@ -994,6 +998,8 @@ export default function AccountPage() {
     setFormHolidays([]);
     setFormProducts([]);
     setFormDoctors([]);
+    isListingSubmittingRef.current = false;
+    setIsListingSubmitting(false);
   };
 
   // Service Cities Handlers for Add/Edit Form
@@ -1099,6 +1105,11 @@ export default function AccountPage() {
   const handleSubmitListing = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Foolproof Double-Click & Parallel Submission Lock
+    if (isListingSubmittingRef.current || isListingSubmitting) {
+      return;
+    }
+
     if (!formName.trim() || !formCategory.trim() || !formCity.trim() || !formPhone.trim()) {
       showAlert(
         'Missing Required Information',
@@ -1136,6 +1147,9 @@ export default function AccountPage() {
     const firstOpenDay = openDays[0];
     const defaultDay = formSchedule[firstOpenDay];
     const primaryTiming = `${defaultDay.openTime} ${defaultDay.openAmPm} - ${defaultDay.closeTime} ${defaultDay.closeAmPm}`;
+
+    isListingSubmittingRef.current = true;
+    setIsListingSubmitting(true);
 
     try {
       const allList: Listing[] = [...allListings];
@@ -1191,6 +1205,26 @@ export default function AccountPage() {
           allList.unshift(updatedListing);
         }
       } else {
+        // Prevent duplicate creation of the same listing within rapid succession
+        const cleanName = formName.trim().toLowerCase();
+        const cleanPhone = formPhone.trim();
+        const alreadyExists = allList.some(
+          (l) =>
+            l.name.trim().toLowerCase() === cleanName &&
+            l.phone?.trim() === cleanPhone &&
+            (l.ownerEmail?.toLowerCase() === currentUser?.email?.toLowerCase() || l.ownerId === currentUser?.id)
+        );
+        if (alreadyExists) {
+          showAlert(
+            'Business Already Exists',
+            `A business named <strong>"${formName.trim()}"</strong> with phone ${cleanPhone} is already registered on your account. You can manage or update it in Manage Business.`,
+            'warning',
+            'Go to Manage Business',
+            () => goToScreen('viewManageListings')
+          );
+          return;
+        }
+
         const randId = `LB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         updatedListing = {
           id: randId,
@@ -1267,6 +1301,9 @@ export default function AccountPage() {
         `Unable to save your listing. Please check your network connection and try again. (${err?.message || 'Unknown error'})`,
         'error'
       );
+    } finally {
+      isListingSubmittingRef.current = false;
+      setIsListingSubmitting(false);
     }
   };
 
@@ -3761,8 +3798,31 @@ export default function AccountPage() {
                         <button type="button" className="btn-step-prev" onClick={() => goToListingStep(2)}>
                           <i className="fa-solid fa-arrow-left"></i> <span>Back</span>
                         </button>
-                        <button type="submit" className="btn-primary-action btn-large" id="btnPublishFromTimings">
-                          <i className="fa-solid fa-store"></i> <span>{editingId ? 'Update Listing' : 'Complete Your Registration'}</span>
+                        <button
+                          type="submit"
+                          className="btn-primary-action btn-large"
+                          id="btnPublishFromTimings"
+                          disabled={isListingSubmitting || formPhotosUploading}
+                          style={{
+                            cursor: isListingSubmitting || formPhotosUploading ? 'not-allowed' : 'pointer',
+                            opacity: isListingSubmitting || formPhotosUploading ? 0.75 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isListingSubmitting ? (
+                            <>
+                              <i className="fa-solid fa-spinner fa-spin"></i>
+                              <span>{editingId ? 'Updating...' : 'Registering Business...'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-store"></i>
+                              <span>{editingId ? 'Update Listing' : 'Complete Your Registration'}</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

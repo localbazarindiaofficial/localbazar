@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Listing, UserProfile, CategoryItem, StoreCategoryItem, CityItem, MailItem, ClaimItem, ClaimDocument, TrustRequest, TrustBadgeSettings, CityRequestItem, CategoryRequestItem, SlideBannerItem, TargetNewsBannerItem, EmptyStoreBannerSlot, isTrustBadgeActive, getTrustBadgeDaysRemaining, PromotedProductItem, ProductItem, formatTelUrl, DailyScheduleDay } from '@/types';
 import { cloudSync, uploadImageToCloud, formatLBUserId, auth } from '@/lib/firebase';
@@ -286,6 +286,7 @@ export default function SuperAdminPage() {
   const [addTrustBadge, setAddTrustBadge] = useState(false);
   const [addOwnerEmail, setAddOwnerEmail] = useState('Super Admin');
   const [addSaving, setAddSaving] = useState(false);
+  const addSavingRef = useRef(false);
 
   // Users Filter & Modals
   const [userSearch, setUserSearch] = useState('');
@@ -1053,16 +1054,33 @@ export default function SuperAdminPage() {
   const handleSaveNewListing = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Foolproof Double-Click & Parallel Submission Lock
+    if (addSavingRef.current || addSaving) {
+      return;
+    }
+
     if (!addName.trim() || !addCategory.trim() || !addCity.trim() || !addPhone.trim() || !addAddress.trim()) {
       alert('Business Name, Category, City, Phone Number, and Address are required.');
       return;
     }
 
+    addSavingRef.current = true;
     setAddSaving(true);
     try {
       const hasAuth = await ensureSuperAdminAuth();
       if (!hasAuth) {
-        setAddSaving(false);
+        return;
+      }
+
+      // Prevent duplicate creation of the same business in rapid succession
+      const cleanName = addName.trim().toLowerCase();
+      const cleanPhone = addPhone.trim();
+      const alreadyCreated = listings.some(
+        (l) => l.name.trim().toLowerCase() === cleanName && l.phone?.trim() === cleanPhone && (Date.now() - new Date(l.date || 0).getTime() < 10000)
+      );
+      if (alreadyCreated) {
+        alert(`Business "${addName.trim()}" is already created.`);
+        setIsAddListingModalOpen(false);
         return;
       }
 
@@ -1127,13 +1145,17 @@ export default function SuperAdminPage() {
       };
 
       await cloudSync.saveListing(newListing);
-      setListings((prev) => [newListing, ...prev]);
+      setListings((prev) => {
+        if (prev.some((l) => l.id === newListing.id)) return prev;
+        return [newListing, ...prev];
+      });
       setIsAddListingModalOpen(false);
       alert(`New business "${newListing.name}" successfully created and saved to cloud!`);
     } catch (err: any) {
       console.error('Error creating new listing:', err);
       alert('Failed to create listing: ' + (err?.message || 'Error occurred while saving.'));
     } finally {
+      addSavingRef.current = false;
       setAddSaving(false);
     }
   };
