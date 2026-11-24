@@ -44,7 +44,17 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
     return { type: 'image', value: cat.image };
   }
 
-  // 2. Direct icon set by Admin (unless it is the legacy generic placeholder 'fa-store' or contains corrupted question marks)
+  // Priority explicit overrides for known categories
+  const catId = (cat.id || '').toLowerCase();
+  const catName = (cat.name || '').toLowerCase();
+  if (catId.includes('beauty-parlour') || catName.includes('beauty parlour') || (catName.includes('beauty') && catName.includes('parlour'))) {
+    return { type: 'emoji', value: '💄' };
+  }
+  if (catId.includes('saloon') || catId.includes('salon') || catName.includes('saloon') || catName.includes('salon')) {
+    return { type: 'emoji', value: '✂️' };
+  }
+
+  // 2. Direct icon set by Admin (unless legacy generic placeholder or contains corrupted bytes/question marks)
   if (cat.icon && typeof cat.icon === 'string' && cat.icon.trim()) {
     const trimmed = cat.icon.trim();
     if (
@@ -52,6 +62,7 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
       trimmed !== 'fa-layer-group' &&
       trimmed !== 'fa-shop' &&
       !trimmed.includes('?') &&
+      !trimmed.includes('\uFFFD') &&
       trimmed !== '🏷️'
     ) {
       if (trimmed.startsWith('fa-') || trimmed.includes('fa-')) {
@@ -64,7 +75,13 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
   // 3. Icon from first in-store subcategory if available
   if (Array.isArray(cat.storeCategories) && cat.storeCategories.length > 0) {
     const firstWithIcon = cat.storeCategories.find(
-      (sc) => typeof sc !== 'string' && sc?.icon && sc.icon.trim() && sc.icon !== '🏷️' && !sc.icon.includes('?')
+      (sc) =>
+        typeof sc !== 'string' &&
+        sc?.icon &&
+        sc.icon.trim() &&
+        sc.icon !== '🏷️' &&
+        !sc.icon.includes('?') &&
+        !sc.icon.includes('\uFFFD')
     );
     if (firstWithIcon && typeof firstWithIcon !== 'string' && firstWithIcon.icon) {
       return { type: 'emoji', value: firstWithIcon.icon.trim() };
@@ -468,7 +485,7 @@ export default function HomePage() {
         }
       });
 
-      cloudSync.pullCategories().then((cat) => {
+      cloudSync.pullCategories(true).then((cat) => {
         if (Array.isArray(cat)) {
           setCategories(cat);
           try {
