@@ -2430,15 +2430,30 @@ html {
   .fk-category-strip-section {
     margin-top: 0.7rem;
     margin-bottom: 0.2rem;
-    padding: 0 2px;
+    margin-left: -0.85rem;
+    margin-right: -0.85rem;
+    width: calc(100% + 1.7rem);
+    max-width: none;
+    padding: 0;
+  }
+  .fk-category-strip-container {
+    width: 100%;
+  }
+  .fk-category-strip-track {
+    gap: 8px;
+    padding: 6px 0.85rem 8px 0.85rem;
+    scroll-padding-left: 0.85rem;
+    scroll-padding-right: 0.85rem;
   }
   .fk-cat-nav-btn {
     display: none !important; /* Mobile uses natural touch swipe gesture */
   }
   .fk-category-chip-btn {
-    min-width: 58px;
-    max-width: 66px;
-    padding: 2px;
+    flex: 0 0 calc((100% - 1.7rem - 32px) / 5.35) !important;
+    min-width: 54px !important;
+    max-width: 68px !important;
+    padding: 2px 0 !important;
+    scroll-snap-align: start;
   }
   .fk-category-icon-bubble {
     width: 44px;
@@ -2451,6 +2466,7 @@ html {
   .fk-category-chip-name {
     font-size: 0.65rem;
     margin-top: 3px;
+    width: 100%;
   }
 }
 
