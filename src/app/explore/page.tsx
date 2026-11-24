@@ -7,30 +7,29 @@ import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
 import '@/styles/explore.css';
 
-// Helper: checks if text matches word or phrase strictly respecting word boundaries (prevents "ro" matching "electronics" or "tea" matching "teacher")
+// Helper: checks if text matches word or phrase strictly respecting word boundaries and stem matches (prevents "ro" matching "electronics" or "tea" matching "teacher")
 const matchWordOrPhrase = (text: string, phrase: string): boolean => {
   if (!text || !phrase) return false;
   const t = text.trim().toLowerCase();
   const p = phrase.trim().toLowerCase();
   if (t === p) return true;
 
-  // If short token (<= 3 chars, e.g. "ro", "ac", "tv", "tea"), require exact whole-word match
-  if (p.length <= 3) {
-    const words = t.split(/[\s,;&/\\()+-]+/);
-    return words.includes(p);
+  const words = t.split(/[\s,;&/\\()+-]+/);
+  // Direct match or stem match (e.g. "banking" starts with "bank", "purifiers" starts with "purifier")
+  if (words.some((w) => w === p || (p.length >= 4 && w.startsWith(p)) || (w.length >= 4 && p.startsWith(w)))) {
+    return true;
   }
 
-  // For multi-word phrases or words > 3 chars, check whole-word or exact phrase containment
-  const words = t.split(/[\s,;&/\\()+-]+/);
-  if (words.includes(p)) return true;
+  // Phrase match
+  if (t.includes(p) || p.includes(t)) {
+    // Ensure it's not a short 2-letter substring like "ro" in "electronics"
+    if (p.length >= 4 || words.includes(p)) return true;
+  }
 
-  // Match phrase with word boundaries
-  const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(^|[\\s,;&/\\()+-])${escaped}($|[\\s,;&/\\()+-])`, 'i');
-  return regex.test(t);
+  return false;
 };
 
-// Smart Category Matching Helper (Supports Primary Category & Alternative Names / Search Keywords with Strict Category Priority)
+// Smart Category Matching Helper (Supports Primary Category, Aliases & Smart Broad Matching across In-Store Services)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
   if (!listingCat) return false;
@@ -44,8 +43,7 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   // 2. Direct word/phrase match
   if (matchWordOrPhrase(lCat, sCat) || matchWordOrPhrase(sCat, lCat)) return true;
 
-  // 3. Category Canonical Matching via Taxonomy & Alternative Names (Strict Canonical Category Priority)
-  // Check if the user's search query corresponds to a canonical main category or its direct alias:
+  // 3. Category Canonical Matching via Taxonomy & Alternative Names
   const searchCanonicalDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
     if (matchWordOrPhrase(cName, sCat) || matchWordOrPhrase(sCat, cName)) return true;
@@ -78,7 +76,28 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       return true;
     }
 
-    // Do NOT loosely match unrelated subcategories when searching for a distinct canonical category
+    // Smart Broad Matching: Also match stores whose listed services/subcategories explicitly include this service
+    // (e.g. an Electrical shop providing "Water Purifier / Filter", or a Cyber Cafe providing "Banking & Bill Payment")
+    const listingCanonicalDef = categoriesList.find((c) => {
+      const cName = (c.name || '').trim().toLowerCase();
+      return cName === lCat || matchWordOrPhrase(cName, lCat) || matchWordOrPhrase(lCat, cName);
+    });
+
+    if (listingCanonicalDef) {
+      const subList = (listingCanonicalDef.storeCategories || []).map((sc) =>
+        typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
+      );
+      if (Array.isArray(listingCanonicalDef.subcategories)) {
+        listingCanonicalDef.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
+      }
+
+      const matchTargets = [sCat, canonicalName, ...aliases.filter((a) => a.length >= 3)];
+      const hasSubMatch = subList.some((sub) =>
+        matchTargets.some((target) => matchWordOrPhrase(sub, target) || matchWordOrPhrase(target, sub))
+      );
+      if (hasSubMatch) return true;
+    }
+
     return false;
   }
 
