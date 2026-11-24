@@ -887,7 +887,7 @@ export default function HomePage() {
             type="button"
             className="header-location-pill"
             onClick={() => setIsLocationModalOpen(true)}
-            title="Select Location / শহর বেছে নিন"
+            title="Select Location"
             aria-label="Select default location"
           >
             <i className="fa-solid fa-location-dot pill-pin-icon"></i>
@@ -2032,7 +2032,7 @@ export default function HomePage() {
             <div className="lb-loc-modal-list">
               {/* "All Cities" Option (Always at top) */}
               {(!locationSearchQuery ||
-                'all cities সকল শহর'.toLowerCase().includes(locationSearchQuery.toLowerCase())) && (
+                'all cities'.toLowerCase().includes(locationSearchQuery.toLowerCase())) && (
                 <button
                   type="button"
                   className={`lb-loc-item-btn all-cities-btn ${selectedCity === 'All Cities' ? 'active-loc' : ''}`}
@@ -2043,7 +2043,7 @@ export default function HomePage() {
                   </div>
                   <div className="lb-loc-item-info">
                     <div className="lb-loc-item-name-row">
-                      <span className="lb-loc-item-name">All Cities (সকল শহর)</span>
+                      <span className="lb-loc-item-name">All Cities</span>
                       {selectedCity === 'All Cities' && (
                         <span className="lb-loc-active-tag">Selected</span>
                       )}
