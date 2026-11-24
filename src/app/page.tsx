@@ -44,10 +44,16 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
     return { type: 'image', value: cat.image };
   }
 
-  // 2. Direct icon set by Admin (unless it is the legacy generic placeholder 'fa-store')
+  // 2. Direct icon set by Admin (unless it is the legacy generic placeholder 'fa-store' or contains corrupted question marks)
   if (cat.icon && typeof cat.icon === 'string' && cat.icon.trim()) {
     const trimmed = cat.icon.trim();
-    if (trimmed !== 'fa-store' && trimmed !== 'fa-layer-group' && trimmed !== 'fa-shop') {
+    if (
+      trimmed !== 'fa-store' &&
+      trimmed !== 'fa-layer-group' &&
+      trimmed !== 'fa-shop' &&
+      !trimmed.includes('?') &&
+      trimmed !== '🏷️'
+    ) {
       if (trimmed.startsWith('fa-') || trimmed.includes('fa-')) {
         return { type: 'fa', value: trimmed };
       }
@@ -58,10 +64,10 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
   // 3. Icon from first in-store subcategory if available
   if (Array.isArray(cat.storeCategories) && cat.storeCategories.length > 0) {
     const firstWithIcon = cat.storeCategories.find(
-      (sc) => typeof sc !== 'string' && sc?.icon && sc.icon.trim() && sc.icon !== '🏷️'
+      (sc) => typeof sc !== 'string' && sc?.icon && sc.icon.trim() && sc.icon !== '🏷️' && !sc.icon.includes('?')
     );
     if (firstWithIcon && typeof firstWithIcon !== 'string' && firstWithIcon.icon) {
-      return { type: 'emoji', value: firstWithIcon.icon };
+      return { type: 'emoji', value: firstWithIcon.icon.trim() };
     }
   }
 
@@ -96,7 +102,8 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
   if (t.includes('milk') || t.includes('dairy') || t.includes('dudh') || t.includes('paneer') || t.includes('ghee') || t.includes('curd') || t.includes('doi')) return { type: 'emoji', value: '🥛' };
 
   // Fashion, Tailoring & Beauty
-  if (t.includes('parlour') || t.includes('parlor') || t.includes('salon') || t.includes('saloon') || t.includes('beauty') || t.includes('spa') || t.includes('makeup') || t.includes('hair') || t.includes('facial')) return { type: 'emoji', value: '💇‍♀️' };
+  if (t.includes('parlour') || t.includes('parlor') || t.includes('beauty') || t.includes('makeup') || t.includes('spa') || t.includes('facial')) return { type: 'emoji', value: '💄' };
+  if (t.includes('salon') || t.includes('saloon') || t.includes('hair') || t.includes('barber')) return { type: 'emoji', value: '✂️' };
   if (t.includes('tailor') || t.includes('boutique') || t.includes('stitching') || t.includes('dorji')) return { type: 'emoji', value: '🧵' };
   if (t.includes('cloth') || t.includes('garment') || t.includes('fashion') || t.includes('saree') || t.includes('dress') || t.includes('shirt') || t.includes('pant') || t.includes('textile') || t.includes('kapad')) return { type: 'emoji', value: '👕' };
   if (t.includes('jewel') || t.includes('gold') || t.includes('silver') || t.includes('sona') || t.includes('rupa') || t.includes('diamond') || t.includes('ornament')) return { type: 'emoji', value: '💍' };
