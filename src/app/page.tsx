@@ -1230,7 +1230,7 @@ export default function HomePage() {
                         style={{
                           width: `${100 / homeSlideBanners.length}%`,
                           position: 'relative',
-                          aspectRatio: '20 / 9',
+                          aspectRatio: '16 / 9',
                           overflow: 'hidden',
                           background: '#f1f5f9',
                         }}
