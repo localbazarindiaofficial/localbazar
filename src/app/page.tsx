@@ -190,17 +190,7 @@ export default function HomePage() {
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
-  const [cityInput, setCityInput] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('lb_user_selected_city');
-        if (saved && saved.trim() && saved.trim() !== 'All Cities') return saved.trim();
-        const last = localStorage.getItem('lb_last_city');
-        if (last && last.trim() && last.trim() !== 'All Cities') return last.trim();
-      } catch {}
-    }
-    return '';
-  });
+  const [cityInput, setCityInput] = useState('');
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
@@ -298,15 +288,15 @@ export default function HomePage() {
         localStorage.setItem('lb_user_selected_city', finalVal);
         if (finalVal !== 'All Cities') {
           localStorage.setItem('lb_last_city', finalVal);
-          setCityInput(finalVal);
-        } else {
-          setCityInput('');
         }
       } catch {}
     }
+    // Search input stays completely clean & empty as per professional standards
+    setCityInput('');
   };
 
   const handleQuickCategoryClick = (categoryName: string) => {
+    // Strictly prioritize the top selectedCity for the slide category rail
     const effectiveCity =
       selectedCity && selectedCity !== 'All Cities'
         ? selectedCity.trim()
@@ -348,15 +338,11 @@ export default function HomePage() {
     const handleReturnToHome = () => {
       setIsSearching(false);
       if (isNavigatedAwayRef.current) {
+        setCityInput('');
         setQueryInput('');
         setShowCitySugg(false);
         setShowCatSugg(false);
         isNavigatedAwayRef.current = false;
-        if (selectedCity && selectedCity !== 'All Cities') {
-          setCityInput(selectedCity);
-        } else {
-          setCityInput('');
-        }
       }
     };
     window.addEventListener('pageshow', handleReturnToHome);
@@ -365,7 +351,7 @@ export default function HomePage() {
       window.removeEventListener('pageshow', handleReturnToHome);
       window.removeEventListener('popstate', handleReturnToHome);
     };
-  }, [selectedCity]);
+  }, []);
 
   // Auto-slide home banners on mobile every 4 seconds if > 1 banner
   useEffect(() => {
@@ -1063,11 +1049,6 @@ export default function HomePage() {
                         onPointerDown={(e) => {
                           e.preventDefault();
                           setCityInput(c.name);
-                          setSelectedCity(c.name);
-                          try {
-                            localStorage.setItem('lb_user_selected_city', c.name);
-                            localStorage.setItem('lb_last_city', c.name);
-                          } catch {}
                           setShowCitySugg(false);
                           setCityError('');
                           setTimeout(() => {
@@ -1077,11 +1058,6 @@ export default function HomePage() {
                         onMouseDown={(e) => {
                           e.preventDefault();
                           setCityInput(c.name);
-                          setSelectedCity(c.name);
-                          try {
-                            localStorage.setItem('lb_user_selected_city', c.name);
-                            localStorage.setItem('lb_last_city', c.name);
-                          } catch {}
                           setShowCitySugg(false);
                           setCityError('');
                           setTimeout(() => {
