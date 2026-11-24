@@ -311,6 +311,7 @@ export default function SuperAdminPage() {
   const [categorySearch, setCategorySearch] = useState('');
   const [newCatName, setNewCatName] = useState('');
   const [newCatAltName, setNewCatAltName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('');
   const [newCatStoreCategories, setNewCatStoreCategories] = useState<StoreCategoryItem[]>([]);
   const [tempSubCatLabel, setTempSubCatLabel] = useState('');
   const [tempSubCatIcon, setTempSubCatIcon] = useState('🏷️');
@@ -1425,8 +1426,8 @@ export default function SuperAdminPage() {
     try {
       const newCat: CategoryItem = {
         name: newCatName.trim(),
-        alternativeName: newCatAltName.trim(),
-        icon: 'fa-store',
+        alternativeName: newCatAltName.trim() || undefined,
+        icon: newCatIcon.trim() || undefined,
         storeCategories: newCatStoreCategories
       };
       await cloudSync.saveCategory(newCat);
@@ -1434,6 +1435,7 @@ export default function SuperAdminPage() {
       setCategories(nextCats);
       setNewCatName('');
       setNewCatAltName('');
+      setNewCatIcon('');
       setNewCatStoreCategories([]);
       setTempSubCatLabel('');
       setTempSubCatIcon('🏷️');
@@ -4681,6 +4683,7 @@ export default function SuperAdminPage() {
                                 onClick={() => {
                                   setEditingCat({
                                     ...cat,
+                                    icon: cat.icon && cat.icon !== 'fa-store' ? cat.icon : '',
                                     storeCategories: Array.isArray(cat.storeCategories) ? [...cat.storeCategories] : []
                                   });
                                   setEditingCatOriginalName(cat.name);
@@ -4776,6 +4779,20 @@ export default function SuperAdminPage() {
                         />
                         <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
                           Comma-separated alternate search words. When users search for any of these keywords, this main category will automatically be suggested!
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Icon / Emoji (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 🎂 or 🏍️ or ☕ or 💊"
+                          value={newCatIcon}
+                          onChange={(e) => setNewCatIcon(e.target.value)}
+                          style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1px solid #cbd5e1', marginTop: 4, fontSize: '0.9rem' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Optional: Type or paste an emoji (🎂, 🏍️, ☕, 💊). If left empty, LocalBazar will automatically assign the best matching icon!
                         </span>
                       </div>
 
@@ -4895,6 +4912,20 @@ export default function SuperAdminPage() {
                         />
                         <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
                           Comma-separated alternate search words. When users search for any of these keywords, this main category will automatically be suggested!
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Category Icon / Emoji (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 🎂 or 🏍️ or ☕ or 💊"
+                          value={editingCat.icon || ''}
+                          onChange={(e) => setEditingCat({ ...editingCat, icon: e.target.value })}
+                          style={{ width: '100%', padding: '0.55rem', borderRadius: 8, border: '1px solid #cbd5e1', marginTop: 4, fontSize: '0.9rem' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: 3 }}>
+                          Optional: Type or paste an emoji (🎂, 🏍️, ☕, 💊). If left empty, LocalBazar will automatically assign the best matching icon!
                         </span>
                       </div>
 

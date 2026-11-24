@@ -39,20 +39,23 @@ const FK_CATEGORY_PALETTES = [
 
 // Helper: resolve best visual representation for each admin category
 const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emoji'; value: string } => {
+  // 1. Direct Image set by Admin
   if (cat.image && (cat.image.startsWith('http') || cat.image.startsWith('/') || cat.image.startsWith('data:'))) {
     return { type: 'image', value: cat.image };
   }
 
-  // 1. Direct icon set by Admin
+  // 2. Direct icon set by Admin (unless it is the legacy generic placeholder 'fa-store')
   if (cat.icon && typeof cat.icon === 'string' && cat.icon.trim()) {
     const trimmed = cat.icon.trim();
-    if (trimmed.startsWith('fa-') || trimmed.includes('fa-')) {
-      return { type: 'fa', value: trimmed };
+    if (trimmed !== 'fa-store' && trimmed !== 'fa-layer-group' && trimmed !== 'fa-shop') {
+      if (trimmed.startsWith('fa-') || trimmed.includes('fa-')) {
+        return { type: 'fa', value: trimmed };
+      }
+      return { type: 'emoji', value: trimmed };
     }
-    return { type: 'emoji', value: trimmed };
   }
 
-  // 2. Icon from first in-store subcategory if available
+  // 3. Icon from first in-store subcategory if available
   if (Array.isArray(cat.storeCategories) && cat.storeCategories.length > 0) {
     const firstWithIcon = cat.storeCategories.find(
       (sc) => typeof sc !== 'string' && sc?.icon && sc.icon.trim() && sc.icon !== '🏷️'
@@ -62,38 +65,92 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
     }
   }
 
-  // 3. Smart contextual emoji mapping for Indian / Bengali Bazaar categories
-  const nameLower = (cat.name || '').toLowerCase();
-  if (nameLower.includes('doctor') || nameLower.includes('clinic') || nameLower.includes('hospital')) return { type: 'emoji', value: '🩺' };
-  if (nameLower.includes('pharmacy') || nameLower.includes('medicine') || nameLower.includes('medical') || nameLower.includes('chemist')) return { type: 'emoji', value: '💊' };
-  if (nameLower.includes('grocery') || nameLower.includes('ration') || nameLower.includes('kirana') || nameLower.includes('supermarket')) return { type: 'emoji', value: '🛒' };
-  if (nameLower.includes('bakery') || nameLower.includes('cake') || nameLower.includes('sweet') || nameLower.includes('mithai')) return { type: 'emoji', value: '🎂' };
-  if (nameLower.includes('restaurant') || nameLower.includes('cafe') || nameLower.includes('hotel') || nameLower.includes('food') || nameLower.includes('dhaba') || nameLower.includes('fast food')) return { type: 'emoji', value: '🍽️' };
-  if (nameLower.includes('auto') || nameLower.includes('bike') || nameLower.includes('garage') || nameLower.includes('motor') || nameLower.includes('mechanic')) return { type: 'emoji', value: '🏍️' };
-  if (nameLower.includes('car') || nameLower.includes('cab') || nameLower.includes('taxi') || nameLower.includes('driver')) return { type: 'emoji', value: '🚗' };
-  if (nameLower.includes('parlour') || nameLower.includes('parlor') || nameLower.includes('salon') || nameLower.includes('beauty') || nameLower.includes('spa')) return { type: 'emoji', value: '💇‍♀️' };
-  if (nameLower.includes('electric') || nameLower.includes('electronic') || nameLower.includes('mobile') || nameLower.includes('repair')) return { type: 'emoji', value: '📱' };
-  if (nameLower.includes('cloth') || nameLower.includes('garment') || nameLower.includes('fashion') || nameLower.includes('boutique') || nameLower.includes('tailor') || nameLower.includes('saree')) return { type: 'emoji', value: '👕' };
-  if (nameLower.includes('jewel') || nameLower.includes('gold') || nameLower.includes('silver')) return { type: 'emoji', value: '💍' };
-  if (nameLower.includes('bank') || nameLower.includes('atm') || nameLower.includes('finance') || nameLower.includes('loan')) return { type: 'emoji', value: '🏦' };
-  if (nameLower.includes('hardware') || nameLower.includes('paint') || nameLower.includes('sanitary') || nameLower.includes('plumber')) return { type: 'emoji', value: '🔧' };
-  if (nameLower.includes('book') || nameLower.includes('stationery') || nameLower.includes('xerox') || nameLower.includes('cyber') || nameLower.includes('internet')) return { type: 'emoji', value: '📚' };
-  if (nameLower.includes('gym') || nameLower.includes('fitness') || nameLower.includes('sports')) return { type: 'emoji', value: '🏋️' };
-  if (nameLower.includes('meat') || nameLower.includes('chicken') || nameLower.includes('fish') || nameLower.includes('egg')) return { type: 'emoji', value: '🍗' };
-  if (nameLower.includes('fruit') || nameLower.includes('vegetable') || nameLower.includes('sabji')) return { type: 'emoji', value: '🍎' };
-  if (nameLower.includes('milk') || nameLower.includes('dairy')) return { type: 'emoji', value: '🥛' };
-  if (nameLower.includes('pet') || nameLower.includes('veterinary')) return { type: 'emoji', value: '🐾' };
-  if (nameLower.includes('furniture') || nameLower.includes('carpenter') || nameLower.includes('wood')) return { type: 'emoji', value: '🪑' };
-  if (nameLower.includes('education') || nameLower.includes('school') || nameLower.includes('coaching') || nameLower.includes('tuition')) return { type: 'emoji', value: '🎓' };
-  if (nameLower.includes('property') || nameLower.includes('real estate') || nameLower.includes('rent')) return { type: 'emoji', value: '🏡' };
-  if (nameLower.includes('optician') || nameLower.includes('optical') || nameLower.includes('eye') || nameLower.includes('chasma')) return { type: 'emoji', value: '👓' };
-  if (nameLower.includes('photo') || nameLower.includes('studio') || nameLower.includes('video')) return { type: 'emoji', value: '📷' };
-  if (nameLower.includes('flower') || nameLower.includes('nursery') || nameLower.includes('plant')) return { type: 'emoji', value: '💐' };
-  if (nameLower.includes('shoe') || nameLower.includes('footwear')) return { type: 'emoji', value: '👟' };
-  if (nameLower.includes('cctv') || nameLower.includes('security')) return { type: 'emoji', value: '📹' };
-  if (nameLower.includes('travel') || nameLower.includes('tour')) return { type: 'emoji', value: '✈️' };
+  // 4. Smart comprehensive mapping checking Category Name, Alternative Names and Keywords
+  const t = ((cat.name || '') + ' ' + (cat.alternativeName || '')).toLowerCase();
 
-  return { type: 'emoji', value: '🏪' };
+  // Medical, Diagnostics, Doctors & Health
+  if (t.includes('ambulance')) return { type: 'emoji', value: '🚑' };
+  if (t.includes('pathology') || t.includes('diagnostic') || t.includes('blood test') || t.includes('lab') || t.includes('test center')) return { type: 'emoji', value: '🧪' };
+  if (t.includes('doctor') || t.includes('daktar') || t.includes('clinic') || t.includes('hospital') || t.includes('chamber') || t.includes('physician') || t.includes('specialist')) return { type: 'emoji', value: '🩺' };
+  if (t.includes('pharmacy') || t.includes('medicine') || t.includes('medical') || t.includes('chemist') || t.includes('oushodh') || t.includes('drug')) return { type: 'emoji', value: '💊' };
+  if (t.includes('eye') || t.includes('optician') || t.includes('optical') || t.includes('chasma') || t.includes('glass') || t.includes('vision')) return { type: 'emoji', value: '👓' };
+  if (t.includes('dentist') || t.includes('dental') || t.includes('teeth') || t.includes('dant')) return { type: 'emoji', value: '🦷' };
+
+  // Food, Drinks, Sweets & Bakery
+  if (t.includes('tea') || t.includes('chai') || t.includes('coffee') || t.includes('cafe')) return { type: 'emoji', value: '☕' };
+  if (t.includes('sweet') || t.includes('mithai') || t.includes('mishti') || t.includes('mistanna')) return { type: 'emoji', value: '🍬' };
+  if (t.includes('bakery') || t.includes('cake') || t.includes('pastry') || t.includes('biscuit') || t.includes('cookie')) return { type: 'emoji', value: '🎂' };
+  if (t.includes('biryani') || t.includes('biryani hotel') || t.includes('rice')) return { type: 'emoji', value: '🍲' };
+  if (t.includes('fast food') || t.includes('roll') || t.includes('chowmin') || t.includes('burger') || t.includes('pizza') || t.includes('snacks')) return { type: 'emoji', value: '🍕' };
+  if (t.includes('restaurant') || t.includes('hotel') || t.includes('food') || t.includes('dhaba') || t.includes('dining') || t.includes('canteen')) return { type: 'emoji', value: '🍽️' };
+  if (t.includes('ice cream') || t.includes('kulfi') || t.includes('dessert')) return { type: 'emoji', value: '🍦' };
+  if (t.includes('juice') || t.includes('beverage') || t.includes('cold drink') || t.includes('shake')) return { type: 'emoji', value: '🧃' };
+
+  // Grocery, Bazaar & Fresh Produce
+  if (t.includes('fish') || t.includes('mach') || t.includes('macher') || t.includes('prawn') || t.includes('chingri')) return { type: 'emoji', value: '🐟' };
+  if (t.includes('meat') || t.includes('chicken') || t.includes('mutton') || t.includes('mangsho') || t.includes('khasir') || t.includes('poultry')) return { type: 'emoji', value: '🍗' };
+  if (t.includes('egg') || t.includes('dim')) return { type: 'emoji', value: '🥚' };
+  if (t.includes('vegetable') || t.includes('sabji') || t.includes('torkari') || t.includes('veggie')) return { type: 'emoji', value: '🥦' };
+  if (t.includes('fruit') || t.includes('fol') || t.includes('apple') || t.includes('mango') || t.includes('banana')) return { type: 'emoji', value: '🍎' };
+  if (t.includes('grocery') || t.includes('ration') || t.includes('kirana') || t.includes('mudi') || t.includes('supermarket') || t.includes('bazar')) return { type: 'emoji', value: '🛒' };
+  if (t.includes('milk') || t.includes('dairy') || t.includes('dudh') || t.includes('paneer') || t.includes('ghee') || t.includes('curd') || t.includes('doi')) return { type: 'emoji', value: '🥛' };
+
+  // Fashion, Tailoring & Beauty
+  if (t.includes('parlour') || t.includes('parlor') || t.includes('salon') || t.includes('saloon') || t.includes('beauty') || t.includes('spa') || t.includes('makeup') || t.includes('hair') || t.includes('facial')) return { type: 'emoji', value: '💇‍♀️' };
+  if (t.includes('tailor') || t.includes('boutique') || t.includes('stitching') || t.includes('dorji')) return { type: 'emoji', value: '🧵' };
+  if (t.includes('cloth') || t.includes('garment') || t.includes('fashion') || t.includes('saree') || t.includes('dress') || t.includes('shirt') || t.includes('pant') || t.includes('textile') || t.includes('kapad')) return { type: 'emoji', value: '👕' };
+  if (t.includes('jewel') || t.includes('gold') || t.includes('silver') || t.includes('sona') || t.includes('rupa') || t.includes('diamond') || t.includes('ornament')) return { type: 'emoji', value: '💍' };
+  if (t.includes('shoe') || t.includes('footwear') || t.includes('chappal') || t.includes('sandal') || t.includes('juto')) return { type: 'emoji', value: '👟' };
+  if (t.includes('cosmetic') || t.includes('perfume') || t.includes('body care')) return { type: 'emoji', value: '💄' };
+
+  // Vehicles, Mechanics & Garage
+  if (t.includes('bike') || t.includes('motorcycle') || t.includes('scooter') || t.includes('two wheeler')) return { type: 'emoji', value: '🏍️' };
+  if (t.includes('auto') || t.includes('toto') || t.includes('rickshaw')) return { type: 'emoji', value: '🛺' };
+  if (t.includes('car') || t.includes('cab') || t.includes('taxi') || t.includes('four wheeler') || t.includes('driver')) return { type: 'emoji', value: '🚗' };
+  if (t.includes('garage') || t.includes('mechanic') || t.includes('puncture') || t.includes('servicing') || t.includes('wheel') || t.includes('tyre')) return { type: 'emoji', value: '🔧' };
+  if (t.includes('petrol') || t.includes('diesel') || t.includes('gas station') || t.includes('cng')) return { type: 'emoji', value: '⛽' };
+
+  // Electronics, Computers & Tech
+  if (t.includes('mobile') || t.includes('phone') || t.includes('smartphone') || t.includes('display replacement') || t.includes('screen repair')) return { type: 'emoji', value: '📱' };
+  if (t.includes('computer') || t.includes('laptop') || t.includes('cyber') || t.includes('internet') || t.includes('online') || t.includes('form fillup') || t.includes('software') || t.includes('developer')) return { type: 'emoji', value: '💻' };
+  if (t.includes('xerox') || t.includes('print') || t.includes('dtp') || t.includes('photocopy')) return { type: 'emoji', value: '🖨️' };
+  if (t.includes('cctv') || t.includes('camera') || t.includes('security') || t.includes('surveillance')) return { type: 'emoji', value: '📹' };
+  if (t.includes('electric') || t.includes('electronic') || t.includes('wiring') || t.includes('switch') || t.includes('light') || t.includes('fan')) return { type: 'emoji', value: '⚡' };
+  if (t.includes('ac') || t.includes('refrigerator') || t.includes('fridge') || t.includes('cooler') || t.includes('washing machine') || t.includes('appliance')) return { type: 'emoji', value: '❄️' };
+
+  // Home, Services, Repair & Construction
+  if (t.includes('plumber') || t.includes('plumbing') || t.includes('pipe') || t.includes('sanitary') || t.includes('water') || t.includes('boring')) return { type: 'emoji', value: '🚰' };
+  if (t.includes('carpenter') || t.includes('furniture') || t.includes('wood') || t.includes('bed') || t.includes('sofa') || t.includes('almira') || t.includes('woodwork')) return { type: 'emoji', value: '🪑' };
+  if (t.includes('paint') || t.includes('painter') || t.includes('color') || t.includes('wall')) return { type: 'emoji', value: '🎨' };
+  if (t.includes('hardware') || t.includes('cement') || t.includes('rod') || t.includes('building') || t.includes('construction') || t.includes('marble') || t.includes('tiles')) return { type: 'emoji', value: '🧱' };
+  if (t.includes('dry clean') || t.includes('laundry') || t.includes('dhobi') || t.includes('iron') || t.includes('wash')) return { type: 'emoji', value: '🧺' };
+  if (t.includes('courier') || t.includes('parcel') || t.includes('post') || t.includes('delivery')) return { type: 'emoji', value: '📦' };
+  if (t.includes('gas cylinder') || t.includes('lpg') || t.includes('gas agency') || t.includes('indane') || t.includes('hp gas') || t.includes('bharat gas')) return { type: 'emoji', value: '🔥' };
+
+  // Events, Decorators & Photography
+  if (t.includes('tent') || t.includes('decorator') || t.includes('pandal') || t.includes('sound') || t.includes('dj') || t.includes('lighting')) return { type: 'emoji', value: '🎪' };
+  if (t.includes('catering') || t.includes('cook') || t.includes('party food')) return { type: 'emoji', value: '🍱' };
+  if (t.includes('photo') || t.includes('studio') || t.includes('photographer') || t.includes('video') || t.includes('videography')) return { type: 'emoji', value: '📸' };
+  if (t.includes('flower') || t.includes('phul') || t.includes('bouquet') || t.includes('nursery') || t.includes('plant') || t.includes('garland')) return { type: 'emoji', value: '💐' };
+  if (t.includes('puja') || t.includes('mandir') || t.includes('samagri') || t.includes('agarbatti') || t.includes('dhoop')) return { type: 'emoji', value: '🪔' };
+
+  // Education, Career, Legal & Finance
+  if (t.includes('school') || t.includes('college') || t.includes('coaching') || t.includes('tuition') || t.includes('teacher') || t.includes('education') || t.includes('institute') || t.includes('class')) return { type: 'emoji', value: '🎓' };
+  if (t.includes('book') || t.includes('stationery') || t.includes('pen') || t.includes('khata') || t.includes('copy')) return { type: 'emoji', value: '📚' };
+  if (t.includes('bank') || t.includes('atm') || t.includes('finance') || t.includes('loan') || t.includes('money') || t.includes('credit') || t.includes('cash')) return { type: 'emoji', value: '🏦' };
+  if (t.includes('lawyer') || t.includes('advocate') || t.includes('legal') || t.includes('court') || t.includes('notary')) return { type: 'emoji', value: '⚖️' };
+  if (t.includes('insurance') || t.includes('lic') || t.includes('policy')) return { type: 'emoji', value: '🛡️' };
+  if (t.includes('astrology') || t.includes('astrologer') || t.includes('jyotish') || t.includes('horoscope') || t.includes('kundali')) return { type: 'emoji', value: '🔮' };
+
+  // Animals & Pets
+  if (t.includes('pet') || t.includes('dog') || t.includes('cat') || t.includes('veterinary') || t.includes('animal') || t.includes('bird') || t.includes('aquarium')) return { type: 'emoji', value: '🐾' };
+
+  // Fitness, Real Estate & Travel
+  if (t.includes('gym') || t.includes('fitness') || t.includes('workout') || t.includes('sports') || t.includes('yoga')) return { type: 'emoji', value: '🏋️' };
+  if (t.includes('property') || t.includes('real estate') || t.includes('rent') || t.includes('land') || t.includes('house') || t.includes('flat')) return { type: 'emoji', value: '🏡' };
+  if (t.includes('travel') || t.includes('tour') || t.includes('ticket') || t.includes('flight') || t.includes('train') || t.includes('holiday')) return { type: 'emoji', value: '✈️' };
+
+  return { type: 'emoji', value: '🛍️' };
 };
 
 export default function HomePage() {
