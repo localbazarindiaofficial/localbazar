@@ -1186,11 +1186,11 @@ export default function HomePage() {
               <div
                 className="lb-banners-mobile"
                 style={{
-                  marginTop: '1.25rem',
+                  marginTop: '0.75rem',
                   width: '100%',
                   maxWidth: 760,
                   position: 'relative',
-                  borderRadius: '18px',
+                  borderRadius: '14px',
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
                   border: '1px solid #e2e8f0',
@@ -1230,7 +1230,7 @@ export default function HomePage() {
                         style={{
                           width: `${100 / homeSlideBanners.length}%`,
                           position: 'relative',
-                          aspectRatio: '16 / 9',
+                          aspectRatio: '20 / 9',
                           overflow: 'hidden',
                           background: '#f1f5f9',
                         }}
@@ -1311,7 +1311,7 @@ export default function HomePage() {
               <div
                 className="lb-banners-desktop"
                 style={{
-                  marginTop: '1.25rem',
+                  marginTop: '0.85rem',
                   width: '100%',
                   maxWidth: '860px',
                   position: 'relative',
@@ -1495,7 +1495,7 @@ export default function HomePage() {
           {promotedProducts.length > 0 && (
             <div
               style={{
-                marginTop: '1.75rem',
+                marginTop: '0.85rem',
                 width: '100%',
                 maxWidth: 760,
                 textAlign: 'left',
@@ -1512,7 +1512,7 @@ export default function HomePage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '0.65rem',
+                  marginBottom: '0.45rem',
                   padding: '0 0.25rem',
                 }}
               >
@@ -1589,8 +1589,8 @@ export default function HomePage() {
                         }
                       }}
                       style={{
-                        flex: '0 0 148px',
-                        width: '148px',
+                        flex: '0 0 138px',
+                        width: '138px',
                         textDecoration: 'none',
                         color: 'inherit',
                         scrollSnapAlign: 'start',

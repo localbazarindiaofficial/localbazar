@@ -396,31 +396,31 @@ a {
     width: 100%;
     max-width: 800px;
     text-align: center;
-    margin-top: -4vh; /* Aesthetic slight lift */
+    margin-top: -5.5vh; /* Aesthetic slight lift */
 }
 
 /* Brand Display */
 .brand-hero {
-    margin-bottom: 2.25rem;
+    margin-bottom: 1.25rem;
 }
 
 .brand-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #fff;
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.5rem;
 }
 
 .brand-title {
     font-family: var(--font-heading);
-    font-size: 3.25rem;
+    font-size: 2.85rem;
     font-weight: 800;
     color: var(--slate-900);
     letter-spacing: -1.2px;
@@ -432,10 +432,10 @@ a {
 }
 
 .brand-tagline {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: var(--slate-400);
-    margin-top: 0.65rem;
+    margin-top: 0.4rem;
     letter-spacing: 0.5px;
 }
 
@@ -943,37 +943,37 @@ a {
 /* ---------------- Mobile Experience ---------------- */
 @media (max-width: 768px) {
     .app-header {
-        padding: 0.85rem 1rem;
-        gap: 0.75rem;
+        padding: 0.5rem 1rem;
+        gap: 0.5rem;
     }
 
     .center-stage {
-        padding: 1.25rem 1rem 2rem 1rem;
+        padding: 0.45rem 0.85rem 1.25rem 0.85rem;
         align-items: flex-start; /* Keeps content naturally in upper half on mobile */
     }
 
     .stage-container {
-        margin-top: 1.5rem; /* Exactly upper-third placement like top modern apps */
+        margin-top: 0.25rem; /* Compact upper-third placement for complete 1-page fit */
     }
 
     .brand-hero {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.85rem;
     }
 
     .brand-icon {
-        width: 42px;
-        height: 42px;
-        font-size: 1.2rem;
-        margin-bottom: 0.65rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1.05rem;
+        margin-bottom: 0.35rem;
     }
 
     .brand-title {
-        font-size: 2.2rem;
+        font-size: 1.95rem;
     }
 
     .brand-tagline {
-        font-size: 0.82rem;
-        margin-top: 0.4rem;
+        font-size: 0.76rem;
+        margin-top: 0.2rem;
     }
 
     .omni-search-bar {
@@ -2272,7 +2272,7 @@ html {
 .fk-category-strip-section {
   width: 100%;
   max-width: 860px;
-  margin: 1.35rem auto 0.5rem auto;
+  margin: 0.95rem auto 0.35rem auto;
   position: relative;
   user-select: none;
 }
@@ -2428,29 +2428,29 @@ html {
 
 @media (max-width: 768px) {
   .fk-category-strip-section {
-    margin-top: 1.15rem;
-    margin-bottom: 0.35rem;
+    margin-top: 0.7rem;
+    margin-bottom: 0.2rem;
     padding: 0 2px;
   }
   .fk-cat-nav-btn {
     display: none !important; /* Mobile uses natural touch swipe gesture */
   }
   .fk-category-chip-btn {
-    min-width: 62px;
-    max-width: 70px;
+    min-width: 58px;
+    max-width: 66px;
     padding: 2px;
   }
   .fk-category-icon-bubble {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
   }
   .fk-category-emoji {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
   }
   .fk-category-chip-name {
-    font-size: 0.68rem;
-    margin-top: 5px;
+    font-size: 0.65rem;
+    margin-top: 3px;
   }
 }
 
