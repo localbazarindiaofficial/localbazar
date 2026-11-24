@@ -143,6 +143,7 @@ const resolveCategoryVisual = (cat: CategoryItem): { type: 'image' | 'fa' | 'emo
   if (t.includes('ac') || t.includes('refrigerator') || t.includes('fridge') || t.includes('cooler') || t.includes('washing machine') || t.includes('appliance')) return { type: 'emoji', value: '❄️' };
 
   // Home, Services, Repair & Construction
+  if (t.includes('purifier') || t.includes('filter') || t.includes('ro service') || t.includes('ro water')) return { type: 'emoji', value: '🚰' };
   if (t.includes('plumber') || t.includes('plumbing') || t.includes('pipe') || t.includes('sanitary') || t.includes('water') || t.includes('boring')) return { type: 'emoji', value: '🚰' };
   if (t.includes('carpenter') || t.includes('furniture') || t.includes('wood') || t.includes('bed') || t.includes('sofa') || t.includes('almira') || t.includes('woodwork')) return { type: 'emoji', value: '🪑' };
   if (t.includes('paint') || t.includes('painter') || t.includes('color') || t.includes('wall')) return { type: 'emoji', value: '🎨' };

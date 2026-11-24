@@ -7,6 +7,29 @@ import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
 import '@/styles/explore.css';
 
+// Helper: checks if text matches word or phrase strictly respecting word boundaries (prevents "ro" matching "electronics" or "tea" matching "teacher")
+const matchWordOrPhrase = (text: string, phrase: string): boolean => {
+  if (!text || !phrase) return false;
+  const t = text.trim().toLowerCase();
+  const p = phrase.trim().toLowerCase();
+  if (t === p) return true;
+
+  // If short token (<= 3 chars, e.g. "ro", "ac", "tv", "tea"), require exact whole-word match
+  if (p.length <= 3) {
+    const words = t.split(/[\s,;&/\\()+-]+/);
+    return words.includes(p);
+  }
+
+  // For multi-word phrases or words > 3 chars, check whole-word or exact phrase containment
+  const words = t.split(/[\s,;&/\\()+-]+/);
+  if (words.includes(p)) return true;
+
+  // Match phrase with word boundaries
+  const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(^|[\\s,;&/\\()+-])${escaped}($|[\\s,;&/\\()+-])`, 'i');
+  return regex.test(t);
+};
+
 // Smart Category Matching Helper (Supports Primary Category & Alternative Names / Search Keywords with Strict Category Priority)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
@@ -18,14 +41,14 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   // 1. Direct exact equality (e.g. "Bank" === "Bank", "Doctor & Clinics" === "Doctor & Clinics")
   if (lCat === sCat) return true;
 
-  // 2. Direct containment (e.g. "Grocery" matches "Grocery Store", "Pharmacy" matches "Pharmacy & Medical Store")
-  if (lCat.includes(sCat) || sCat.includes(lCat)) return true;
+  // 2. Direct word/phrase match
+  if (matchWordOrPhrase(lCat, sCat) || matchWordOrPhrase(sCat, lCat)) return true;
 
   // 3. Category Canonical Matching via Taxonomy & Alternative Names (Strict Canonical Category Priority)
   // Check if the user's search query corresponds to a canonical main category or its direct alias:
   const searchCanonicalDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
-    if (cName === sCat || cName.includes(sCat) || sCat.includes(cName)) return true;
+    if (matchWordOrPhrase(cName, sCat) || matchWordOrPhrase(sCat, cName)) return true;
 
     const altRaw = (c.alternativeName || '').toLowerCase();
     const altArray = Array.isArray(c.altNames) ? c.altNames.map((x) => x.toLowerCase()) : [];
@@ -34,13 +57,13 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       ...altArray,
     ].filter(Boolean);
 
-    return aliases.some((a) => a === sCat || a.includes(sCat) || sCat.includes(a));
+    return aliases.some((a) => matchWordOrPhrase(sCat, a) || matchWordOrPhrase(a, sCat));
   });
 
-  // If the search query mapped to a canonical category (e.g. "Bank", "Doctor & Clinics", "Beauty Parlour"):
+  // If the search query mapped to a canonical category (e.g. "Water Purifier & RO Service", "Bank"):
   if (searchCanonicalDef) {
     const canonicalName = (searchCanonicalDef.name || '').trim().toLowerCase();
-    if (lCat === canonicalName || lCat.includes(canonicalName) || canonicalName.includes(lCat)) {
+    if (matchWordOrPhrase(lCat, canonicalName) || matchWordOrPhrase(canonicalName, lCat)) {
       return true;
     }
 
@@ -51,7 +74,7 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       ...altArray,
     ].filter(Boolean);
 
-    if (aliases.some((a) => a === lCat || a.includes(lCat) || lCat.includes(a))) {
+    if (aliases.some((a) => matchWordOrPhrase(lCat, a) || matchWordOrPhrase(a, lCat))) {
       return true;
     }
 
@@ -63,7 +86,7 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   // (e.g., someone searched for "xerox", "dtp", "sonography"):
   const listingCanonicalDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
-    return cName === lCat || cName.includes(lCat) || lCat.includes(cName);
+    return matchWordOrPhrase(cName, lCat) || matchWordOrPhrase(lCat, cName);
   });
 
   if (listingCanonicalDef) {
@@ -74,7 +97,7 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       listingCanonicalDef.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
     }
 
-    if (subList.some((sub) => sub === sCat || sub.includes(sCat) || sCat.includes(sub))) {
+    if (subList.some((sub) => matchWordOrPhrase(sub, sCat) || matchWordOrPhrase(sCat, sub))) {
       return true;
     }
   }
@@ -252,7 +275,7 @@ function ExploreContent() {
       if (targets && targets.length) setTargetCampaigns(targets);
     }).catch(() => {});
 
-    cloudSync.pullCategories().then((cats) => {
+    cloudSync.pullCategories(true).then((cats) => {
       if (cats && cats.length) {
         setCategories(cats);
         try { localStorage.setItem('lb_cached_categories', JSON.stringify(cats)); } catch {}
