@@ -7,7 +7,7 @@ import { cloudSync } from '@/lib/firebase';
 import { Listing, NewsItem, TargetNewsBannerItem, CategoryItem, isTrustBadgeActive } from '@/types';
 import '@/styles/explore.css';
 
-// Smart Category Matching Helper (Supports Primary Category & Alternative Names / Search Keywords)
+// Smart Category Matching Helper (Supports Primary Category & Alternative Names / Search Keywords with Strict Category Priority)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
   if (!listingCat) return false;
@@ -15,15 +15,18 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   const lCat = listingCat.trim().toLowerCase();
   const sCat = searchCat.trim().toLowerCase();
 
-  // 1. Direct equality
+  // 1. Direct exact equality (e.g. "Bank" === "Bank", "Doctor & Clinics" === "Doctor & Clinics")
   if (lCat === sCat) return true;
 
-  // 2. Direct containment (e.g. "Grocery" matches "Grocery Store" or "Grocery & Supermarket")
+  // 2. Direct containment (e.g. "Grocery" matches "Grocery Store", "Pharmacy" matches "Pharmacy & Medical Store")
   if (lCat.includes(sCat) || sCat.includes(lCat)) return true;
 
-  // 3. Synonym / Taxonomy match through categories definition (Primary Name & Alternative Aliases)
-  const matchedDef = categoriesList.find((c) => {
+  // 3. Category Canonical Matching via Taxonomy & Alternative Names (Strict Canonical Category Priority)
+  // Check if the user's search query corresponds to a canonical main category or its direct alias:
+  const searchCanonicalDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
+    if (cName === sCat || cName.includes(sCat) || sCat.includes(cName)) return true;
+
     const altRaw = (c.alternativeName || '').toLowerCase();
     const altArray = Array.isArray(c.altNames) ? c.altNames.map((x) => x.toLowerCase()) : [];
     const aliases = [
@@ -31,25 +34,52 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       ...altArray,
     ].filter(Boolean);
 
-    const subList = (c.storeCategories || []).map((sc) =>
-      typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
-    );
-    if (Array.isArray(c.subcategories)) {
-      c.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
-    }
-
-    const checkMatch = (target: string) => {
-      if (!target) return false;
-      if (cName === target || cName.includes(target) || target.includes(cName)) return true;
-      if (aliases.some((a) => a === target || a.includes(target) || target.includes(a))) return true;
-      if (subList.some((sub) => sub === target || sub.includes(target) || target.includes(sub))) return true;
-      return false;
-    };
-
-    return checkMatch(lCat) && checkMatch(sCat);
+    return aliases.some((a) => a === sCat || a.includes(sCat) || sCat.includes(a));
   });
 
-  return Boolean(matchedDef);
+  // If the search query mapped to a canonical category (e.g. "Bank", "Doctor & Clinics", "Beauty Parlour"):
+  if (searchCanonicalDef) {
+    const canonicalName = (searchCanonicalDef.name || '').trim().toLowerCase();
+    if (lCat === canonicalName || lCat.includes(canonicalName) || canonicalName.includes(lCat)) {
+      return true;
+    }
+
+    const altRaw = (searchCanonicalDef.alternativeName || '').toLowerCase();
+    const altArray = Array.isArray(searchCanonicalDef.altNames) ? searchCanonicalDef.altNames.map((x) => x.toLowerCase()) : [];
+    const aliases = [
+      ...altRaw.split(/[,;|/]+/).map((s) => s.trim()),
+      ...altArray,
+    ].filter(Boolean);
+
+    if (aliases.some((a) => a === lCat || a.includes(lCat) || lCat.includes(a))) {
+      return true;
+    }
+
+    // Do NOT loosely match unrelated subcategories when searching for a distinct canonical category
+    return false;
+  }
+
+  // 4. Fallback: If searchCat was NOT a canonical category name, it may be a specific in-store sub-service query
+  // (e.g., someone searched for "xerox", "dtp", "sonography"):
+  const listingCanonicalDef = categoriesList.find((c) => {
+    const cName = (c.name || '').trim().toLowerCase();
+    return cName === lCat || cName.includes(lCat) || lCat.includes(cName);
+  });
+
+  if (listingCanonicalDef) {
+    const subList = (listingCanonicalDef.storeCategories || []).map((sc) =>
+      typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
+    );
+    if (Array.isArray(listingCanonicalDef.subcategories)) {
+      listingCanonicalDef.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
+    }
+
+    if (subList.some((sub) => sub === sCat || sub.includes(sCat) || sCat.includes(sub))) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 // Smart City Matching Helper (Supports Primary City & Authorized Service Areas)
