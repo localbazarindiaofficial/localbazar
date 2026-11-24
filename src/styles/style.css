@@ -2435,33 +2435,36 @@ html {
     width: calc(100% + 1.7rem);
     max-width: none;
     padding: 0;
+    overflow: hidden;
   }
   .fk-category-strip-container {
     width: 100%;
   }
   .fk-category-strip-track {
     gap: 8px;
-    padding: 6px 0.85rem 8px 0.85rem;
-    scroll-padding-left: 0.85rem;
-    scroll-padding-right: 0.85rem;
+    padding: 6px 12px 8px 12px;
+    scroll-padding-left: 12px;
+    scroll-padding-right: 12px;
   }
   .fk-cat-nav-btn {
     display: none !important; /* Mobile uses natural touch swipe gesture */
   }
   .fk-category-chip-btn {
-    flex: 0 0 calc((100% - 1.7rem - 32px) / 5.35) !important;
-    min-width: 54px !important;
-    max-width: 68px !important;
+    flex: 0 0 calc((100vw - 52px) / 5.5) !important;
+    width: calc((100vw - 52px) / 5.5) !important;
+    min-width: 0 !important;
+    max-width: none !important;
     padding: 2px 0 !important;
     scroll-snap-align: start;
+    box-sizing: border-box;
   }
   .fk-category-icon-bubble {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     border-radius: 13px;
   }
   .fk-category-emoji {
-    font-size: 1.35rem;
+    font-size: 1.3rem;
   }
   .fk-category-chip-name {
     font-size: 0.65rem;
