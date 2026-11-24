@@ -2473,6 +2473,511 @@ html {
   }
 }
 
+/* ========================================================
+   TOP-LEFT HEADER LOCATION SELECTOR PILL
+   ======================================================== */
+.header-location-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    max-width: 220px;
+}
+
+.header-location-pill:hover {
+    border-color: var(--brand-blue, #2563eb);
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+    transform: translateY(-1px);
+}
+
+.header-location-pill:active {
+    transform: scale(0.97);
+}
+
+.pill-pin-icon {
+    color: #ef4444;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    animation: lbPinPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes lbPinPulse {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+.pill-text-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    min-width: 0;
+    line-height: 1.1;
+}
+
+.pill-sub-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.pill-city-name {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.pill-chevron-icon {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-left: 0.15rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.header-location-pill:hover .pill-chevron-icon {
+    color: var(--brand-blue, #2563eb);
+    transform: translateY(1px);
+}
+
+/* ========================================================
+   LOCATION SELECTOR MODAL & BOTTOM SHEET
+   ======================================================== */
+.lb-loc-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    animation: lbFadeIn 0.25s ease forwards;
+}
+
+.lb-loc-modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+    padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+    box-sizing: border-box;
+    animation: lbModalZoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+}
+
+.lb-loc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.lb-loc-modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lb-loc-modal-icon-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--brand-blue, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.lb-loc-modal-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.lb-loc-modal-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 2px 0 0 0;
+}
+
+.lb-loc-modal-close {
+    background: #f1f5f9;
+    border: none;
+    font-size: 1.1rem;
+    color: #64748b;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.lb-loc-modal-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Modal Search Bar */
+.lb-loc-modal-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.55rem 0.85rem;
+    margin-bottom: 0.85rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lb-loc-modal-search:focus-within {
+    border-color: var(--brand-blue, #2563eb);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.lb-loc-modal-search i.fa-magnifying-glass {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin-right: 0.6rem;
+    flex-shrink: 0;
+}
+
+.lb-loc-modal-search input {
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    font-size: 0.92rem;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.lb-loc-modal-search input::placeholder {
+    color: #94a3b8;
+}
+
+.lb-loc-search-clear {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    transition: color 0.15s;
+    flex-shrink: 0;
+}
+
+.lb-loc-search-clear:hover {
+    color: #0f172a;
+}
+
+/* List container */
+.lb-loc-modal-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.lb-loc-modal-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.lb-loc-modal-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* Item Button */
+.lb-loc-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+    background: #ffffff;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.lb-loc-item-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.lb-loc-item-btn.active-loc {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.lb-loc-item-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.lb-loc-item-btn:hover .lb-loc-item-icon-box {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.lb-loc-item-btn.active-loc .lb-loc-item-icon-box {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+/* All Cities Special Styling */
+.all-cities-btn {
+    background: #f8fafc;
+    border: 1.5px dashed #cbd5e1;
+}
+
+.all-cities-btn:hover {
+    background: #f1f5f9;
+    border-color: var(--brand-blue, #2563eb);
+}
+
+.all-cities-btn.active-loc {
+    background: #eff6ff;
+    border: 1.5px solid #2563eb;
+}
+
+.all-cities-icon {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.lb-loc-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lb-loc-item-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.lb-loc-item-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.lb-loc-item-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.2;
+}
+
+.lb-loc-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.lb-loc-popular-pill {
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    border: 1px solid #fde68a;
+}
+
+.lb-loc-active-tag {
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 999px;
+}
+
+.lb-loc-pin {
+    background: #f1f5f9;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.lb-loc-check-icon {
+    color: #2563eb;
+    font-size: 1.15rem;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.lb-loc-arrow-icon {
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.lb-loc-item-btn:hover .lb-loc-arrow-icon {
+    color: #64748b;
+    transform: translateX(2px);
+}
+
+.lb-loc-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    padding: 0.4rem 0.2rem 0.1rem 0.2rem;
+}
+
+.lb-loc-count-badge {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.lb-loc-empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: #64748b;
+}
+
+.lb-loc-empty-state i {
+    font-size: 2rem;
+    color: #cbd5e1;
+    margin-bottom: 0.25rem;
+}
+
+.lb-loc-empty-state p {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.lb-loc-empty-state span {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+    .header-location-pill {
+        padding: 0.25rem 0.65rem;
+        gap: 0.35rem;
+        max-width: 170px;
+    }
+
+    .pill-pin-icon {
+        font-size: 0.85rem;
+    }
+
+    .pill-sub-label {
+        font-size: 0.58rem;
+    }
+
+    .pill-city-name {
+        font-size: 0.78rem;
+        max-width: 90px;
+    }
+
+    .lb-loc-modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .lb-loc-modal-card {
+        max-height: 80vh;
+        border-radius: 20px 20px 0 0;
+        padding: 1.25rem 1rem 1.5rem 1rem;
+        animation: lbSheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes lbSheetSlideUp {
+        from {
+            transform: translateY(100%);
+        }
+        to {
+            transform: translateY(0);
+        }
+    }
+}
+
+
 
 
 

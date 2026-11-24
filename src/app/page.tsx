@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cloudSync, auth, formatLBUserId, db } from '@/lib/firebase';
@@ -177,7 +177,30 @@ export default function HomePage() {
     }
     return [];
   });
-  const [cityInput, setCityInput] = useState('');
+  const [selectedCity, setSelectedCity] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lb_user_selected_city');
+        if (saved && saved.trim()) return saved.trim();
+        const last = localStorage.getItem('lb_last_city');
+        if (last && last.trim()) return last.trim();
+      } catch {}
+    }
+    return 'All Cities';
+  });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [cityInput, setCityInput] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lb_user_selected_city');
+        if (saved && saved.trim() && saved.trim() !== 'All Cities') return saved.trim();
+        const last = localStorage.getItem('lb_last_city');
+        if (last && last.trim() && last.trim() !== 'All Cities') return last.trim();
+      } catch {}
+    }
+    return '';
+  });
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
@@ -265,18 +288,29 @@ export default function HomePage() {
     });
   };
 
-  const handleQuickCategoryClick = (categoryName: string) => {
-    const trimmedCity = cityInput.trim();
-    let selectedCity = trimmedCity;
-
-    if (!selectedCity && typeof window !== 'undefined') {
+  const handleSelectLocation = (city: string) => {
+    const finalVal = city.trim();
+    setSelectedCity(finalVal);
+    setIsLocationModalOpen(false);
+    setLocationSearchQuery('');
+    if (typeof window !== 'undefined') {
       try {
-        const lastCity = localStorage.getItem('lb_last_city') || localStorage.getItem('lb_user_selected_city');
-        if (lastCity && lastCity.trim()) {
-          selectedCity = lastCity.trim();
+        localStorage.setItem('lb_user_selected_city', finalVal);
+        if (finalVal !== 'All Cities') {
+          localStorage.setItem('lb_last_city', finalVal);
+          setCityInput(finalVal);
+        } else {
+          setCityInput('');
         }
       } catch {}
     }
+  };
+
+  const handleQuickCategoryClick = (categoryName: string) => {
+    const effectiveCity =
+      selectedCity && selectedCity !== 'All Cities'
+        ? selectedCity.trim()
+        : cityInput.trim();
 
     // Set query state for immediate visual feedback
     setQueryInput(categoryName);
@@ -296,8 +330,8 @@ export default function HomePage() {
     }
 
     const params = new URLSearchParams();
-    if (selectedCity) {
-      params.set('city', selectedCity);
+    if (effectiveCity) {
+      params.set('city', effectiveCity);
     }
     params.set('category', categoryName);
 
@@ -314,11 +348,15 @@ export default function HomePage() {
     const handleReturnToHome = () => {
       setIsSearching(false);
       if (isNavigatedAwayRef.current) {
-        setCityInput('');
         setQueryInput('');
         setShowCitySugg(false);
         setShowCatSugg(false);
         isNavigatedAwayRef.current = false;
+        if (selectedCity && selectedCity !== 'All Cities') {
+          setCityInput(selectedCity);
+        } else {
+          setCityInput('');
+        }
       }
     };
     window.addEventListener('pageshow', handleReturnToHome);
@@ -327,7 +365,7 @@ export default function HomePage() {
       window.removeEventListener('pageshow', handleReturnToHome);
       window.removeEventListener('popstate', handleReturnToHome);
     };
-  }, []);
+  }, [selectedCity]);
 
   // Auto-slide home banners on mobile every 4 seconds if > 1 banner
   useEffect(() => {
@@ -515,20 +553,26 @@ export default function HomePage() {
     }
 
     const onPopState = () => {
-      // 1. If Auth modal is open, close it
+      // 1. If Location modal is open, close it
+      if (isLocationModalOpen) {
+        setIsLocationModalOpen(false);
+        return;
+      }
+
+      // 2. If Auth modal is open, close it
       if (showAuthModal) {
         setShowAuthModal(false);
         return;
       }
 
-      // 2. If suggestions are open, close them
+      // 3. If suggestions are open, close them
       if (showCitySugg || showCatSugg) {
         setShowCitySugg(false);
         setShowCatSugg(false);
         return;
       }
 
-      // 3. Double-back to exit safeguard (strictly on root home page)
+      // 4. Double-back to exit safeguard (strictly on root home page)
       if (isStandalone && typeof window !== 'undefined' && window.location.pathname === '/') {
         const now = Date.now();
         if (now - lastBackPressTimeRef.current < 2000) {
@@ -544,7 +588,55 @@ export default function HomePage() {
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [showAuthModal, showCitySugg, showCatSugg]);
+  }, [isLocationModalOpen, showAuthModal, showCitySugg, showCatSugg]);
+
+  // Body scroll lock and Escape key listener for Location Modal
+  useEffect(() => {
+    if (!isLocationModalOpen) return;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLocationModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isLocationModalOpen]);
+
+  // Filtered Cities for Location Modal Dialog (Supports City Name, District, State & PIN)
+  const filteredLocationCities = useMemo(() => {
+    const q = locationSearchQuery.trim().toLowerCase();
+    if (!q) {
+      return [...cities].sort((a, b) => {
+        if (a.popular && !b.popular) return -1;
+        if (!a.popular && b.popular) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+    return cities
+      .filter((c) => {
+        const name = (c.name || '').toLowerCase();
+        const dist = (c.district || '').toLowerCase();
+        const state = (c.state || '').toLowerCase();
+        const pin = (c.pinCode || c.pincode || '').toLowerCase();
+        return (
+          name.includes(q) ||
+          dist.includes(q) ||
+          state.includes(q) ||
+          pin.includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const aStarts = (a.name || '').toLowerCase().startsWith(q);
+        const bStarts = (b.name || '').toLowerCase().startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        if (a.popular && !b.popular) return -1;
+        if (!a.popular && b.popular) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+  }, [cities, locationSearchQuery]);
 
   // Filtered Cities: ONLY words starting with the typed query
   const cityQuery = cityInput.trim().toLowerCase();
@@ -654,35 +746,33 @@ export default function HomePage() {
     setShowCitySugg(false);
     setShowCatSugg(false);
 
-    const city = cityInput.trim();
+    const rawCity = cityInput.trim();
     const query = queryInput.trim();
+
+    let effectiveCity = rawCity;
+    if (!effectiveCity && selectedCity && selectedCity !== 'All Cities') {
+      effectiveCity = selectedCity;
+    }
 
     setCityError('');
     setQueryError('');
 
-    if (!city && !query) {
+    if (!effectiveCity && !query) {
       setCityError('Please enter city');
       setShakeCity(true);
       setTimeout(() => setShakeCity(false), 600);
       return;
     }
 
-    if (city && !query) {
-      setQueryError(`Select a Category for "${city}"`);
+    if (effectiveCity && !query) {
+      setQueryError(`Select a Category for "${effectiveCity}"`);
       setShakeQuery(true);
       setTimeout(() => setShakeQuery(false), 600);
       return;
     }
 
-    if (!city && query) {
-      setCityError(`Enter City for "${query}"`);
-      setShakeCity(true);
-      setTimeout(() => setShakeCity(false), 600);
-      return;
-    }
-
     if (!currentUser) {
-      setModalTargetText(`${query} in ${city}`);
+      setModalTargetText(effectiveCity ? `${query} in ${effectiveCity}` : query);
       setShowAuthModal(true);
       return;
     }
@@ -708,7 +798,9 @@ export default function HomePage() {
     const finalCategory = matchedCategory ? matchedCategory.name : query;
 
     const params = new URLSearchParams();
-    params.set('city', city);
+    if (effectiveCity) {
+      params.set('city', effectiveCity);
+    }
     params.set('category', finalCategory);
     const targetUrl = `/explore?${params.toString()}`;
 
@@ -783,9 +875,10 @@ export default function HomePage() {
         const redir = pendingRedirectUrl;
         setPendingRedirectUrl(null);
         router.push(redir);
-      } else if (cityInput.trim() || queryInput.trim()) {
+      } else if (cityInput.trim() || queryInput.trim() || (selectedCity && selectedCity !== 'All Cities')) {
+        const effCity = cityInput.trim() || (selectedCity !== 'All Cities' ? selectedCity : '');
         const params = new URLSearchParams();
-        params.set('city', cityInput.trim());
+        if (effCity) params.set('city', effCity);
         params.set('category', queryInput.trim());
         isNavigatedAwayRef.current = true;
         setShowCitySugg(false);
@@ -803,7 +896,22 @@ export default function HomePage() {
     <>
       {/* Minimal Header */}
       <header className="app-header">
-        <div className="header-left" id="headerLeftSlot"></div>
+        <div className="header-left" id="headerLeftSlot">
+          <button
+            type="button"
+            className="header-location-pill"
+            onClick={() => setIsLocationModalOpen(true)}
+            title="Select Location / শহর বেছে নিন"
+            aria-label="Select default location"
+          >
+            <i className="fa-solid fa-location-dot pill-pin-icon"></i>
+            <div className="pill-text-col">
+              <span className="pill-sub-label">Location</span>
+              <span className="pill-city-name">{selectedCity || 'All Cities'}</span>
+            </div>
+            <i className="fa-solid fa-chevron-down pill-chevron-icon"></i>
+          </button>
+        </div>
         <div className="header-right" id="headerUserArea">
           {!currentUser ? (
             <Link href="/auth" prefetch={true} className="user-avatar-btn" id="guestSignInBtn" title="Account / Sign In">
@@ -955,6 +1063,11 @@ export default function HomePage() {
                         onPointerDown={(e) => {
                           e.preventDefault();
                           setCityInput(c.name);
+                          setSelectedCity(c.name);
+                          try {
+                            localStorage.setItem('lb_user_selected_city', c.name);
+                            localStorage.setItem('lb_last_city', c.name);
+                          } catch {}
                           setShowCitySugg(false);
                           setCityError('');
                           setTimeout(() => {
@@ -964,6 +1077,11 @@ export default function HomePage() {
                         onMouseDown={(e) => {
                           e.preventDefault();
                           setCityInput(c.name);
+                          setSelectedCity(c.name);
+                          try {
+                            localStorage.setItem('lb_user_selected_city', c.name);
+                            localStorage.setItem('lb_last_city', c.name);
+                          } catch {}
                           setShowCitySugg(false);
                           setCityError('');
                           setTimeout(() => {
@@ -1875,6 +1993,146 @@ export default function HomePage() {
             <div className="lb-auth-modal-footer">
               <i className="fa-solid fa-shield-halved"></i>
               <span>Fast, verified and secure 1-click sign-in</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Selector Modal / Bottom Sheet */}
+      {isLocationModalOpen && (
+        <div
+          className="lb-loc-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsLocationModalOpen(false);
+            }
+          }}
+        >
+          <div className="lb-loc-modal-card" role="dialog" aria-modal="true" aria-labelledby="locModalTitle">
+            {/* Modal Header */}
+            <div className="lb-loc-modal-header">
+              <div className="lb-loc-modal-title-group">
+                <div className="lb-loc-modal-icon-badge">
+                  <i className="fa-solid fa-location-dot"></i>
+                </div>
+                <div>
+                  <h3 className="lb-loc-modal-title" id="locModalTitle">Select Location</h3>
+                  <p className="lb-loc-modal-sub">Choose your default city or browse all</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="lb-loc-modal-close"
+                onClick={() => setIsLocationModalOpen(false)}
+                aria-label="Close location selector"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            {/* Modal Search Bar */}
+            <div className="lb-loc-modal-search">
+              <i className="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Search city, district or PIN..."
+                value={locationSearchQuery}
+                onChange={(e) => setLocationSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {locationSearchQuery && (
+                <button
+                  type="button"
+                  className="lb-loc-search-clear"
+                  onClick={() => setLocationSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              )}
+            </div>
+
+            {/* Location Options List */}
+            <div className="lb-loc-modal-list">
+              {/* "All Cities" Option (Always at top) */}
+              {(!locationSearchQuery ||
+                'all cities সকল শহর'.toLowerCase().includes(locationSearchQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className={`lb-loc-item-btn all-cities-btn ${selectedCity === 'All Cities' ? 'active-loc' : ''}`}
+                  onClick={() => handleSelectLocation('All Cities')}
+                >
+                  <div className="lb-loc-item-icon-box all-cities-icon">
+                    <i className="fa-solid fa-earth-asia"></i>
+                  </div>
+                  <div className="lb-loc-item-info">
+                    <div className="lb-loc-item-name-row">
+                      <span className="lb-loc-item-name">All Cities (সকল শহর)</span>
+                      {selectedCity === 'All Cities' && (
+                        <span className="lb-loc-active-tag">Selected</span>
+                      )}
+                    </div>
+                    <span className="lb-loc-item-sub">Browse listings across all cities & districts</span>
+                  </div>
+                  {selectedCity === 'All Cities' ? (
+                    <i className="fa-solid fa-circle-check lb-loc-check-icon"></i>
+                  ) : (
+                    <i className="fa-solid fa-chevron-right lb-loc-arrow-icon"></i>
+                  )}
+                </button>
+              )}
+
+              {/* Section Header */}
+              <div className="lb-loc-list-heading">
+                <span>{locationSearchQuery ? 'Matching Cities' : 'Available Cities & Districts'}</span>
+                <span className="lb-loc-count-badge">{filteredLocationCities.length}</span>
+              </div>
+
+              {/* Live Filtered Cities List */}
+              {filteredLocationCities.length > 0 ? (
+                filteredLocationCities.map((c) => {
+                  const isSelected = selectedCity.toLowerCase() === (c.name || '').toLowerCase();
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      className={`lb-loc-item-btn ${isSelected ? 'active-loc' : ''}`}
+                      onClick={() => handleSelectLocation(c.name)}
+                    >
+                      <div className="lb-loc-item-icon-box">
+                        <i className="fa-solid fa-location-dot"></i>
+                      </div>
+                      <div className="lb-loc-item-info">
+                        <div className="lb-loc-item-name-row">
+                          <span className="lb-loc-item-name">{c.name}</span>
+                          {c.popular && <span className="lb-loc-popular-pill">Popular</span>}
+                          {isSelected && <span className="lb-loc-active-tag">Selected</span>}
+                        </div>
+                        <div className="lb-loc-item-meta">
+                          {c.district && <span>Dist: {c.district}</span>}
+                          {c.state && <span>{c.state}</span>}
+                          {(c.pinCode || c.pincode) && (
+                            <span className="lb-loc-pin">
+                              PIN: {(c.pinCode || c.pincode || '').replace(/^[#\s]+/, '')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected ? (
+                        <i className="fa-solid fa-circle-check lb-loc-check-icon"></i>
+                      ) : (
+                        <i className="fa-solid fa-chevron-right lb-loc-arrow-icon"></i>
+                      )}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="lb-loc-empty-state">
+                  <i className="fa-solid fa-map-location-dot"></i>
+                  <p>No matching city found for &ldquo;{locationSearchQuery}&rdquo;</p>
+                  <span>Try searching by city name, district or PIN code</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
