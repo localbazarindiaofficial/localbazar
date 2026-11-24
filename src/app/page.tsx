@@ -123,24 +123,6 @@ export default function HomePage() {
   const [cityInput, setCityInput] = useState('');
   const [queryInput, setQueryInput] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [homeNewsTicker, setHomeNewsTicker] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('lb_cached_news_ticker');
-        if (cached !== null) return cached;
-      } catch {}
-    }
-    return '';
-  });
-  const [homeNewsTickerLink, setHomeNewsTickerLink] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('lb_cached_news_ticker_link');
-        if (cached !== null) return cached;
-      } catch {}
-    }
-    return '';
-  });
   const [homeSlideBanners, setHomeSlideBanners] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -403,26 +385,6 @@ export default function HomePage() {
           setCategories(cat);
           try {
             localStorage.setItem('lb_cached_categories', JSON.stringify(cat));
-          } catch {}
-        }
-      });
-
-      cloudSync.pullNewsTickerData().then((t) => {
-        if (t && t.ticker && t.ticker.trim()) {
-          const tick = t.ticker.trim();
-          const link = (t.redirectUrl || '').trim();
-          setHomeNewsTicker(tick);
-          setHomeNewsTickerLink(link);
-          try {
-            localStorage.setItem('lb_cached_news_ticker', tick);
-            localStorage.setItem('lb_cached_news_ticker_link', link);
-          } catch {}
-        } else {
-          setHomeNewsTicker('');
-          setHomeNewsTickerLink('');
-          try {
-            localStorage.removeItem('lb_cached_news_ticker');
-            localStorage.removeItem('lb_cached_news_ticker_link');
           } catch {}
         }
       });
@@ -784,57 +746,7 @@ export default function HomePage() {
     <>
       {/* Minimal Header */}
       <header className="app-header">
-        <div className="header-left" id="headerTickerSlot" style={{ flex: 1, minWidth: 0, overflow: 'hidden', maxWidth: '75vw' }}>
-          {homeNewsTicker && (
-            <div className="header-ticker-bar" style={{ width: '100%', overflow: 'hidden' }}>
-              {homeNewsTickerLink ? (
-                homeNewsTickerLink.startsWith('http://') || homeNewsTickerLink.startsWith('https://') ? (
-                  <a
-                    href={homeNewsTickerLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lb-ticker-track"
-                    style={{ textDecoration: 'none', cursor: 'pointer' }}
-                    title={`Click to open: ${homeNewsTickerLink}`}
-                  >
-                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
-                      {homeNewsTicker}
-                    </span>
-                    <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
-                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
-                      {homeNewsTicker}
-                    </span>
-                  </a>
-                ) : (
-                  <Link
-                    href={homeNewsTickerLink}
-                    className="lb-ticker-track"
-                    style={{ textDecoration: 'none', cursor: 'pointer' }}
-                    title={`Click to open: ${homeNewsTickerLink}`}
-                  >
-                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
-                      {homeNewsTicker}
-                    </span>
-                    <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
-                    <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2563eb' }}>
-                      {homeNewsTicker}
-                    </span>
-                  </Link>
-                )
-              ) : (
-                <div className="lb-ticker-track">
-                  <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
-                    {homeNewsTicker}
-                  </span>
-                  <span className="lb-ticker-sep" style={{ margin: '0 2rem', color: '#94a3b8', opacity: 0.6 }}>•</span>
-                  <span className="lb-ticker-text-item" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>
-                    {homeNewsTicker}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <div className="header-left" id="headerLeftSlot"></div>
         <div className="header-right" id="headerUserArea">
           {!currentUser ? (
             <Link href="/auth" prefetch={true} className="user-avatar-btn" id="guestSignInBtn" title="Account / Sign In">

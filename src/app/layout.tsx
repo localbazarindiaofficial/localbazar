@@ -172,7 +172,7 @@ export default function RootLayout({
                     try {
                       var heavyKeys = [
                         'lb_listings', 'lb_users', 'lb_user_listings', 'lb_empty_store_banners',
-                        'lb_home_banners', 'lb_target_news_banners', 'lb_news_ticker',
+                        'lb_home_banners', 'lb_target_news_banners', 'lb_news_ticker', 'lb_cached_news_ticker', 'lb_cached_news_ticker_link',
                         'lb_listing_claims', 'lb_trust_requests', 'lb_trust_badge_settings',
                         'lb_mail', 'lb_city_requests', 'lb_category_requests', 'lb_cities',
                         'lb_categories', 'lb_news'
