@@ -266,6 +266,8 @@ export default function HomePage() {
   const cityInputRef = useRef<HTMLInputElement>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
   const isNavigatedAwayRef = useRef(false);
+  // Ghost-click safeguard ref: prevents touch tap-through from autocomplete popovers onto underlying slide categories
+  const isSelectingSuggestionRef = useRef(false);
 
   // Flipkart-style Category Strip ref & scroll state
   const fkCatTrackRef = useRef<HTMLDivElement>(null);
@@ -320,7 +322,52 @@ export default function HomePage() {
     setCityInput('');
   };
 
+  // Safe selection handler for city auto-suggestions with multi-event protection
+  const handleCitySuggestionSelect = (cityName: string, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    isSelectingSuggestionRef.current = true;
+    setCityInput(cityName);
+    setCityError('');
+    setShowCitySugg(false);
+    setTimeout(() => {
+      isSelectingSuggestionRef.current = false;
+      queryInputRef.current?.focus();
+    }, 280);
+  };
+
+  // Safe selection handler for category auto-suggestions with multi-event protection
+  const handleCatSuggestionSelect = (catName: string, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    isSelectingSuggestionRef.current = true;
+    setQueryInput(catName);
+    setQueryError('');
+    setShowCatSugg(false);
+    queryInputRef.current?.blur();
+    setTimeout(() => {
+      isSelectingSuggestionRef.current = false;
+    }, 280);
+    if (cityInput.trim()) {
+      try {
+        router.prefetch(`/explore?city=${encodeURIComponent(cityInput.trim())}&category=${encodeURIComponent(catName)}`);
+      } catch {}
+    }
+  };
+
   const handleQuickCategoryClick = (categoryName: string) => {
+    // If user just tapped an auto-suggestion or suggestions were visible, prevent ghost-click tap-through
+    if (isSelectingSuggestionRef.current) return;
+    if (showCitySugg || showCatSugg) {
+      setShowCitySugg(false);
+      setShowCatSugg(false);
+      return;
+    }
+
     // Strictly prioritize the top selectedCity for the slide category rail
     const effectiveCity =
       selectedCity && selectedCity !== 'All Cities'
@@ -1071,24 +1118,9 @@ export default function HomePage() {
                       <div
                         key={c.name}
                         className="omni-sugg-item"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          setCityInput(c.name);
-                          setShowCitySugg(false);
-                          setCityError('');
-                          setTimeout(() => {
-                            queryInputRef.current?.focus();
-                          }, 40);
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setCityInput(c.name);
-                          setShowCitySugg(false);
-                          setCityError('');
-                          setTimeout(() => {
-                            queryInputRef.current?.focus();
-                          }, 40);
-                        }}
+                        onPointerDown={(e) => handleCitySuggestionSelect(c.name, e)}
+                        onMouseDown={(e) => handleCitySuggestionSelect(c.name, e)}
+                        onClick={(e) => handleCitySuggestionSelect(c.name, e)}
                       >
                         <div className="omni-sugg-icon-badge city-badge">
                           <i className="fa-solid fa-location-dot"></i>
@@ -1198,26 +1230,9 @@ export default function HomePage() {
                       <div
                         key={cat.name}
                         className="omni-sugg-item"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          setQueryInput(cat.name);
-                          setShowCatSugg(false);
-                          setQueryError('');
-                          queryInputRef.current?.blur();
-                          if (cityInput.trim()) {
-                            try { router.prefetch(`/explore?city=${encodeURIComponent(cityInput.trim())}&category=${encodeURIComponent(cat.name)}`); } catch {}
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setQueryInput(cat.name);
-                          setShowCatSugg(false);
-                          setQueryError('');
-                          queryInputRef.current?.blur();
-                          if (cityInput.trim()) {
-                            try { router.prefetch(`/explore?city=${encodeURIComponent(cityInput.trim())}&category=${encodeURIComponent(cat.name)}`); } catch {}
-                          }
-                        }}
+                        onPointerDown={(e) => handleCatSuggestionSelect(cat.name, e)}
+                        onMouseDown={(e) => handleCatSuggestionSelect(cat.name, e)}
+                        onClick={(e) => handleCatSuggestionSelect(cat.name, e)}
                       >
                         <div className="omni-sugg-icon-badge cat-badge">
                           <i className={`fa-solid ${cat.icon || 'fa-layer-group'}`}></i>
@@ -1269,7 +1284,11 @@ export default function HomePage() {
 
           {/* Flipkart-Style Horizontal Category Slider (Strictly Live Admin Categories Only - Zero Demo Data) */}
           {categories.length > 0 && (
-            <section className="fk-category-strip-section" aria-label="Browse Categories">
+            <section
+              className="fk-category-strip-section"
+              aria-label="Browse Categories"
+              style={{ pointerEvents: showCitySugg || showCatSugg ? 'none' : 'auto' }}
+            >
               <div className="fk-category-strip-container">
                 {canScrollCatLeft && (
                   <button
@@ -1297,6 +1316,7 @@ export default function HomePage() {
                         key={cat.id || cat.name || idx}
                         type="button"
                         className="fk-category-chip-btn"
+                        style={{ pointerEvents: showCitySugg || showCatSugg ? 'none' : 'auto' }}
                         onClick={() => handleQuickCategoryClick(cat.name)}
                         onMouseEnter={() => {
                           try {

@@ -29,7 +29,7 @@ const matchWordOrPhrase = (text: string, phrase: string): boolean => {
   return false;
 };
 
-// Smart Category Matching Helper (Supports Primary Category, Aliases & Smart Broad Matching across In-Store Services)
+// Smart Category Matching Helper (Strict Category Accuracy: Only matches listings that belong to the searched category or its direct synonyms)
 const matchCategory = (listingCat: string, searchCat: string, categoriesList: CategoryItem[]): boolean => {
   if (!searchCat || searchCat === 'all' || searchCat === 'all categories') return true;
   if (!listingCat) return false;
@@ -37,13 +37,13 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
   const lCat = listingCat.trim().toLowerCase();
   const sCat = searchCat.trim().toLowerCase();
 
-  // 1. Direct exact equality (e.g. "Bank" === "Bank", "Doctor & Clinics" === "Doctor & Clinics")
+  // 1. Direct exact equality (e.g. "Bank" === "Bank", "Bag & Luggage Shop" === "Bag & Luggage Shop")
   if (lCat === sCat) return true;
 
-  // 2. Direct word/phrase match
+  // 2. Direct whole word/phrase match
   if (matchWordOrPhrase(lCat, sCat) || matchWordOrPhrase(sCat, lCat)) return true;
 
-  // 3. Category Canonical Matching via Taxonomy & Alternative Names
+  // 3. Category Canonical Matching via Taxonomy & Alternative Names (Strict: only matches primary category and its direct aliases)
   const searchCanonicalDef = categoriesList.find((c) => {
     const cName = (c.name || '').trim().toLowerCase();
     if (matchWordOrPhrase(cName, sCat) || matchWordOrPhrase(sCat, cName)) return true;
@@ -58,7 +58,6 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
     return aliases.some((a) => matchWordOrPhrase(sCat, a) || matchWordOrPhrase(a, sCat));
   });
 
-  // If the search query mapped to a canonical category (e.g. "Water Purifier & RO Service", "Bank"):
   if (searchCanonicalDef) {
     const canonicalName = (searchCanonicalDef.name || '').trim().toLowerCase();
     if (matchWordOrPhrase(lCat, canonicalName) || matchWordOrPhrase(canonicalName, lCat)) {
@@ -76,49 +75,7 @@ const matchCategory = (listingCat: string, searchCat: string, categoriesList: Ca
       return true;
     }
 
-    // Smart Broad Matching: Also match stores whose listed services/subcategories explicitly include this service
-    // (e.g. an Electrical shop providing "Water Purifier / Filter", or a Cyber Cafe providing "Banking & Bill Payment")
-    const listingCanonicalDef = categoriesList.find((c) => {
-      const cName = (c.name || '').trim().toLowerCase();
-      return cName === lCat || matchWordOrPhrase(cName, lCat) || matchWordOrPhrase(lCat, cName);
-    });
-
-    if (listingCanonicalDef) {
-      const subList = (listingCanonicalDef.storeCategories || []).map((sc) =>
-        typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
-      );
-      if (Array.isArray(listingCanonicalDef.subcategories)) {
-        listingCanonicalDef.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
-      }
-
-      const matchTargets = [sCat, canonicalName, ...aliases.filter((a) => a.length >= 3)];
-      const hasSubMatch = subList.some((sub) =>
-        matchTargets.some((target) => matchWordOrPhrase(sub, target) || matchWordOrPhrase(target, sub))
-      );
-      if (hasSubMatch) return true;
-    }
-
     return false;
-  }
-
-  // 4. Fallback: If searchCat was NOT a canonical category name, it may be a specific in-store sub-service query
-  // (e.g., someone searched for "xerox", "dtp", "sonography"):
-  const listingCanonicalDef = categoriesList.find((c) => {
-    const cName = (c.name || '').trim().toLowerCase();
-    return matchWordOrPhrase(cName, lCat) || matchWordOrPhrase(lCat, cName);
-  });
-
-  if (listingCanonicalDef) {
-    const subList = (listingCanonicalDef.storeCategories || []).map((sc) =>
-      typeof sc === 'string' ? sc.toLowerCase() : (sc.label || sc.name || '').toLowerCase()
-    );
-    if (Array.isArray(listingCanonicalDef.subcategories)) {
-      listingCanonicalDef.subcategories.forEach((sub) => subList.push(sub.toLowerCase()));
-    }
-
-    if (subList.some((sub) => matchWordOrPhrase(sub, sCat) || matchWordOrPhrase(sCat, sub))) {
-      return true;
-    }
   }
 
   return false;
